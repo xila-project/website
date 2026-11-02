@@ -16,7 +16,7 @@ test("all published source repositories have CI environment keys", () => {
     "applications",
     "platforms",
     "package_manager",
-    "packages",
+    "registry",
   ]);
   assert.equal(
     sourceEnvironmentKey("package_manager"),
@@ -65,7 +65,7 @@ test("validates every repository including the packages README-only checkout", (
     fs.writeFileSync(
       path.join(
         checkout,
-        repository === "packages" ? "README.md" : "Cargo.toml",
+        repository === "registry" ? "README.md" : "Cargo.toml",
       ),
       "test",
     );
@@ -73,7 +73,7 @@ test("validates every repository including the packages README-only checkout", (
       XILA_STRICT_SOURCE_REFERENCES: "1",
       [sourceEnvironmentKey(repository)]: checkout,
     };
-    const marker = repository === "packages" ? "README.md" : "Cargo.toml";
+    const marker = repository === "registry" ? "README.md" : "Cargo.toml";
     assert.equal(
       checkCodeReference(repository, marker, {
         websiteRoot: directory,

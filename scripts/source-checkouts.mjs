@@ -31,7 +31,7 @@ export function checkCodeReference(
   const configuredPath = environment[key];
   const checkout =
     configuredPath ?? path.resolve(websiteRoot, "..", repository);
-  const marker = repository === "packages" ? "README.md" : "Cargo.toml";
+  const marker = repository === "registry" ? "README.md" : "Cargo.toml";
   const strict = environment.XILA_STRICT_SOURCE_REFERENCES === "1";
 
   if (!fs.existsSync(path.join(checkout, marker))) {

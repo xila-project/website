@@ -50,7 +50,7 @@ The exact native OS, linker, graphics/font and display dependencies vary by oper
 | WASI applications, Wasmi, graphical/CLI shells, localization of applications | `applications`    |
 | Native/browser runtime, Linux/ESP drivers, seed images, OPFS and deployment  | `platforms`       |
 | Manifest/TAR development packages                                            | `package_manager` |
-| Static community publication declarations                                    | `packages`        |
+| Static community publication declarations                                    | `registry`        |
 
 To assemble a desktop or browser demonstration, build WASI apps first, then point Platforms at them:
 

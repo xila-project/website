@@ -22,7 +22,7 @@ flowchart TD
 - **[Core](https://github.com/xila-project/core)** contains reusable subsystem managers (Task, VFS, Graphics, Time, Network, Users, Memory, Log), general device/filesystem/ABI libraries, and its `xila` API façade under <CodeReference path="core/src/lib.rs" />.
 - **[Applications](https://github.com/xila-project/applications)** contains the Wasmi host interpreter, guest API and six bundled WASI apps, plus graphical shell, CLI shell, Settings, file manager, Terminal and other native executables.
 - **[Platforms](https://github.com/xila-project/platforms)** contains target drivers, the integration/testing harness, the Linux/OCI and browser final binaries, filesystem seed builders and the actual browser-demo CI.
-- **[package_manager](https://github.com/xila-project/package_manager)** and **[packages](https://github.com/xila-project/packages)** own separate experimental package tooling and publication metadata, not installed runtime services.
+- **[package_manager](https://github.com/xila-project/package_manager)** and **[registry](https://github.com/xila-project/registry)** own separate experimental package tooling and publication metadata, not installed runtime services.
 
 Production dependency direction is **Platforms → Applications → Core**, with Platforms also directly depending on Core. Development-only test harness imports may reverse these edges; no circular production runtime ownership is intended. Git dependencies are pinned and local code overrides need explicit Cargo configuration.
 

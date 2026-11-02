@@ -3,7 +3,7 @@ export const SOURCE_REPOSITORIES = Object.freeze({
   applications: "applications",
   platforms: "platforms",
   package_manager: "package_manager",
-  packages: "packages",
+  registry: "registry",
 });
 
 const EXTERNAL_CRATE_ROOTS = Object.freeze({
