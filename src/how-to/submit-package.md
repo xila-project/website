@@ -1,76 +1,52 @@
 ---
 layout: doc
 docType: how-to
-description: Contribute reviewed package metadata to the static, unsigned community registry preview.
+description: Publish a released, signed package version to the Xila package registry.
 ---
 
-# Submit a package declaration
+# Submit a package to the registry
 
-The [`xila-project/registry`](https://github.com/xila-project/registry) repository provides a **development-only registry preview**, not an installable app store. You can submit metadata for an existing external release; publishing a declaration does **not** download, verify signatures, run, or install your code.
+The [`xila-project/registry`](https://github.com/xila-project/registry) repository is Xila's package registry. It holds **metadata only**: one JSON **registry entry** per released version, and the developer keys allowed to publish. Archives stay where you release them. The registry is served as static files at [registry.xila.dev](https://registry.xila.dev/), for example [`packages/xila/clock/0.1.0.json`](https://registry.xila.dev/packages/xila/clock/0.1.0.json).
 
-## 1. Publish the archive outside Git
+## 1. Release a signed archive
 
-Build the experimental archive with the [native package builder](./package-application). Host the immutable `.xpk` as an external release asset, for example on your project's GitHub Releases. Record its **real** HTTPS URL, file length and SHA-256; do not use the example's fake values. The current registry code validates the _shape_ of these fields but does not fetch artifacts to verify the actual bytes.
+Build and sign the `.xpk` with the [native package builder](./package-application), or the reusable packaging workflow, and attach it to an immutable release of your project, for example on GitHub Releases. Never replace the bytes of a published version: release a new version instead.
+
+To create a developer key:
 
 ```sh
-sha256sum /path/to/released.xpk
-wc -c < /path/to/released.xpk
+xila-package key generate signing/private.seed signing/public.key
+base64 -w0 signing/public.key   # value of public_key in your key file
 ```
 
-Keep the release artifact immutable. Publish a new package version for changed bytes rather than silently replacing an older artifact.
+Keep the seed private. In CI, provide it as a secret (`base64 -w0 signing/private.seed | gh secret set …`).
 
-## 2. Add a versioned TOML declaration
+## 2. Generate the registry entry
 
-Clone `registry`, then create:
+Entries are **generated from the archive, never written by hand**:
 
-```text
-packages/<namespace>/<application>/<version>.toml
+```sh
+xila-package registry entry app.xpk signing/public.key <publisher-id> \
+  https://github.com/<owner>/<repo>/releases/download/<tag>/app.xpk \
+  packages/<namespace>/<name>/<version>.json
 ```
 
-For `community.weather` version `1.0.0`, the location is `packages/community/weather/1.0.0.toml`. Start from [the example](https://github.com/xila-project/registry/blob/main/examples/weather-1.0.0.toml) and replace every placeholder:
+The command verifies the archive's signature, records its URL, SHA-256 and size, and copies the identity, compatibility, capabilities, display name and metadata from the signed manifest. An entry lives at `packages/<identifier, dots as />/<version>.json`; for `community.weather` 1.0.0, that is `packages/community/weather/1.0.0.json`.
 
-```toml
-schema = 1
-
-[package]
-name = "community.weather"
-version = "1.0.0"
-summary = "An example weather application"
-license = "MIT"
-source = "https://github.com/example/weather"
-
-[[artifacts]]
-target = "wasm32-wasip1"
-minimum_xila_abi = 1
-url = "https://github.com/example/weather/releases/download/v1.0.0/weather.xpk"
-sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-size = 10240
-```
-
-**All URLs, hashes and sizes above are fictitious**; they must be replaced with the actual release details before submitting. This **TOML publication declaration** is not the internal **JSON package manifest** described in [Package format](/reference/package-format).
-
-The identifier must match its directory path. Valid namespace and application components are lowercase words/digits with internal hyphens. Each package version must use compatible SemVer without build metadata. Artifact targets must be distinct within one declaration and the SHA-256 value must be lowercase hexadecimal. The `xila` namespace is reserved for first-party applications **by convention**, but no authenticated publisher policy enforces it yet.
+The first time you publish, also add `keys/developers/<publisher-id>.json` with your `id`, `author`, `algorithm` (`ed25519`), `public_key` and the `namespaces` you publish (the first label of your identifiers, `community` for `community.weather`). The `xila` namespace is reserved for official applications.
 
 ## 3. Validate locally
 
-The registry uses **Python 3.12+**, only standard-library modules, and no external services:
-
 ```sh
-python -m unittest discover -s tests -v
-python tools/registry.py validate
-python tools/registry.py build
+bash tools/validate.sh origin/main
 ```
 
-The output under `_site/v1` is a deterministic unsigned JSON preview. Each package has a direct descriptor such as `v1/packages/community/weather.json`; there is no full catalog, search server or dependency resolver. `v1/registry.json` contains only metadata including package count.
-
-The registry starts with **zero live declarations**. Its `examples/weather-1.0.0.toml` is illustrative and is not published by the builder.
+The script installs `xila-package` at the registry's pinned revision and runs `xila-package registry check --archives`. It checks that every key and entry is valid and canonical, that each entry sits at its own path, that its publisher may publish its namespace, and that each downloaded archive matches its entry's size, SHA-256, signature and copied fields. It also refuses changes to already published entries. It needs `cargo`, `curl` and `jq`.
 
 ## 4. Open a pull request
 
-A GitHub Actions workflow runs tests, validates the TOML, and uploads the generated preview for review. Maintainers should review **publisher identity, provenance, artifact permissions and release immutability**; successful CI checks are not a signature or security review. An optional GitHub Pages workflow runs on merged `main` (or manual dispatch) and publishes **unsigned** JSON.
-
-To enable Pages, maintainers must select **Settings → Pages → Build and deployment → GitHub Actions**. Protect `main` with required checks and review before accepting external submissions. Publishing never compiles or executes submitted application code.
+CI runs the same script with read-only permissions; a maintainer reviews provenance, content and the publisher's identity. After merge, the entry is published at `registry.xila.dev`. Publication never builds or executes your code.
 
 ## Current limitations
 
-No end-to-end authenticated publication chain, official keyring, stable signed index, repository search, package installation or on-device `pkg` CLI is available yet. A valid SHA-256 field inside unsigned JSON cannot establish trustworthy publisher identity. See [the package-management architecture](/explanation/package-management) for the separation between repository metadata, signed package contents and loader authorization.
+Entries are not yet signed by the **repository key**, and there is no signed index with an expiry, so devices cannot yet authenticate the registry itself, only the developer signature on each archive. Installing from the registry on a device is not available yet. See [the package-management architecture](/explanation/package-management) and the [registry architecture](https://github.com/xila-project/registry/blob/main/docs/architecture.md).
