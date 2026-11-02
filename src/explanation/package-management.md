@@ -15,7 +15,7 @@ The repositories and APIs are being developed under [Core #308](https://github.c
 | Repository                                                                        | Owns today                                                                                                    | Does not own                                                                                  |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | [`Xila-Project/package_manager`](https://github.com/xila-project/package_manager) | Shared verification, provisional manifest, TAR reader/writer, native `xila-package` builder and Cargo/mise CI | Xila VFS, network drivers, package trust policy, implemented installer                        |
-| [`Xila-Project/packages`](https://github.com/xila-project/packages)               | Contributor TOML declarations, strict validation and static GitHub Pages **preview** generation               | Rust manifest/reader libraries, packages themselves, authenticated repository indexes         |
+| [`xila-project/registry`](https://github.com/xila-project/registry)               | Contributor TOML declarations, strict validation and static GitHub Pages **preview** generation               | Rust manifest/reader libraries, packages themselves, authenticated repository indexes         |
 | [`Xila-Project/core`](https://github.com/xila-project/core)                       | Runtime VFS/Wasmi/application loader, firmware prototype and **pinned shared verification dependency**        | A working `pkg` command, package installation/activation, on-device package-repository client |
 
 The actual Rust workspace is named **`package_manager`** (underscore). Its Cargo package names use `xila-package-…` prefixes, for example `xila-package-manifest`. The eventual installed Xila package manager must not be confused with that development repository.
@@ -24,7 +24,7 @@ The actual Rust workspace is named **`package_manager`** (underscore). Its Cargo
 flowchart TD
     Author[Application developer] -->|build files and JSON manifest| Builder[Shared native xila-package builder]
     Builder -->|experimental XPK TAR archive| Release[External immutable release artifact]
-    Author -->|reviewed TOML declaration| Registry[packages repository]
+    Author -->|reviewed TOML declaration| Registry[registry repository]
     Registry -->|unsigned per-package JSON preview| Pages[Static Pages preview]
     Core[Xila Core] -->|pinned Git dependency| Verification[Shared SHA-256 and strict Ed25519]
     Installer[Future offline installer and repository client] -.->|planned only| Release

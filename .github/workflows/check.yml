@@ -61,12 +61,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: "Setup | Checkout packages references"
+      - name: "Setup | Checkout registry references"
         uses: actions/checkout@v5
         with:
-          repository: xila-project/packages
+          repository: xila-project/registry
           ref: main
-          path: .reference-checkouts/packages
+          path: .reference-checkouts/registry
           fetch-depth: 1
           persist-credentials: false
 
@@ -77,5 +77,5 @@ jobs:
           XILA_APPLICATIONS_PATH: ${{ github.workspace }}/.reference-checkouts/applications
           XILA_PLATFORMS_PATH: ${{ github.workspace }}/.reference-checkouts/platforms
           XILA_PACKAGE_MANAGER_PATH: ${{ github.workspace }}/.reference-checkouts/package_manager
-          XILA_PACKAGES_PATH: ${{ github.workspace }}/.reference-checkouts/packages
+          XILA_REGISTRY_PATH: ${{ github.workspace }}/.reference-checkouts/registry
         run: mise exec -- npm run check

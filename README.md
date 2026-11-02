@@ -118,7 +118,7 @@ This project is under the [Apache License 2.0](LICENSE).
 ## Validate code references against source repositories
 
 Website documentation can embed `CodeReference` components pointing to files in
-Core, Applications, Platforms, Package Manager or Packages. The check command
+Core, Applications, Platforms, Package Manager or Registry. The check command
 validates those paths against local checkouts when available; a missing local
 checkout is reported as skipped to keep standalone documentation development
 possible.

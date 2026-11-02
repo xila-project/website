@@ -6,7 +6,7 @@ description: Contribute reviewed package metadata to the static, unsigned commun
 
 # Submit a package declaration
 
-The [`Xila-Project/packages`](https://github.com/xila-project/packages) repository provides a **development-only registry preview**, not an installable app store. You can submit metadata for an existing external release; publishing a declaration does **not** download, verify signatures, run, or install your code.
+The [`xila-project/registry`](https://github.com/xila-project/registry) repository provides a **development-only registry preview**, not an installable app store. You can submit metadata for an existing external release; publishing a declaration does **not** download, verify signatures, run, or install your code.
 
 ## 1. Publish the archive outside Git
 
@@ -21,13 +21,13 @@ Keep the release artifact immutable. Publish a new package version for changed b
 
 ## 2. Add a versioned TOML declaration
 
-Clone `packages`, then create:
+Clone `registry`, then create:
 
 ```text
 packages/<namespace>/<application>/<version>.toml
 ```
 
-For `community.weather` version `1.0.0`, the location is `packages/community/weather/1.0.0.toml`. Start from [the example](https://github.com/xila-project/packages/blob/main/examples/weather-1.0.0.toml) and replace every placeholder:
+For `community.weather` version `1.0.0`, the location is `packages/community/weather/1.0.0.toml`. Start from [the example](https://github.com/xila-project/registry/blob/main/examples/weather-1.0.0.toml) and replace every placeholder:
 
 ```toml
 schema = 1

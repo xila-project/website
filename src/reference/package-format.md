@@ -81,7 +81,7 @@ Use `xila_package_reader::inspect_unsigned(&archive)` only for untrusted structu
 
 ## Community registry declaration and output: different schema
 
-The [`packages` repository](https://github.com/xila-project/packages) currently accepts a **host-only TOML declaration**, not the JSON manifest above:
+The [`registry` repository](https://github.com/xila-project/registry) currently accepts a **host-only TOML declaration**, not the JSON manifest above:
 
 ```toml
 schema = 1
@@ -122,5 +122,5 @@ This contributor schema is distinct from the archive's canonical install-time ma
 - [TAR reader source](https://github.com/xila-project/package_manager/blob/main/crates/reader/src/lib.rs) — `inspect_unsigned` and `verify_signed`.
 - [TAR writer source](https://github.com/xila-project/package_manager/blob/main/crates/writer/src/lib.rs) — deterministic USTAR writer.
 - [Container architecture proposal](https://github.com/xila-project/package_manager/blob/main/docs/package-container-proposal.md) — open alternatives and requirements.
-- [Registry validator](https://github.com/xila-project/packages/blob/main/tools/registry.py) — TOML schema and static JSON generation.
-- [Registry architecture](https://github.com/xila-project/packages/blob/main/docs/architecture.md) — planned authenticated publication model.
+- [Registry validator](https://github.com/xila-project/registry/blob/main/tools/registry.py) — TOML schema and static JSON generation.
+- [Registry architecture](https://github.com/xila-project/registry/blob/main/docs/architecture.md) — planned authenticated publication model.
