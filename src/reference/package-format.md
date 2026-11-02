@@ -1,7 +1,7 @@
 ---
 layout: doc
 docType: reference
-description: Exact current experimental XPK/TAR layout, Miniserde manifest limits, signed message and registry preview paths.
+description: Exact current experimental XPK/TAR layout, Miniserde manifest limits, signed message and registry entries.
 ---
 
 # Experimental package format
@@ -79,42 +79,20 @@ Here `\0` means **one zero byte** and `LE_U32` is a four-byte **little-endian** 
 
 Use `xila_package_reader::inspect_unsigned(&archive)` only for untrusted structural inspection, **never as an install-time authorization check**. `verify_signed(&archive, &trusted_public_key)` authenticates the manifest and then checks file hashes, but the caller must have established key trust separately.
 
-## Community registry declaration and output: different schema
+## Registry entries and developer keys
 
-The [`registry` repository](https://github.com/xila-project/registry) currently accepts a **host-only TOML declaration**, not the JSON manifest above:
-
-```toml
-schema = 1
-
-[package]
-name = "community.weather"
-version = "1.0.0"
-summary = "Weather application"
-license = "MIT"
-source = "https://github.com/example/weather"
-
-[[artifacts]]
-target = "wasm32-wasip1"
-minimum_xila_abi = 1
-url = "https://github.com/example/weather/releases/download/v1.0.0/weather.xpk"
-sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-size = 10240
-```
-
-These are intentionally illustrative placeholders. Real submissions must provide verified immutable hashes, sizes, source provenance and external release URLs.
-
-Declarations live under `packages/<namespace>/<application>/<version>.toml`, with strict SemVer 2.0 ordering (no build metadata), **1–32 artifacts** with distinct targets, HTTPS URLs and lowercase 64-character SHA-256 digests. Artifact size must be **1–2,147,483,647 bytes**; the current validator requires the URL's path to end in `.xpk`. Supported declaration fields are `schema`, `package` (name/version/summary/license/source/optional homepage) and `artifacts` (target/minimum_xila_abi/url/sha256/size).
-
-The Python preview publisher emits:
+The [`registry` repository](https://github.com/xila-project/registry) holds metadata only, served at `registry.xila.dev`:
 
 ```text
-_site/v1/registry.json                         # counts/description, NOT a global catalog
-_site/v1/packages/community/weather.json       # one package's available versions
+keys/developers/<id>.json                        # developer (publisher) key
+packages/<identifier, dots as />/<version>.json  # registry entry, e.g. packages/xila/clock/0.1.0.json
 ```
 
-The registry currently contains **zero published package declarations**. The example under `examples/` is not included in generated metadata. A published preview describes an artifact **without downloading, hashing or authenticating it**; the declared SHA-256 is simply validated for format. All JSON output is **unsigned**.
+A **registry entry** ([schema](https://github.com/xila-project/package_manager/blob/main/schemas/registry-entry.schema.json)) pins one released archive by HTTPS `url`, lowercase `sha256` and `size`, names its `publisher`, and copies `name`, `version`, `target`, `minimum_xila_abi`, `capabilities`, `display_name` and `metadata` from the archive's signed manifest. It is generated with `xila-package registry entry` from the signed archive and must stay in its canonical form; published entries are immutable.
 
-This contributor schema is distinct from the archive's canonical install-time manifest. A shared, authoritative signed publication schema is future work in [#492](https://github.com/xila-project/core/issues/492); clients must not treat the preview as an authenticated repository.
+A **developer key** ([schema](https://github.com/xila-project/package_manager/blob/main/schemas/developer-key.schema.json)) holds `id`, `author`, `algorithm` (`ed25519`), the canonical base64 `public_key` and the `namespaces` it may publish: the first label of an identifier (`xila` for `xila.clock`).
+
+`xila-package registry check <root> [--archives <dir>]` validates a registry checkout: keys, entry placement and canonical form, known publishers and namespace authorization, and, with downloaded archives, each archive's size, SHA-256, signature and copied fields. Entries are not yet signed by a repository key, and there is no signed index with expiry; see the [registry architecture](https://github.com/xila-project/registry/blob/main/docs/architecture.md).
 
 ## Source references
 
@@ -122,5 +100,5 @@ This contributor schema is distinct from the archive's canonical install-time ma
 - [TAR reader source](https://github.com/xila-project/package_manager/blob/main/crates/reader/src/lib.rs) — `inspect_unsigned` and `verify_signed`.
 - [TAR writer source](https://github.com/xila-project/package_manager/blob/main/crates/writer/src/lib.rs) — deterministic USTAR writer.
 - [Container architecture proposal](https://github.com/xila-project/package_manager/blob/main/docs/package-container-proposal.md) — open alternatives and requirements.
-- [Registry validator](https://github.com/xila-project/registry/blob/main/tools/registry.py) — TOML schema and static JSON generation.
+- [Registry commands](https://github.com/xila-project/package_manager/blob/main/crates/builder/src/registry.rs) — `registry entry`, `verify` and `check`.
 - [Registry architecture](https://github.com/xila-project/registry/blob/main/docs/architecture.md) — planned authenticated publication model.

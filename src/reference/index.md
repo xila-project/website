@@ -11,7 +11,7 @@ Use these pages to look up exact interfaces and constraints. For instructions, u
 - [Guest API](./guest): generated Rust documentation for the client library used by guest applications.
 - [Shell](./shell): composition syntax, expansion, statuses, resource limits, and built-in command inventory.
 - [Development commands](./development-commands): mise tasks, targets, version sources, and website commands.
-- [Experimental package format](./package-format): development TAR profile, manifest, signing statement and registry preview constraints.
+- [Experimental package format](./package-format): development TAR profile, manifest, signing statement, registry entries and developer keys.
 - [WASM runtime](./wasm-runtime): command options, Cargo features, execution limits, and browser capabilities.
 - [Headless container runtime](./container-runtime): OCI image, shell and guest modes, VFS mounts, and isolation boundaries.
 - [Graphics bindings](./graphics-bindings): supported calls, checked helpers, status codes, resource limits, and compatibility.

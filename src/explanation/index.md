@@ -25,7 +25,7 @@ Read [development environments and targets](./development-environments) for the 
 
 **How will application packages be built, published and installed?**
 
-Read [package management architecture](./package-management) for the separation of portable Rust tooling, the static community registry preview and planned on-device trust/installer integration.
+Read [package management architecture](./package-management) for the separation of portable Rust tooling, the static package registry and planned on-device trust/installer integration.
 
 **How does the browser version keep a persistent disk?**
 

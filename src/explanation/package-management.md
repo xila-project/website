@@ -6,17 +6,17 @@ description: How Xila's shared package tooling, community registry and future on
 
 # Package management architecture
 
-Xila's application distribution is split across **three repositories**. As of 26 October 2026, authoring and inspecting development archives and generating a static **unsigned registry preview** work; downloading, authenticating and installing third-party packages on Xila **does not**.
+Xila's application distribution is split across **three repositories**. As of 26 October 2026, authoring, signing and releasing archives and publishing generated registry entries work; the registry itself is **not yet repository-signed**, and installing from the registry on Xila is not available yet.
 
 The repositories and APIs are being developed under [Core #308](https://github.com/xila-project/core/issues/308), the [package format decision #402](https://github.com/xila-project/core/issues/402), and the [shared workspace extraction #536](https://github.com/xila-project/core/issues/536). The experimental `.xpk` extension, TAR profile and manifest schema are **not frozen for production**.
 
 ## Repository ownership
 
-| Repository                                                                        | Owns today                                                                                                    | Does not own                                                                                  |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`Xila-Project/package_manager`](https://github.com/xila-project/package_manager) | Shared verification, provisional manifest, TAR reader/writer, native `xila-package` builder and Cargo/mise CI | Xila VFS, network drivers, package trust policy, implemented installer                        |
-| [`xila-project/registry`](https://github.com/xila-project/registry)               | Contributor TOML declarations, strict validation and static GitHub Pages **preview** generation               | Rust manifest/reader libraries, packages themselves, authenticated repository indexes         |
-| [`Xila-Project/core`](https://github.com/xila-project/core)                       | Runtime VFS/Wasmi/application loader, firmware prototype and **pinned shared verification dependency**        | A working `pkg` command, package installation/activation, on-device package-repository client |
+| Repository                                                                        | Owns today                                                                                                         | Does not own                                                                                  |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [`Xila-Project/package_manager`](https://github.com/xila-project/package_manager) | Shared verification, provisional manifest, TAR reader/writer, native `xila-package` builder and Cargo/mise CI      | Xila VFS, network drivers, package trust policy, implemented installer                        |
+| [`xila-project/registry`](https://github.com/xila-project/registry)               | Developer keys and generated JSON registry entries, validated by `xila-package` and published at registry.xila.dev | Formats and validators (package_manager), the archives themselves, a signed index             |
+| [`Xila-Project/core`](https://github.com/xila-project/core)                       | Runtime VFS/Wasmi/application loader, firmware prototype and **pinned shared verification dependency**             | A working `pkg` command, package installation/activation, on-device package-repository client |
 
 The actual Rust workspace is named **`package_manager`** (underscore). Its Cargo package names use `xila-package-…` prefixes, for example `xila-package-manifest`. The eventual installed Xila package manager must not be confused with that development repository.
 
@@ -24,8 +24,8 @@ The actual Rust workspace is named **`package_manager`** (underscore). Its Cargo
 flowchart TD
     Author[Application developer] -->|build files and JSON manifest| Builder[Shared native xila-package builder]
     Builder -->|experimental XPK TAR archive| Release[External immutable release artifact]
-    Author -->|reviewed TOML declaration| Registry[registry repository]
-    Registry -->|unsigned per-package JSON preview| Pages[Static Pages preview]
+    Author -->|generated JSON registry entry| Registry[registry repository]
+    Registry -->|per-version JSON entries| Pages[registry.xila.dev]
     Core[Xila Core] -->|pinned Git dependency| Verification[Shared SHA-256 and strict Ed25519]
     Installer[Future offline installer and repository client] -.->|planned only| Release
     Installer -.->|planned authenticated metadata| Pages
@@ -36,17 +36,17 @@ flowchart TD
 
 ## What exists versus what is still planned
 
-| Capability                                                                                   | Current status                  |
-| -------------------------------------------------------------------------------------------- | ------------------------------- |
-| Versioned JSON manifest, validated paths/files/hashes                                        | Provisional Rust implementation |
-| Deterministic uncompressed USTAR archive generation                                          | Native host tool implemented    |
-| Full-buffer TAR inspection and optional verification with caller-supplied Ed25519 public key | Implemented, **not streamable** |
-| SHA-256 streaming and strict Ed25519 primitives                                              | Shared and used by Core         |
-| Contributor declaration validation and direct-path static JSON preview                       | Implemented, **unsigned**       |
-| Trust-root provisioning, signed repository index, authenticated publisher roles              | **Not implemented**             |
-| Streaming archive extraction with MCU-bounded RAM, optional decompression                    | **Not implemented**             |
-| Transactional package install/upgrade/remove, installed-package database                     | **Not implemented**             |
-| In-Xila `pkg` CLI or GUI, version/dependency resolution, loader enforcement                  | **Not implemented**             |
+| Capability                                                                                   | Current status                         |
+| -------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Versioned JSON manifest, validated paths/files/hashes                                        | Provisional Rust implementation        |
+| Deterministic uncompressed USTAR archive generation                                          | Native host tool implemented           |
+| Full-buffer TAR inspection and optional verification with caller-supplied Ed25519 public key | Implemented, **not streamable**        |
+| SHA-256 streaming and strict Ed25519 primitives                                              | Shared and used by Core                |
+| Generated registry entries checked against their signed archives, published per version      | Implemented, **not repository-signed** |
+| Trust-root provisioning, signed repository index, authenticated publisher roles              | **Not implemented**                    |
+| Streaming archive extraction with MCU-bounded RAM, optional decompression                    | **Not implemented**                    |
+| Transactional package install/upgrade/remove, installed-package database                     | **Not implemented**                    |
+| In-Xila `pkg` CLI or GUI, version/dependency resolution, loader enforcement                  | **Not implemented**                    |
 
 The `xila-package-manager` Cargo crate currently contains **only a scaffold**, not an install API. Core's signed **firmware** update prototype is separate and must not be mistaken for an **application** package installer.
 
