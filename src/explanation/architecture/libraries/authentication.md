@@ -10,7 +10,7 @@ This crate implements persistent account/group data handling and password verifi
 
 ## Role
 
-- Owns persistence and transformation logic for users/groups (`/system/users`, `/system/groups`).
+- Owns persistence and transformation logic for users/groups (`/system/accounts/users`, `/system/accounts/groups`).
 - Bridges runtime managers (`users`) with persistent storage (`virtual_file_system`) and device-backed entropy/hash operations.
 
 ## Boundaries
@@ -31,7 +31,7 @@ This crate implements persistent account/group data handling and password verifi
 
 1. Caller builds `authentication::Context { virtual_file_system, task_manager, users_manager, task }` and passes a reference to authentication functions.
 2. File reads/writes occur through `virtual_file_system::File` / `Directory` using the supplied VFS and task.
-3. Salt bytes are read from `/devices/random`.
+3. Salt bytes are read from `/devices/random/source`.
 4. Password+salt bytes are written to `/devices/hasher` after `SET_ALGORITHM(HashAlgorithm::Sha512)`.
 5. Results are propagated into `context.users_manager` when loading persistent records. Groups are loaded before users; restored primary-group membership is accepted.
 
@@ -56,7 +56,7 @@ For example, startup calls `authentication::load_all_users_and_groups(&context).
 ## Contract vs implementation
 
 - **Contract**: async user/group creation, authentication, and persistence APIs returning typed `authentication::Error`.
-- **Current implementation**: JSON files under `/system/*`, salt from `/devices/random`, hashing through `/devices/hasher` with SHA-512 selection.
+- **Current implementation**: JSON files under `/system/accounts/*`, salt from `/devices/random/source`, hashing through `/devices/hasher` with SHA-512 selection.
 
 ## Limitations and trade-offs
 
@@ -78,11 +78,11 @@ authentication::load_all_users_and_groups(&context).await?;
 let user = authentication::authenticate_user(&context, "alice", password).await?;
 ```
 
-The example assumes the referenced services exist, and the caller has permission to access the account files and hash device. Each user and group has a JSON file under `/system/users` or `/system/groups`. Bulk loading imports **groups before users** so primary group memberships can be restored. Malformed entries encountered while reading are skipped, but failures to add a successfully parsed record to the in-memory manager are propagated.
+The example assumes the referenced services exist, and the caller has permission to access the account files and hash device. Each user and group has a JSON file under `/system/accounts/users` or `/system/accounts/groups`. Bulk loading imports **groups before users** so primary group memberships can be restored. Malformed entries encountered while reading are skipped, but failures to add a successfully parsed record to the in-memory manager are propagated.
 
 ## First-install provisioning
 
-`initialize_seeded(&context)` checks the exact `application_metadata::PENDING_CONTENT` bytes at `/system/.seed-pending`, then loads existing groups and users. **An unmarked disk only loads records**; it does not create or replace the administrator account. When marked, it checks the expected administrator identifiers, provisions missing records through temporary files and rename, and removes the marker after success. Invalid or conflicting pre-existing identifiers are errors rather than a reason to overwrite credentials.
+`initialize_seeded(&context)` checks for `authentication::SEED_PENDING_CONTENT` (`b"xila-seed-v1\n"`) at `authentication::SEED_PENDING_PATH` (`/system/accounts/.seed-pending`), then loads existing groups and users. **An unmarked disk only loads records**; it does not create or replace the administrator account. When marked, it checks the expected administrator identifiers, provisions missing records through temporary files and rename, and removes the marker after success. Invalid or conflicting pre-existing identifiers are errors rather than a reason to overwrite credentials.
 
 ## Security and consistency boundaries
 

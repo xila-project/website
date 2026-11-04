@@ -66,7 +66,7 @@ The login widget verifies username/password with `authentication::authenticate_u
 4. Resolves the username and stores it as the task's `User` environment variable.
 5. Constructs the Desktop (`Desk`) and Home-button overlay (`Home`) before dropping the login UI.
 
-`Desk` discovers desktop launchers from the shortcuts directory under `/configuration/shared/shortcuts` and launches them with the executable runtime. Its dock reflects live windows and supports window-management actions. The desktop and Home bar hold LVGL object pointers and register C callbacks; Graphics locking and window ownership are required for safe lifecycle transitions.
+`Desk` reads native shortcuts from `/configuration/shared/applications/shortcuts/*.json` and discovers installed bundles at `/applications/bundles/<id>/shortcut.json` when the app drawer opens (not at startup). It reads only shortcut JSON, never package manifests. Bundle-local `@bundle/` command and argument paths are resolved relative to the shortcut's parent directory, rejecting traversal. The launcher uses the executable runtime; its dock reflects live windows and supports window-management actions. A shortcut is presentation data, not an authorization grant or a verified package signature. See [Add a launcher shortcut](/how-to/add-shortcut). The desktop and Home bar hold LVGL object pointers and register C callbacks; Graphics locking and window ownership are required for safe lifecycle transitions.
 
 ## Scheduling and failure boundaries
 
@@ -78,7 +78,8 @@ Login is not an external authorization service: account persistence and password
 
 - <CodeReference repo="applications" path="executables/shell/graphical/src/lib.rs" /> — CLI, session transition and cadence.
 - <CodeReference repo="applications" path="executables/shell/graphical/src/login.rs" /> — authentication, HOME and task identity.
-- <CodeReference repo="applications" path="executables/shell/graphical/src/desk.rs" /> — shortcut loading, dock and window handling.
+- <CodeReference repo="applications" path="executables/shell/graphical/src/desk.rs" /> — lazy shortcut discovery, dock and window handling.
+- <CodeReference repo="applications" path="executables/shell/graphical/src/shortcut.rs" /> — descriptor fields and bundle-path validation.
 - <CodeReference repo="applications" path="executables/shell/graphical/src/home.rs" /> — Home gesture and overlay.
 
 ## References

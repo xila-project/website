@@ -10,13 +10,13 @@ The terminal executable provides a graphical terminal window exposed as a charac
 
 ## Role
 
-- Bridges GUI events and text I/O semantics through a mounted `/devices/terminal` device.
-- Launches `/binaries/command_line_shell` with terminal-backed stdin/stdout/stderr.
+- Bridges GUI events and text I/O semantics through a mounted `/devices/standard_io/terminal` device.
+- Launches `/applications/executables/command_line_shell` with terminal-backed stdin/stdout/stderr.
 
 ## Startup and lifecycle
 
 1. Creates `Terminal` UI object (window, label display, text input).
-2. Mounts terminal object as `/devices/terminal` character device.
+2. Mounts terminal object as `/devices/standard_io/terminal` character device.
 3. Opens `Standard` streams on that path.
 4. Executes command-line shell executable.
 5. Runs event loop until terminal window close/delete event.
@@ -30,8 +30,8 @@ The terminal executable provides a graphical terminal window exposed as a charac
 
 ## Data and control flow / VFS touchpoints
 
-- Write path: shell output -> `/devices/terminal` -> `DirectBaseOperations::write` -> UI display append.
-- Read path: UI enter key -> validated input queue -> `/devices/terminal` read by shell.
+- Write path: shell output -> `/devices/standard_io/terminal` -> `DirectBaseOperations::write` -> UI display append.
+- Read path: UI enter key -> validated input queue -> `/devices/standard_io/terminal` read by shell.
 - Control flow: parent terminal loop keeps processing events while child shell uses same device streams.
 
 ## Concurrency and event-loop model
@@ -47,7 +47,7 @@ The terminal executable provides a graphical terminal window exposed as a charac
 ## Contract vs implementation
 
 - **Contract**: terminal executable exposes a character-device-backed text console and runs shell inside it.
-- **Current implementation**: LVGL window + textarea, mounted static device node `/devices/terminal`, and shell child execution via executable runtime.
+- **Current implementation**: LVGL window + textarea, mounted static device node `/devices/standard_io/terminal`, and shell child execution via executable runtime.
 
 ## Operational limitations
 
@@ -56,20 +56,21 @@ The terminal executable provides a graphical terminal window exposed as a charac
 
 ## Device polling, input ownership and cleanup
 
-`TerminalExecutable::new(vfs, task)` installs the desktop shortcut. At runtime, `Terminal::new(graphics::ffi_manager())` creates the window and text widgets, and the launcher leaks the resulting `Terminal` into `'static` storage before mounting it as a character device at `/devices/terminal`. The launcher opens the same device three times through `Standard::open` for stdin, stdout and stderr, then calls `executable::execute(..., "/binaries/command_line_shell", ...)`.
+`TerminalExecutable::new(vfs, task)` constructs the executable without filesystem writes. Platforms seeds the [native launcher descriptor](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/terminal.json) under `/configuration/shared/applications/shortcuts/`. At runtime, `Terminal::new(graphics::ffi_manager())` creates the window and text widgets, and the launcher leaks the resulting `Terminal` into `'static` storage before mounting it as a character device at `/devices/standard_io/terminal`. The launcher opens the same device three times through `Standard::open` for stdin, stdout and stderr, then calls `executable::execute(..., "/applications/executables/command_line_shell", ...)`.
 
 **I/O contract:** the device is a **contextual** `BaseOperations` + `CharacterDevice`, not a direct character device. Each open context gets its own `Waiter`. An empty blocking read registers a waker in `WaitQueue<16>` and returns `Poll::Pending`; cancellation and close unregister pending reads. When Enter is pressed, input bytes plus `\n` enter the queue and registered readers are notified. Output runs through `shared::utf8_chunks`; invalid UTF-8 bytes are skipped rather than preserved byte for byte.
 
 The terminal UI sleeps **20 ms** between event-processing calls while the command-line shell is scheduled independently. `print` uses try-locks and returns `RessourceBusy` under contention; the device maps this to `file_system::Error::RessourceBusy`.
 
-**Current lifecycle limitation:** the main executable ignores the returned shell `JoinHandle`; closing the window ends the terminal's outer event loop, but this code does not explicitly unmount `/devices/terminal`, free the leaked `Terminal` allocation, or join/terminate the shell child. Treat repeated mounts and window teardown as areas requiring dedicated lifecycle tests.
+**Current lifecycle limitation:** the main executable ignores the returned shell `JoinHandle`; closing the window ends the terminal's outer event loop, but this code does not explicitly unmount `/devices/standard_io/terminal`, free the leaked `Terminal` allocation, or join/terminate the shell child. Treat repeated mounts and window teardown as areas requiring dedicated lifecycle tests.
 
 ### Source and API references
 
 - <CodeReference repo="applications" path="executables/terminal/src/lib.rs" /> — mount/open/launch sequence.
 - <CodeReference repo="applications" path="executables/terminal/src/device.rs" /> — polling, cancellation and stream operations.
 - <CodeReference repo="applications" path="executables/terminal/src/terminal.rs" /> — UI, input validation and output handling.
-- <CodeReference repo="applications" path="executables/terminal/src/executable.rs" /> — shortcut and trait wrapper.
+- <CodeReference repo="applications" path="executables/terminal/src/executable.rs" /> — side-effect-free constructor and trait wrapper.
+- <CodeReference repo="platforms" path="tools/fs_image/shortcuts/terminal.json" /> — native launcher descriptor.
 
 ## References
 

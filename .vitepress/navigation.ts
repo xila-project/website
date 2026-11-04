@@ -25,7 +25,6 @@ const componentGroups: DefaultTheme.SidebarItem[] = [
     collapsed: true,
     items: [
       ["ABI", "abi"],
-      ["Application metadata", "application_metadata"],
       ["Audio", "audio"],
       ["Authentication", "authentication"],
       ["Bootsplash", "bootsplash"],

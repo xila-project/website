@@ -12,11 +12,11 @@ The Settings executable is a tab-based graphical configuration application. It n
 
 - Hosts configurable system UI tabs (general/appearance/password/network/about).
 - Applies a dark/light theme and five primary/secondary color presets to existing windows immediately.
-- Provides shortcut registration for desktop discovery.
+- Uses a launcher shortcut seeded by Platforms for desktop discovery.
 
 ## Startup and lifecycle
 
-1. Optional installation path (`SettingsExecutable::new`) ensures shortcuts directory and writes `/configuration/shared/shortcuts/settings.json`.
+1. Platforms seeds `/configuration/shared/applications/shortcuts/settings.json`; `SettingsExecutable::new` does not write it.
 2. Runtime path constructs `Settings` window and tab view.
 3. Event loop repeatedly dispatches window events to tab handlers until close.
 
@@ -27,11 +27,11 @@ The Settings executable is a tab-based graphical configuration application. It n
 - Authentication crate in password tab (`authenticate_user`, `change_user_password`).
 - Network module in network tab via interface control commands.
 - Graphics theme controls for live palette updates, including calls from within an existing LVGL lock.
-- VFS for shortcut write and network-device opening.
+- VFS for appearance persistence and network-device opening.
 
 ## Data and control flow / VFS touchpoints
 
-- VFS write touchpoint: settings shortcut JSON file and per-user appearance record at `/users/<uid>/.appearance`.
+- VFS write touchpoint: per-user appearance record at `/users/<uid>/.appearance` (not the native launcher descriptor).
 - Shells create private `/users/<uid>` home directories (mode `0700`) and set `HOME`. Appearance records are mode `0600`.
 - A versioned appearance record is written through a temporary replacement and restored for the user at login; native/browser startup also restore administrator preferences for the login screen.
 - Password tab flow: user resolution -> current password validation -> persisted password update through authentication crate.
@@ -45,13 +45,12 @@ The Settings executable is a tab-based graphical configuration application. It n
 ## Failure semantics
 
 - UI creation/mounting failures return non-zero executable result.
-- Shortcut write failures surface during executable registration path.
 - Tab operation failures are handled per-tab (status labels/logging) or propagated as typed settings errors.
 
 ## Contract vs implementation
 
 - **Contract**: settings executable opens configuration UI and processes tab interactions until closed.
-- **Current implementation**: five fixed tabs including appearance persistence, password/network integration and shortcut registration.
+- **Current implementation**: five fixed tabs including appearance persistence and password/network integration; shortcut discovery belongs to the graphical Shell.
 
 ## Operational limitations
 
@@ -78,7 +77,7 @@ Each user has a private home directory at `/users/<uid>` (mode `0700`). Appearan
 
 ## Tab composition and event scheduling
 
-`SettingsExecutable::new(vfs, task).await` installs `/configuration/shared/shortcuts/settings.json`. At launch, `Settings::new(context).await` creates an `OwnedWindow` and exactly five `Tab` variants: General, Appearance, Password, Network and About. The tab list is fixed at compile time.
+`SettingsExecutable::new(vfs, task).await` returns the executable without modifying the filesystem. Platforms provides the [native settings shortcut](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/settings.json) in `/configuration/shared/applications/shortcuts/`. At launch, `Settings::new(context).await` creates an `OwnedWindow` and exactly five `Tab` variants: General, Appearance, Password, Network and About. The tab list is fixed at compile time.
 
 `Settings::handle_events()` acquires the graphics lock, dispatches an event to tabs until one handles it and then suspends on the window's registered waker. Window close/delete ends the task. There is no background worker for tab refresh.
 
@@ -93,6 +92,8 @@ The graphical shell provisions user homes with restrictive permissions and resto
 ### Source and API references
 
 - <CodeReference repo="applications" path="executables/settings/src/settings.rs" /> — event loop and tab array.
+- <CodeReference repo="applications" path="executables/settings/src/lib.rs" /> — side-effect-free constructor.
+- <CodeReference repo="platforms" path="tools/fs_image/shortcuts/settings.json" /> — native launcher descriptor.
 - <CodeReference repo="applications" path="executables/settings/src/tabs/appearance.rs" /> — immediate theme application and persistence.
 - <CodeReference repo="applications" path="executables/settings/src/tabs/password.rs" /> — password verification and mutation.
 - <CodeReference repo="applications" path="executables/settings/src/tabs/network/mod.rs" /> — VFS interface enumeration.

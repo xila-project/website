@@ -43,8 +43,9 @@ New native and browser seed images bundle Calculator, Clock, Pixel Painter, Synt
 
 - Host executable crates generally implement `ExecutableTrait` and are mounted under `/applications/executables/*` as character devices.
 - Launch is performed through `executable::execute(context, ...)`, which handles permission checks and task spawn using explicit managers. Mounted wrappers and `Standard` carry the same `ExecutableContext`.
-- WASM applications expose an optional `__install` entry point; the runtime's `--install` mode uses it to create launcher/configuration integration before normal `_start` execution.
-- Several UI executables install launcher shortcuts under `/configuration/shared/shortcuts/*.json`.
+- WASM command guests expose `_start: () -> ()`. The Wasm runner executes the guest; it does not install shortcuts.
+- Installed guest bundles keep `shortcut.json` at `/applications/bundles/<id>/shortcut.json`. The graphical Shell scans these on each drawer opening, while Platforms seeds native shortcuts at `/configuration/shared/applications/shortcuts/*.json`. [Add a launcher shortcut](/how-to/add-shortcut) documents the descriptor format.
+- Shortcuts do not confer permissions or package authenticity. The VFS enforces normal POSIX UID/GID/mode checks; applications running as the same UID are **not** isolated from one another by per-application access rules.
 
 ## Contract vs implementation
 

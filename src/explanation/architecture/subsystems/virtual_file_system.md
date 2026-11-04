@@ -115,13 +115,15 @@ Those collection choices, lock boundaries, inode maps, and reference-count strat
 
 - `/system` — system-owned accounts (`/system/accounts/users` and `/system/accounts/groups`), executables, libraries and services;
 - `/configuration` — configuration for system, applications and shared use;
-- `/applications` — application executables and libraries;
+- `/applications` — application executables, libraries and installed bundle directories (`/applications/bundles/<id>/`);
 - `/data` — system and application data, with logs under `/data/system/logs`;
 - `/devices` — device endpoints organized by kind (including `/devices/network` and `/devices/standard_io`);
 - `/users` — per-user home data;
 - `/temporary` — caches and sessions intended for cleanup across runtime startup.
 
 The root backend provides the base tree, while additional file systems and devices can be mounted into that namespace later. `create_default_hierarchy` creates directories and applies baseline permissions; it does **not** itself implement automatic temporary-directory cleanup or log rotation.
+
+Core does not assign an identity or an access-control exception to individual applications. Access under `/data/applications/*` and `/configuration/applications/*` follows ordinary POSIX-style UID/GID/mode checks; the default global application data/configuration directories are root-only. Per-user `/users/<uid>/applications/*` directories (including `configuration`, `data` and `cache`) are provisioned with mode `0700`. These permissions isolate **users and groups**, not applications running under the **same UID**. See <CodeReference path="subsystems/virtual_file_system/src/hierarchy.rs" /> and <CodeReference path="subsystems/virtual_file_system/src/home.rs" />.
 
 ## Symbolic links and resolution
 

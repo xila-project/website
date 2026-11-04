@@ -30,7 +30,6 @@ Libraries expose reusable contracts, types, protocols, algorithms, adapters and 
 
 - [ABI](/explanation/architecture/libraries/abi): C declarations, exports and interoperability contracts.
 - [Executable](/explanation/architecture/libraries/executable): executable protocol, context and launcher helpers. <HostReference crate="executable" />.
-- [Application metadata](/explanation/architecture/libraries/application_metadata): shared guest/native application inventory and shortcut metadata. <HostReference crate="application_metadata" />.
 - [Authentication](/explanation/architecture/libraries/authentication): reusable credential/verification operations. <HostReference crate="authentication" />.
 - [Bootsplash](/explanation/architecture/libraries/bootsplash): startup animation implementation. <HostReference crate="bootsplash" />.
 - [Testing](/explanation/architecture/libraries/testing): the native integration test harness now lives in [Platforms](https://github.com/xila-project/platforms/tree/main/libraries/testing), not Core.
