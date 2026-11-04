@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Setup | Node and locked dependencies"
-        uses: xila-project/workspace/.github/actions/setup-node@537d54a3aefb7c689a5cb498f55c64a6afecbbdd
+        uses: xila-project/workspace/.github/actions/setup-node@0adf14f42ce3bb004b2fe6e7e66be813abda9666
 
       - name: "Setup | Checkout core references"
         uses: actions/checkout@v5
@@ -79,3 +79,14 @@ jobs:
           XILA_PACKAGE_MANAGER_PATH: ${{ github.workspace }}/.reference-checkouts/package_manager
           XILA_REGISTRY_PATH: ${{ github.workspace }}/.reference-checkouts/registry
         run: mise exec -- npm run check
+
+  required:
+    if: always()
+    needs: [documentation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Gate | Verify mandatory checks"
+        env:
+          DOCUMENTATION: ${{ needs.documentation.result }}
+        run: test "$DOCUMENTATION" = success
