@@ -79,3 +79,14 @@ jobs:
           XILA_PACKAGE_MANAGER_PATH: ${{ github.workspace }}/.reference-checkouts/package_manager
           XILA_REGISTRY_PATH: ${{ github.workspace }}/.reference-checkouts/registry
         run: mise exec -- npm run check
+
+  required:
+    if: always()
+    needs: [documentation]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: "Gate | Verify mandatory checks"
+        env:
+          DOCUMENTATION: ${{ needs.documentation.result }}
+        run: test "$DOCUMENTATION" = success
