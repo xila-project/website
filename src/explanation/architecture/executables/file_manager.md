@@ -12,11 +12,11 @@ The file manager executable provides a graphical VFS browser with directory navi
 
 - Presents VFS directory contents in a graphical list view.
 - Handles path navigation (home/up/go/refresh) and directory item traversal.
-- Registers launcher shortcut metadata for shell discovery.
+- Uses a native launcher shortcut seeded by Platforms; the executable does not register one.
 
 ## Startup and lifecycle
 
-1. Installation path writes `/configuration/shared/shortcuts/file_manager.json`.
+1. Platforms seeds the native launcher descriptor at `/configuration/shared/applications/shortcuts/file_manager.json`; the executable constructor does not write a shortcut.
 2. Runtime path creates window, toolbar, path text area, and file list widgets.
 3. Loads current directory entries, sorts directories-first, and renders list buttons.
 4. Processes click/close events in loop until window close.
@@ -56,7 +56,7 @@ The file manager executable provides a graphical VFS browser with directory navi
 
 ## Exact API, input handling and ownership
 
-`FileManagerExecutable::new(vfs, task)` registers a desktop shortcut in `/configuration/shared/shortcuts/file_manager.json` using `application_metadata::shortcut("file_manager")`. Launch uses the shared `ExecutableTrait` contract and a `'static ExecutableContext`; it creates an `OwnedWindow` with a toolbar, path text area and LVGL list.
+`FileManagerExecutable::new(vfs, task)` constructs the executable without filesystem side effects. The native [Platforms shortcut descriptor](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/file_manager.json) is seeded at `/configuration/shared/applications/shortcuts/file_manager.json` and discovered by the graphical Shell when the app drawer opens. Launch uses the shared `ExecutableTrait` contract and a `'static ExecutableContext`; it creates an `OwnedWindow` with a toolbar, path text area and LVGL list.
 
 `FileManager::new(context).await` begins at `PathOwned::root()` (`/`). `load_directory` opens the current directory with the current task identifier, iterates VFS entries, skips `.` and `..`, and sorts **directories first**, with names in ascending lexicographic order in each group. A `FileItem` contains name, kind and size. Navigation is handled through Home, Up, Refresh, Go and directory-item clicks.
 
@@ -66,7 +66,8 @@ The application navigates directories and displays file metadata; it does **not*
 
 ### Source and API references
 
-- <CodeReference repo="applications" path="executables/file_manager/src/lib.rs" /> — executable registration and launch.
+- <CodeReference repo="applications" path="executables/file_manager/src/lib.rs" /> — side-effect-free constructor and executable launch.
+- <CodeReference repo="platforms" path="tools/fs_image/shortcuts/file_manager.json" /> — native launcher descriptor.
 - <CodeReference repo="applications" path="executables/file_manager/src/file_manager.rs" /> — navigation, sorting, event wake-up and UI.
 - <HostReference repo="applications" crate="file_manager" /> — native Rust API.
 

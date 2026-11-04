@@ -6,7 +6,7 @@ description: "Clock is a Rust/WASM graphical application providing UTC time, ala
 
 # Clock (executable)
 
-Clock is a `wasm32-wasip1` guest application installed through Xila's WASM runtime. It uses the guest graphics bindings, WASI clocks, and VFS-backed settings while keeping timing state bounded.
+Clock is a `wasm32-wasip1` guest application distributed in a self-contained bundle and launched through Xila's WASM runtime. It uses the guest graphics bindings, WASI clocks, and VFS-backed settings while keeping timing state bounded.
 
 ## Available views
 
@@ -19,19 +19,13 @@ The application deliberately presents alarm times as UTC. It does not currently 
 
 ## Runtime integration
 
-Clock is copied to `/binaries/clock` in the native and browser demonstrations and installed with:
-
-```text
-wasm --install /binaries/clock
-```
-
-The install export creates `/configuration/shared/shortcuts/clock.json`. The host provisions `/configuration/shared/clock` as writable storage for the application's settings.
+New native/browser reference images include `/applications/bundles/xila.clock/shortcut.json` alongside `executables/clock.wasm`. When the app drawer opens, the Shell discovers this descriptor and resolves its `@bundle/executables/clock.wasm` argument relative to that bundle; it does not run an installation hook. The Wasm runner creates private user application directories and sets `XILA_APPLICATION_CONFIGURATION` for Clock's settings. See [Add a launcher shortcut](/how-to/add-shortcut).
 
 Stopwatch, timer, and snooze durations use the WASI monotonic/startup clock. Alarms use wall time. The guest cooperatively sleeps between event checks because the current graphics ABI does not provide a blocking window-event wait.
 
 ## Persistence model
 
-Clock alternates two fixed-size settings records at `/configuration/shared/clock/settings.0` and `settings.1`. This lets startup fall back to the previous valid record when the newest record is corrupt or partially written.
+Clock alternates two fixed-size settings records (`settings.0` and `settings.1`) in the directory named by `XILA_APPLICATION_CONFIGURATION` (normally `/users/<uid>/applications/xila.clock/configuration`). This lets startup fall back to the previous valid record when the newest record is corrupt or partially written.
 
 The stored state includes clock-format and alarm settings. Timer state, stopwatch state/laps, and snooze are intentionally not restored after process exit or reboot. Current WASI file APIs do not provide rename/sync semantics, so the alternating records improve recoverability but do not guarantee power-loss durability.
 
@@ -76,7 +70,7 @@ This is a data-model example; `storage::Store` performs actual file I/O on guest
 - <CodeReference repo="applications" path="executables/clock/src/lib.rs" /> — Stopwatch, Timer, Alarm, Settings.
 - <CodeReference repo="applications" path="executables/clock/src/storage.rs" /> — alternating records and checksums.
 - <CodeReference repo="applications" path="executables/clock/src/interface.rs" /> — GUI, event cadence and notifications.
-- <CodeReference repo="applications" path="executables/clock/src/install.rs" /> — shortcut installation.
+- <CodeReference repo="applications" path="executables/clock/shortcut.json" /> — bundle-local launcher descriptor.
 
 ## References
 

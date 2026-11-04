@@ -16,13 +16,9 @@ Users can draw with mouse or touch, choose one of eight palette entries, select 
 
 ## Runtime integration
 
-Pixel Painter is copied to `/binaries/pixel_painter` and installed through:
+New native/browser reference images include `/applications/bundles/xila.pixel-painter/shortcut.json` and `executables/pixel_painter.wasm`. The graphical Shell discovers the descriptor on drawer opening and resolves `@bundle/executables/pixel_painter.wasm` to the bundle-local executable; there is no installation hook.
 
-```text
-wasm --install /binaries/pixel_painter
-```
-
-Its default save path is `/configuration/shared/pixel_painter/drawing.xpnt`. Native and browser hosts provision the shared configuration directory for the default administrator. An optional first command-line argument selects another initial absolute path.
+The Wasm runner sets `XILA_APPLICATION_DATA` to a per-user directory, normally `/users/<uid>/applications/xila.pixel-painter/data`. Pixel Painter defaults to `drawing.xpnt` there. An optional first guest argument selects another initial absolute path. See [Add a launcher shortcut](/how-to/add-shortcut).
 
 The UI uses `indexed_canvas_create` and `indexed_canvas_set_pixels` so the host owns the image backing storage. `window_pop_pointer_event` supplies event-time pointer coordinates relative to the canvas content area. Guest buffers are validated and copied; the host does not retain guest pointers.
 
@@ -67,7 +63,7 @@ The snippet assumes `Drawing` has been imported from the application's internal 
 
 The file format is exactly **16,008 bytes**: an 8-byte header (`XPNT`, version 1, width 160, height 100, reserved 0) followed by 16,000 palette indices. The loader limits reads to **16,009 bytes** so oversized input is detectable, and `Drawing::replace_from_bytes` rejects wrong lengths, mismatched headers and palette indices outside 0–7 **before** replacing the current canvas.
 
-The default filename is `/configuration/shared/pixel_painter/drawing.xpnt`. A provided initial path must be absolute and permitted by VFS. Save creates/truncates the selected file and writes it directly; a short or failed write can leave a partial file. The guest keeps its in-memory pixels for retry but does not provide atomic file replacement or guaranteed power-loss persistence.
+The default filename is `drawing.xpnt` under `XILA_APPLICATION_DATA` (normally `/users/<uid>/applications/xila.pixel-painter/data/drawing.xpnt`). A provided initial path must be absolute and permitted by VFS. Save creates/truncates the selected file and writes it directly; a short or failed write can leave a partial file. The guest keeps its in-memory pixels for retry but does not provide atomic file replacement or guaranteed power-loss persistence.
 
 The checked graphics host mirrors the guest drawing into an indexed canvas with separate host-owned image storage. Per-VM canvas pixel capacities and handle limits are enforced by the Graphics bridge, not by the XPNT file format.
 
@@ -76,6 +72,7 @@ The checked graphics host mirrors the guest drawing into an indexed canvas with 
 - <CodeReference repo="applications" path="executables/pixel_painter/src/drawing.rs" /> — palette, rasterization, viewport and XPNT format.
 - <CodeReference repo="applications" path="executables/pixel_painter/src/storage.rs" /> — bounded file I/O and durability.
 - <CodeReference repo="applications" path="executables/pixel_painter/src/interface.rs" /> — UI event and pointer mapping.
+- <CodeReference repo="applications" path="executables/pixel_painter/shortcut.json" /> — bundle-local launcher descriptor.
 - <CodeReference repo="applications" path="executables/wasm/src/host/graphics/canvas.rs" /> — host indexed-canvas storage.
 
 ## References

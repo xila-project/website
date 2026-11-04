@@ -39,10 +39,10 @@ This example pins the Applications main revision reviewed when this page was wri
 
 `default_guest` additionally enables generated C wrappers and `xila_graphics.h`. Standard WASI guests can use the supported WASI imports without importing Xila graphics. Native LVGL/Wasmi APIs are **not** exposed simply by enabling the guest feature.
 
-Command guests export `_start: () -> ()`; an optional app installer exports `__install: () -> ()`. See <CodeReference repo="applications" path="executables/wasm/README.md" /> and [graphics bindings](/reference/graphics-bindings) for compatibility limitations.
+Command guests export `_start: () -> ()`. Launcher discovery is **not** performed by the guest: include a `shortcut.json` in the root of its installed bundle, with `command` and `arguments` pointing to its executable (using `@bundle/` for bundle-local paths). Follow [Add a launcher shortcut](/how-to/add-shortcut) and the [graphics bindings](/reference/graphics-bindings) for compatibility limitations.
 
 ## Run or package it
 
-Platforms assembles the native/browser runtime and creates its seed image from a directory of built guests using `XILA_APPLICATIONS_DIR`. Follow [Run Xila natively](/tutorials/native), [the browser tutorial](/tutorials/browser), or [run a guest](/how-to/run-guest).
+Platforms assembles the native/browser runtime and creates seeded images from prebuilt application bundles (optionally supplied using `XILA_BUNDLES_DIR`), including each bundle's `shortcut.json`. Follow [Run Xila natively](/tutorials/native), [the browser tutorial](/tutorials/browser), or [run a guest](/how-to/run-guest).
 
 The separate [host package builder](/how-to/package-application) can bundle the file into an experimental `.xpk`, **not** install or authorize it.

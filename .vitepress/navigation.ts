@@ -25,7 +25,6 @@ const componentGroups: DefaultTheme.SidebarItem[] = [
     collapsed: true,
     items: [
       ["ABI", "abi"],
-      ["Application metadata", "application_metadata"],
       ["Audio", "audio"],
       ["Authentication", "authentication"],
       ["Bootsplash", "bootsplash"],
@@ -118,6 +117,7 @@ const documentationSidebar: DefaultTheme.SidebarItem[] = [
       { text: "Set up development", link: "/how-to/setup-development" },
       { text: "Integrate a host application", link: "/how-to/integrate-host" },
       { text: "Build a guest", link: "/how-to/build-guest" },
+      { text: "Add a launcher shortcut", link: "/how-to/add-shortcut" },
       { text: "Run a guest", link: "/how-to/run-guest" },
       {
         text: "Create a development package",

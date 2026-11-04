@@ -16,18 +16,18 @@ The [runtime reference](/reference/wasm-runtime#cargo-features) defines the exac
 
 ## Launching a guest
 
-The launcher reads a guest from the VFS and invokes either its normal entrypoint or its installer. Both use typed, no-argument exports. Path handling belongs to the caller and the VFS; the loader does not implement the old `Current_directory` resolution step.
+The launcher reads a guest from the VFS and invokes its typed, no-argument `_start: () -> ()` export. Installation and shortcut discovery are separate from execution. Path handling belongs to the caller and the VFS; the loader does not implement the old `Current_directory` resolution step.
 
 Follow [Run a guest](/how-to/run-guest) for the procedure and [command syntax](/reference/wasm-runtime#command-syntax) for its options and required exports.
 
 ## Startup and lifecycle
 
-1. Parse the guest path, `--install`, `--stack-size`, and `--instruction-limit`.
+1. Parse the guest path, `--stack-size`, and `--instruction-limit`, separating optional guest arguments after `--`.
 2. Read bytes through the context-provided VFS and current task identifier.
 3. Create a fresh Wasmi engine, module, linker, and store; there is no globally cached runtime.
 4. Eagerly translate module functions before execution so fuel exhaustion cannot suspend lazy callee translation.
 5. Bind standard streams, task environment, and the root directory preopen to the per-execution WASI context.
-6. Register WASI and optional graphics imports, instantiate, and call the selected entrypoint resumably.
+6. Register WASI and optional graphics imports, instantiate, and call `_start` resumably.
 7. Yield on fuel exhaustion or supported suspension calls; report exit/trap errors and release VM-owned graphics objects.
 
 ## Runtime integration points
@@ -46,7 +46,7 @@ Follow [Run a guest](/how-to/run-guest) for the procedure and [command syntax](/
 - WASI coverage is partial; `poll_oneoff` supports clocks, not file-descriptor readiness. Start-section suspension is unsupported.
 - Graphical guests need bindings compatible with the host's LVGL revision/configuration and supported call subset.
 
-The native and browser examples now start from pre-seeded LittleFS images containing bundled WASI guests such as Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor. New images contain the matching applications and shortcuts; existing persistent images are preserved without automatic upgrades. The browser persists its selected live disk in OPFS. See [Browser tutorial](/tutorials/browser) for the build flow, [Browser storage](/explanation/browser-storage) for persistence, and [the headless container runtime](/reference/container-runtime) for running WASI without graphics or networking.
+The native and browser examples now start from pre-seeded LittleFS images containing bundled WASI guests such as Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor. New images contain matching `/applications/bundles/<id>/` directories with `shortcut.json` and guest binaries; existing persistent images are preserved without automatic upgrades. The browser persists its selected live disk in OPFS. See [Browser tutorial](/tutorials/browser) for the build flow, [Browser storage](/explanation/browser-storage) for persistence, and [the headless container runtime](/reference/container-runtime) for running WASI without graphics or networking.
 
 Exact option defaults and constraints live in the [runtime reference](/reference/wasm-runtime#execution-limits).
 
@@ -55,13 +55,12 @@ Exact option defaults and constraints live in the [runtime reference](/reference
 The native `WasmExecutable` implements `ExecutableTrait` and normally runs as the mounted `/applications/executables/wasm` program. Its arguments are parsed by `getargs`:
 
 ```text
-wasm /applications/executables/calculator
-wasm --install /applications/executables/calculator
-wasm --instruction-limit 50000 /applications/executables/clock
-wasm /applications/executables/tool -- first-argument --guest-option
+/applications/executables/wasm /applications/bundles/xila.calculator/executables/calculator.wasm
+/applications/executables/wasm --instruction-limit 50000 /applications/bundles/xila.clock/executables/clock.wasm
+/applications/executables/wasm /applications/bundles/xila.calculator/executables/calculator.wasm -- first-argument --guest-option
 ```
 
-`--install` selects the typed `__install: () -> ()` guest export rather than the normal `_start: () -> ()`; installers are optional per application. A literal `--` separates runner options from guest arguments, which become WASI `argv` after the guest's path. `--help`/`--version` exit successfully; parsing errors return nonzero status.
+The runner invokes only `_start: () -> ()`. A literal `--` separates runner options from guest arguments, which become WASI `argv` after the guest's path. The `@bundle/` prefix is expanded by the graphical Shell when launching a shortcut, **not** by the Wasm runner itself. `--help`/`--version` exit successfully; parsing errors return nonzero status.
 
 `--instruction-limit` defaults to **100,000** and must be a nonzero `u32`. It is a **cooperative instruction quantum**, not a total instruction budget or an execution timeout. `--stack-size` defaults to 4096 but is currently a **legacy parsed option with no effect**: the code explicitly discards its value and Wasmi manages stack allocation.
 

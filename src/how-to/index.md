@@ -17,6 +17,7 @@ Use these guides when you know what you want to accomplish. For a guided first e
 ## Guest applications and browser storage
 
 - [Build a guest application](./build-guest).
+- [Add a launcher shortcut to a bundle](./add-shortcut).
 - [Run a guest from Xila's terminal](./run-guest).
 - [Create a development package](./package-application) with the shared native tool.
 - [Submit a community registry declaration](./submit-package) to the unsigned preview.

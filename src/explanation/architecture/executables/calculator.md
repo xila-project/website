@@ -48,7 +48,7 @@ The calculator executable provides a scientific-expression evaluation UI primari
 ## Operational limitations
 
 - Intended runtime is wasm32; native targets only print fallback message.
-- The guest handles window-close events and exits; the runtime then removes its owned window and children. Calculator is embedded and installed by the browser example and is covered by native headless acceptance tests.
+- The guest handles window-close events and exits; the runtime then removes its owned window and children. Calculator is included in newly seeded bundle images for the browser example and is covered by native headless acceptance tests.
 
 ## Evaluation engine and numerical semantics
 
@@ -75,7 +75,7 @@ Calculator does not write its expression history to VFS. It depends on the windo
 - <CodeReference repo="applications" path="executables/calculator/src/engine.rs" /> — numerical model, supported functions and tests.
 - <CodeReference repo="applications" path="executables/calculator/src/interface.rs" /> — button matrix, event handling and display.
 - <CodeReference repo="applications" path="executables/calculator/src/main.rs" /> — target-specific startup.
-- <CodeReference repo="applications" path="executables/calculator/src/install.rs" /> — launcher shortcut installation.
+- <CodeReference repo="applications" path="executables/calculator/shortcut.json" /> — bundle-local launcher descriptor read by the graphical Shell.
 
 ## References
 

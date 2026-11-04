@@ -1,17 +1,17 @@
 ---
 layout: doc
 docType: how-to
-description: Launch or install a WASI guest through the mounted Xila WASM executable.
+description: Launch an installed WASI guest through the mounted Xila WASM executable.
 ---
 
 # Run a guest from Xila's terminal
 
-Launch a guest already present in Xila's virtual filesystem, or invoke its installer to register application resources.
+Launch a guest already present in Xila's virtual filesystem. The Wasm runner executes applications; it does not install bundles or launcher shortcuts.
 
 ## Before you begin
 
 - Start an Xila runtime with `/applications/executables/wasm` mounted, such as the native or browser example.
-- Place a compatible guest in the VFS as a regular file. The browser example includes `/applications/executables/calculator`; it has no general guest upload mechanism.
+- Place a compatible guest in the VFS as a regular file. New browser seed images include `/applications/bundles/xila.calculator/executables/calculator.wasm`; the browser has no general guest upload mechanism.
 - Check the guest's required imports against the [runtime](/reference/wasm-runtime) and [graphics](/reference/graphics-bindings) references.
 
 ## Launch the application
@@ -19,26 +19,16 @@ Launch a guest already present in Xila's virtual filesystem, or invoke its insta
 Open Xila's graphical terminal and enter an absolute VFS path:
 
 ```text
-/applications/executables/wasm /applications/executables/calculator
+/applications/executables/wasm /applications/bundles/xila.calculator/executables/calculator.wasm
 ```
 
-For another guest, replace `/applications/executables/calculator` with its path in Xila's VFS. This command runs in **Xila's terminal**, not your host shell.
+For another guest, replace the Calculator bundle path with its actual executable path in Xila's VFS. This command runs in **Xila's terminal**, not your host shell.
 
 Normal execution calls `_start: () -> ()`. The loader reads the supplied path directly; use an absolute VFS path rather than relying on `Current_directory` resolution inside the WASM loader.
 
-## Run an installer
-
-For a guest providing `__install: () -> ()`:
-
-```text
-/applications/executables/wasm --install /applications/executables/calculator
-```
-
-The browser example runs Calculator's installer during boot, so its application-drawer shortcut is normally already present. A missing or incorrectly typed installer export fails without launching the application's main entrypoint.
-
 ## Verify completion
 
-Check the guest's expected output or interface and the terminal for reported errors. For Calculator, evaluate `1 + 2 = 3` and close its window; the desktop should remain usable. For an installer, check the resource it is documented to create, such as Calculator's shortcut.
+Check the guest's expected output or interface and the terminal for reported errors. For Calculator, evaluate `1 + 2 = 3` and close its window; the desktop should remain usable. For a launcher shortcut, check that the installed bundle contains `shortcut.json` and reopen the app drawer to trigger Shell discovery; execution alone does not create a shortcut.
 
 ## Troubleshooting
 
@@ -49,4 +39,5 @@ Check the guest's expected output or interface and the terminal for reported err
 ## Related documentation
 
 - [Build a guest application](./build-guest).
+- [Add a launcher shortcut](./add-shortcut).
 - [Wasmi execution model](/explanation/architecture/executables/wasm).
