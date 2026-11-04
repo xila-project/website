@@ -11,15 +11,14 @@ The `xila-wasm` Cargo package implements the Wasmi runtime and guest helper APIs
 ## Command syntax
 
 ```text
-/applications/executables/wasm [--install] [--stack-size <bytes>] [--instruction-limit <fuel>] <path>
+/applications/executables/wasm [--stack-size <bytes>] [--instruction-limit <fuel>] <path> [-- <guest-argument> ...]
 ```
 
-The command runs in Xila's terminal. `<path>` must identify a regular guest file in the VFS; the loader reads the supplied path directly and does not perform `Current_directory` resolution. The guest receives its module path as its argument and the task environment as its environment.
+The command runs in Xila's terminal. `<path>` must identify a regular guest file in the VFS; the loader reads the supplied path directly and does not perform `Current_directory` resolution. The runner invokes the typed `_start: () -> ()` export. The guest receives its module path as the first WASI argument, followed by any arguments after the literal `--` separator, and inherits the task environment.
 
 | Argument/option       | Default  | Behavior                                                                                                                     |
 | --------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `<path>`              | Required | Guest module file path. Use an absolute VFS path.                                                                            |
-| `--install`           | Off      | Selects `__install: () -> ()` instead of `_start: () -> ()`. A missing or incorrectly typed export fails.                    |
 | `--stack-size`        | 4096     | Parsed as a stack size, but currently not applied by the runtime.                                                            |
 | `--instruction-limit` | 100,000  | Nonzero fuel quantum used by resumable execution. Fuel is replenished after yielding; this is not a total instruction limit. |
 
@@ -71,7 +70,7 @@ Default features are `host,memory_32`. Guest-only consumers must disable default
 | Saves           | At boot, every second when dirty, and on normal shutdown; synchronous flushes update the memory cache.                                                                                                                                                                          |
 | Memory          | 16 MiB selected-disk cache plus one temporary 16 MiB snapshot and browser buffering during saves. Guest/interpreter/graphics and embedded application bytes add further costs.                                                                                                  |
 | Fresh account   | `administrator` with an empty password; created only for a fresh disk. Existing accounts are restored.                                                                                                                                                                          |
-| Bundled guests  | Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor are included in new locale-matched seeded images under `/applications/executables`; matching release guest artifacts are needed for image creation. Existing persistent disks are not upgraded automatically. |
+| Bundled guests  | The native image includes Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor; the browser image includes Calculator, Clock, Pixel Painter, Synth, and Text Editor. Both seed application bundles under `/applications/bundles/<id>/` with `shortcut.json`. Matching guest artifacts are needed for image creation. Existing persistent disks are not upgraded automatically. |
 | Guest upload    | No general upload mechanism. Other guests must already be present in the VFS.                                                                                                                                                                                                   |
 | Networking      | No Xila network manager; HTTP uses Fetch under CORS/browser restrictions and does not expose raw sockets.                                                                                                                                                                       |
 
