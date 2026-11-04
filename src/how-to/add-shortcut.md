@@ -45,14 +45,14 @@ Create `shortcut.json` with the following contents, matching the [Applications s
 
 The schema rejects unknown properties. All six launcher fields are required; `$schema` is optional:
 
-| Field | Constraint |
-| --- | --- |
-| `name` | Non-empty display string, at most 128 characters |
-| `command` | Non-empty executable path, at most 256 characters; `@bundle/` is supported |
-| `arguments` | Array of at most 24 strings, each at most 256 characters |
-| `terminal` | Boolean display metadata |
-| `icon_string` | Icon text, at most 8 characters |
-| `icon_color` | Exactly three RGB integers, each between 0 and 255 |
+| Field         | Constraint                                                                 |
+| ------------- | -------------------------------------------------------------------------- |
+| `name`        | Non-empty display string, at most 128 characters                           |
+| `command`     | Non-empty executable path, at most 256 characters; `@bundle/` is supported |
+| `arguments`   | Array of at most 24 strings, each at most 256 characters                   |
+| `terminal`    | Boolean display metadata                                                   |
+| `icon_string` | Icon text, at most 8 characters                                            |
+| `icon_color`  | Exactly three RGB integers, each between 0 and 255                         |
 
 The Shell resolves any `command` or `arguments` element starting with `@bundle/` relative to the directory holding `shortcut.json`. For example, the Calculator argument becomes `/applications/bundles/xila.calculator/executables/calculator.wasm`. It rejects empty relative paths, empty path components, `.` and `..` components, and backslashes. Other strings are passed through unchanged.
 
