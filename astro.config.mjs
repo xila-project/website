@@ -140,7 +140,7 @@ const sidebar = [
 
 export default defineConfig({
   site: "https://www.xila.dev",
-  trailingSlash: "always",
+  trailingSlash: "ignore",
   markdown: { remarkPlugins: [remarkMermaid] },
   integrations: [
     sitemap(),
