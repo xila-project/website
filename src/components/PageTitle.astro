@@ -5,12 +5,15 @@
  */
 import { Icon } from "@astrojs/starlight/components";
 import ThemePageTitle from "starlight-theme-black/overrides/PageTitle.astro";
+import PagefindIgnoreMarkdownActions from "./PagefindIgnoreMarkdownActions.astro";
 
 const { lastUpdated, editUrl } = Astro.locals.starlightRoute;
 const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 ---
 
-<ThemePageTitle />
+<PagefindIgnoreMarkdownActions>
+  <ThemePageTitle />
+</PagefindIgnoreMarkdownActions>
 {(lastUpdated || editUrl) && (
   <div class="page-meta-line not-content">
     {lastUpdated && (

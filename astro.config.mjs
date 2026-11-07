@@ -208,6 +208,7 @@ export default defineConfig({
         LastUpdated: "./src/components/LastUpdated.astro",
         PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",
+        Search: "./src/components/Search.astro",
         Sidebar: "./src/components/Sidebar.astro",
         SiteTitle: "./src/components/SiteTitle.astro",
       },
