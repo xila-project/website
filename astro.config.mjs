@@ -203,6 +203,7 @@ export default defineConfig({
         Banner: "./src/components/Banner.astro",
         Footer: "./src/components/Footer.astro",
         LastUpdated: "./src/components/LastUpdated.astro",
+        Sidebar: "./src/components/Sidebar.astro",
       },
     }),
   ],
