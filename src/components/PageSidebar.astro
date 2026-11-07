@@ -10,7 +10,7 @@ import Default from "@astrojs/starlight/components/PageSidebar.astro";
 const { toc, entry } = Astro.locals.starlightRoute;
 const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
 const issueUrl =
-  "https://github.com/Xila-Project/Website/issues/new?" +
+  "https://github.com/xila-project/website/issues/new?" +
   new URLSearchParams({
     title: `Documentation: ${entry.data.title}`,
     body: `Page: ${pageUrl}\n\n`,

@@ -174,7 +174,7 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/Xila-Project",
+          href: "https://github.com/xila-project",
         },
         {
           icon: "matrix",
@@ -183,8 +183,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl:
-          "https://github.com/Xila-Project/Website/edit/main/src/content/docs/",
+        baseUrl: "https://github.com/xila-project/website/edit/main/",
       },
       sidebar,
       head: [
