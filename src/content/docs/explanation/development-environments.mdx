@@ -1,0 +1,39 @@
+---
+title: "Development environments and targets"
+docType: explanation
+description: Understand the independent Core, Applications and Platforms development and runtime targets.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The three Xila workspaces have different responsibilities and independent Cargo/mise setups. The portable libraries are developed in **Core**; **Applications** builds Wasmi and WASI app logic; **Platforms** supplies platform-specific drivers, the final native/browser assembly and images.
+
+## Workspace and tool boundaries
+
+- **Core**: portable Task, VFS, Time, Graphics, Network, ABI and shared libraries; host Rustdoc deployment. Source: <CodeReference path="mise.toml" />.
+- **Applications**: WASI guest applications, guest bindings, the host Wasmi runtime, shells and other native executables; application localization and development package workflows. Source: <CodeReference repo="applications" path="mise.toml" />.
+- **Platforms**: display/audio/network platform drivers, example runtimes, OPFS, LittleFS reference image generation, container image and browser demonstration publishing. Source: <CodeReference repo="platforms" path="mise.toml" />.
+
+Mise selects pinned Rust/Node/tool versions on demand. mr-boxington compilation caching and CI tool bootstrap remain repository-specific. All repositories pin external Git dependencies; local adjacent checkouts require an explicit Cargo patch or their pinned versions will still be selected.
+
+## Three execution targets
+
+| Target                     | What it runs                                                    | Owned by                                          |
+| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
+| `x86_64-unknown-linux-gnu` | Native Xila runtime and host tests                              | Platforms (with Core + Applications dependencies) |
+| `wasm32-wasip1`            | WASI guest apps interpreted by Wasmi inside Xila                | Applications                                      |
+| `wasm32-unknown-unknown`   | Browser-hosted Xila final binary using OPFS and browser drivers | Platforms                                         |
+
+The `xila-wasm` crate lives in Applications and owns **both** Wasmi host integration and guest-facing bindings. Core contains neither a standalone guest interpreter nor the browser example.
+
+## Distribution and runtime isolation
+
+The Linux/amd64 headless OCI runtime is assembled/published by Platforms, separate from the mise development environment. Its host filesystem mounts and permissions remain part of the runtime policy; Docker's isolation is not proof of MCU security.
+
+Core publishes **only its host Rust API** at [documentation.xila.dev](https://documentation.xila.dev/); the browser demo and localized builds now live at [platforms.xila.dev](https://platforms.xila.dev/). Applications' guest Rustdoc is not currently published under Core's old `/guest/` path; use the [guest source reference](/reference/guest) until it has a dedicated publishing pipeline.
+
+## Validation limits
+
+Compilation and CI only cover selected target/feature combinations. In particular, the Espressif code retained in Platforms needs a board-specific toolchain, power/flash/RAM measurement and validation. A successful Linux/browser integration check alone is **not** proof of a working ESP32-S3 port.
+
+Continue with [Development setup](/how-to/setup-development), [Development commands](/reference/development-commands) and the [native](/tutorials/native) or [browser](/tutorials/browser) tutorial.

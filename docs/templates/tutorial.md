@@ -1,10 +1,8 @@
 ---
-layout: doc
+title: "Learn to [perform a concrete activity]"
 docType: tutorial
 description: "Replace with the skill and concrete result the learner will achieve."
 ---
-
-# Learn to [perform a concrete activity]
 
 <!-- Introduce the learner, the small example, and the skills demonstrated by its completion. -->
 

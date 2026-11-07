@@ -1,0 +1,33 @@
+---
+import {
+  getReferenceTargetPath,
+  getReferenceViewerHref,
+} from "../../scripts/reference-path.mjs";
+import { getExternalCrateHref } from "../../scripts/source-reference.mjs";
+const {
+  repo = "core",
+  architecture = "host",
+  crate,
+  kind,
+  symbol,
+  member,
+} = Astro.props;
+const href =
+  repo === "core"
+    ? getReferenceViewerHref(
+        architecture,
+        getReferenceTargetPath(crate, kind, symbol, member),
+      )
+    : getExternalCrateHref(repo, crate);
+const isCrate = !kind || !symbol;
+const label = isCrate
+  ? crate
+  : `${crate}::${symbol}${kind === "fn" ? "()" : kind === "macro" ? "!" : ""}`;
+---
+
+<a href={href} class="reference-link">
+  <slot>
+    <code>{label}</code>
+    {isCrate && " crate"}
+  </slot>
+</a>

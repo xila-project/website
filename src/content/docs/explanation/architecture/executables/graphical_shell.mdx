@@ -1,0 +1,108 @@
+---
+title: "Graphical shell (executable)"
+docType: explanation
+description: "The graphical shell executable is the session shell that transitions from login to desktop views."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The graphical shell executable is the session shell that transitions from login to desktop views.
+
+## Role
+
+- Owns login UI, session activation, and desktop/home shell composition.
+- Sets task-level session environment (`User`) after successful login.
+
+## Startup and lifecycle
+
+1. Parses startup args (`--show-keyboard`).
+2. Builds `Shell` with `Layout` and `Login` components.
+3. Runs loop: layout tick -> login event handling -> post-login desk/home activation.
+4. Continues desk event handling until shell loop terminates.
+
+## Runtime integration points
+
+- `ExecutableTrait` for launcher integration.
+- Context-provided users manager to map the logged user ID to a user name.
+- Context-provided task manager to publish the session user into the task environment.
+- Graphics manager/LVGL wrappers for UI object/event handling.
+
+## Data and control flow / VFS touchpoints
+
+- Input: CLI flags and UI events.
+- Primary control flow is event-driven within one shell loop.
+- VFS touchpoints occur indirectly through components such as desktop shortcuts (implemented in submodules), not in top-level loop itself.
+
+## Concurrency and event-loop model
+
+- Single periodic loop with `task::sleep(Duration::from_millis(50))` cadence.
+- No internal multi-task fan-out in main loop; concurrency is delegated to underlying graphics/task systems.
+
+## Failure semantics
+
+- Argument parse failures are printed to stderr and return non-zero.
+- Environment-variable update failures propagate via `Error::FailedToSetEnvironmentVariable`.
+- Desk/Home creation and session environment failures propagate as executable errors. **Layout and Login constructors are currently unwrapped in `Shell::new` and can panic** during initialization.
+
+## Contract vs implementation
+
+- **Contract**: graphical shell executable starts a login-driven user session loop.
+- **Current implementation**: explicit login-first flow that instantiates desk/home only after authentication and publishes `User` env variable.
+
+## Operational limitations
+
+- Loop cadence is fixed (50 ms sleep), which trades responsiveness for predictable CPU usage.
+- Login updates the **current task's user identity**, its `HOME` directory and `User` environment variable. Inheritance to child tasks follows the Task manager, not a global session registry.
+
+## Authentication and session ownership
+
+`ShellExecutable` implements the native `ExecutableTrait` interface. `GraphicalShellArguments` is parsed with `getargs`, including `--show-keyboard` (`-k`). `--help` and `--version` print to stdout and exit successfully; invalid options report a nonzero status.
+
+The login widget verifies username/password with `authentication::authenticate_user`. Upon success it:
+
+1. Uses `VirtualFileSystem::ensure_user_home(task, user)` to create or locate the private home directory.
+2. Sets the Task environment's `HOME` and changes the current task's user ID.
+3. Restores appearance through `graphics::appearance::restore_appearance`.
+4. Resolves the username and stores it as the task's `User` environment variable.
+5. Constructs the Desktop (`Desk`) and Home-button overlay (`Home`) before dropping the login UI.
+
+`Desk` reads native shortcuts from `/configuration/shared/applications/shortcuts/*.json` and discovers installed bundles at `/applications/bundles/<id>/shortcut.json` when the app drawer opens (not at startup). It reads only shortcut JSON, never package manifests. Bundle-local `@bundle/` command and argument paths are resolved relative to the shortcut's parent directory, rejecting traversal. The launcher uses the executable runtime; its dock reflects live windows and supports window-management actions. A shortcut is presentation data, not an authorization grant or a verified package signature. See [Add a launcher shortcut](/how-to/add-shortcut). The desktop and Home bar hold LVGL object pointers and register C callbacks; Graphics locking and window ownership are required for safe lifecycle transitions.
+
+## Scheduling and failure boundaries
+
+The outer session loop sleeps **50 ms** between handling layout, login and desktop events. Most work is event-driven within that loop; the shell itself does not implement a preemptive UI scheduler. Layout/Login construction currently uses `unwrap`; distinguish that panic path from the typed errors returned by subsequent Desk/Home construction.
+
+Login is not an external authorization service: account persistence and password verification belong to Authentication, task identity to Task/Users, and file permissions to VFS.
+
+### Source and API references
+
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/lib.rs"
+  />
+  - CLI, session transition and cadence.
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/login.rs"
+  />
+  - authentication, HOME and task identity.
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/desk.rs"
+  />
+  - lazy shortcut discovery, dock and window handling.
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/shortcut.rs"
+  />
+  - descriptor fields and bundle-path validation.
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/home.rs"
+  />
+  - Home gesture and overlay.
+
+## References
+
+- <CodeReference repo="applications" path="executables/shell/graphical" />
+- [Executable runtime crate](/explanation/architecture/libraries/executable)

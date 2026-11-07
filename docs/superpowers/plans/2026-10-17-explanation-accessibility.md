@@ -26,23 +26,23 @@
 
 ## File Structure
 
-- `.vitepress/theme/utilities/reference-path.mjs` — pure, runtime-agnostic Rustdoc target/viewer/iframe path construction and argument validation; directly testable by Node.
-- `.vitepress/theme/utilities/reference.ts` — retain reference enums/display-name behavior and delegate top-level Rustdoc page-path construction to the pure helper where appropriate.
-- `.vitepress/theme/components/Reference.vue` — consume the pure path helper and accept the optional `member` prop.
-- `.vitepress/theme/components/HostReference.vue` — forward optional `member` to `Reference.vue`.
-- `.vitepress/theme/components/GuestReference.vue` — forward optional `member` to `Reference.vue`.
-- `src/reference/host.md` / `src/reference/guest.md` — build iframe URLs through the same pure helper so encoded Rustdoc fragments survive the outer reference page.
-- `tests/reference-path.test.mjs` — deterministic URL/path tests with `node:test`; no network.
-- `package.json` — add the narrow reference-path test command and include it in `check`.
-- `src/explanation/index.md` — human-oriented Explanation landing page.
-- `src/explanation/architecture/index.md` — global Xila architecture mental model and conceptual system map.
-- `src/explanation/architecture/components.md` — discovery map oriented around reader questions and system relationships rather than an inventory alone.
-- `src/explanation/architecture/modules/index.md` — module-level mental model and reading map.
-- `src/explanation/architecture/modules/task.md` — progressive Task explanation.
-- `src/explanation/architecture/modules/memory.md` — progressive Memory explanation.
-- `src/explanation/architecture/modules/network.md` — progressive Network explanation.
-- `src/explanation/architecture/modules/virtual_file_system.md` — progressive VFS explanation.
-- `src/how-to/write-documentation.md` — concise Explanation-specific authoring rules and `member` link usage.
+- `.vitepress/theme/utilities/reference-path.mjs` - pure, runtime-agnostic Rustdoc target/viewer/iframe path construction and argument validation; directly testable by Node.
+- `.vitepress/theme/utilities/reference.ts` - retain reference enums/display-name behavior and delegate top-level Rustdoc page-path construction to the pure helper where appropriate.
+- `.vitepress/theme/components/Reference.vue` - consume the pure path helper and accept the optional `member` prop.
+- `.vitepress/theme/components/HostReference.vue` - forward optional `member` to `Reference.vue`.
+- `.vitepress/theme/components/GuestReference.vue` - forward optional `member` to `Reference.vue`.
+- `src/reference/host.md` / `src/reference/guest.md` - build iframe URLs through the same pure helper so encoded Rustdoc fragments survive the outer reference page.
+- `tests/reference-path.test.mjs` - deterministic URL/path tests with `node:test`; no network.
+- `package.json` - add the narrow reference-path test command and include it in `check`.
+- `src/explanation/index.md` - human-oriented Explanation landing page.
+- `src/explanation/architecture/index.md` - global Xila architecture mental model and conceptual system map.
+- `src/explanation/architecture/components.md` - discovery map oriented around reader questions and system relationships rather than an inventory alone.
+- `src/explanation/architecture/modules/index.md` - module-level mental model and reading map.
+- `src/explanation/architecture/modules/task.md` - progressive Task explanation.
+- `src/explanation/architecture/modules/memory.md` - progressive Memory explanation.
+- `src/explanation/architecture/modules/network.md` - progressive Network explanation.
+- `src/explanation/architecture/modules/virtual_file_system.md` - progressive VFS explanation.
+- `src/how-to/write-documentation.md` - concise Explanation-specific authoring rules and `member` link usage.
 
 ## Review Focus
 

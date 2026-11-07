@@ -3,9 +3,9 @@
 node = "24.22.0"
 
 [tasks."documentation:check"]
-description = "Validate references, formatting and build the VitePress documentation"
+description = "Validate references, formatting and build the Astro and Starlight documentation"
 run = "npm run check"
 
 [tasks."documentation:development"]
-description = "Start the VitePress local development server"
+description = "Start the Astro local development server"
 run = "npm run docs:dev"

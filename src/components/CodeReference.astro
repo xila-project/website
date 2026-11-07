@@ -1,0 +1,10 @@
+---
+import { getSourceHref } from "../../scripts/source-reference.mjs";
+const { repo = "core", path } = Astro.props;
+---
+
+<a href={getSourceHref(repo, path)} class="external-reference-link">
+  <slot>
+    <code>{path}</code>
+  </slot>
+</a>

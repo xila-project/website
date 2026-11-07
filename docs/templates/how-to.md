@@ -1,10 +1,8 @@
 ---
-layout: doc
+title: "[Perform a specific task]"
 docType: how-to
 description: "Replace with the specific task and completion condition."
 ---
-
-# [Perform a specific task]
 
 <!-- State the reader's goal and the circumstances in which this procedure applies. -->
 

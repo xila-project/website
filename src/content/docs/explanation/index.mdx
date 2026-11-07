@@ -1,0 +1,62 @@
+---
+title: "Explanation"
+docType: explanation
+description: Understand how Xila fits together, why its major boundaries exist, and what trade-offs they create.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Explanation is where Xila's architecture is made understandable: what the main parts are, how they relate, and why the system is shaped this way.
+
+If you are new to Xila, start with the [architecture overview](/explanation/architecture). It gives you the mental model that the more detailed subsystem, library, driver, runtime, and storage pages build on.
+
+## Start with the system
+
+<CardGrid>
+  <LinkCard
+    title="Architecture overview"
+    href="/explanation/architecture/"
+    description="How executables, Xila services, shared contracts, drivers, and target platforms fit together."
+  />
+  <LinkCard
+    title="Component map"
+    href="/explanation/architecture/components/"
+    description="Locate a subsystem, library, driver, or executable by the role it plays in that system."
+  />
+  <LinkCard
+    title="Subsystems"
+    href="/explanation/architecture/subsystems/"
+    description="Runtime-owned services such as graphics, networking, tasks, time, and users."
+  />
+  <LinkCard
+    title="Libraries"
+    href="/explanation/architecture/libraries/"
+    description="Reusable contracts and implementations."
+  />
+</CardGrid>
+
+## Follow the question you have
+
+**How can the same Xila code run on an MCU, a native host, and in a browser?**
+
+Read [development environments and targets](/explanation/development-environments) for the relationship between toolchains, validation targets, and platform ownership.
+
+**How will application packages be built, published and installed?**
+
+Read [package management architecture](/explanation/package-management) for the separation of portable Rust tooling, the static package registry and planned on-device trust/installer integration.
+
+**How does the browser version keep a persistent disk?**
+
+Read [browser storage](/explanation/browser-storage) for the relationship between OPFS, the in-memory disk image, autosave, and durability.
+
+**What happens when Xila executes a WebAssembly guest?**
+
+Read the [WASM runtime](/explanation/architecture/executables/wasm) for Wasmi integration, WASI imports, and cooperative execution.
+
+**How do guest graphics calls cross into the host runtime?**
+
+Read [graphics bindings](/explanation/architecture/executables/bindings) for the ownership and memory boundary between guest handles and host objects.
+
+## When your question changes
+
+Explanation is intentionally not a task guide or an API catalogue. When you know _why_ a part of Xila works the way it does and want to do something with it, continue with the [how-to guides](/how-to/). When you need an exact command, limit, symbol, or API contract, use the [reference section](/reference/).

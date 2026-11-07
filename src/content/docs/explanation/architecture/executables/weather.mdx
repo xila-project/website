@@ -1,0 +1,62 @@
+---
+title: "Weather (executable)"
+docType: explanation
+description: Understand the Weather demo guest and its network-dependent data sources.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Weather is a WebAssembly demonstration application that queries the Open-Meteo service. It asks for a city, resolves its coordinates, then displays **Current**, **Hourly**, **Daily**, and **Meta** views.
+
+The app uses the Xila HTTPS client device at `/devices/https_client`, rather than directly calling browser JavaScript APIs. Its two public data sources are the Open-Meteo geocoding endpoint (`geocoding-api.open-meteo.com`) and forecast endpoint (`api.open-meteo.com`). When more than one geocoding result matches, the current implementation selects the first result.
+
+Weather requires the HTTPS device and working network access. A browser or host with restricted networking cannot fetch forecasts; the [headless container runner](/reference/container-runtime) explicitly disables networking and is not an alternative for this app.
+
+## Request pipeline and data semantics
+
+`api::build_geocoding_url(city)` generates an Open-Meteo geocoding request with `count=10`, `language=en` and `format=json`. It currently replaces **spaces with plus signs** rather than performing full URL percent-encoding for arbitrary user input. The app picks the **first** returned location rather than presenting an interactive disambiguation choice.
+
+The forecast request includes current, hourly and daily measurements, requests **10 forecast days**, and uses `timezone=auto` according to the location returned by the API. This is **not** Xila's system timezone configuration: the time-zone policy comes from Open-Meteo's response.
+
+```rust
+// API helpers in the application's own crate:
+let geocode = weather::api::build_geocoding_url("Paris");
+let forecast = weather::api::build_forecast_url(48.8566, 2.3522);
+assert!(geocode.contains("count=10"));
+assert!(forecast.contains("forecast_days=10"));
+```
+
+These helpers only construct request URLs; they do not prove that the network or external service is available.
+
+## HTTPS transport and errors
+
+On wasm32, `net::https_get` opens `/devices/https_client`, sends an HTTP/1.1 GET and parses response headers, HTTP status and payload. Chunked transfer encoding and `Content-Length` are handled by the guest's transport helper. Temporarily busy reads are retried with cooperative yields and occasional millisecond sleeps, with a finite limit; nontransient errors return to the UI.
+
+The fetch sequence is **geocoding → select first location → forecast**. The forecast request is retried once when the first attempt fails. The app distinguishes network failures, invalid API JSON, missing locations and HTTP status failures, then updates Current/Hourly/Daily/Meta labels in its existing window.
+
+The network operation is currently synchronous from the guest UI's refresh handler, so a slow fetch can temporarily delay UI responsiveness despite the small `in_flight` guard. The executable has no offline cache or local weather fallback; it neither reads nor writes application forecast files.
+
+### Source references
+
+- <CodeReference repo="applications" path="executables/weather/src/api.rs" /> -
+  geocoding/forecast query contracts.
+- <CodeReference repo="applications" path="executables/weather/src/net.rs" /> -
+  HTTPS VFS device and HTTP framing.
+- <CodeReference repo="applications" path="executables/weather/src/state.rs" />-
+  fetch ordering, retries and error mapping.
+- <CodeReference
+    repo="applications"
+    path="executables/weather/src/interface.rs"
+  />
+  - refresh event and views.
+- [Networking](/explanation/architecture/subsystems/network) - underlying host device.
+
+## Bounded HTTP response processing
+
+Core #522 changed the underlying HTTP(S) VFS device from whole-body buffering to a 2 KiB streaming buffer per open. Weather consumes the **already decoded** HTTP response body, handles fragmented and coalesced reads, reuses bounded header memory for JSON, and releases temporary JSON storage before the next request. Large HTTP downloads therefore do not imply large transport response allocations, but Weather's own JSON and socket/TLS storage remain additional memory costs. See [HTTP](/explanation/architecture/libraries/http) and <CodeReference repo="applications" path="executables/weather/src/net.rs" />.
+
+## References
+
+- <CodeReference repo="applications" path="executables/weather/README.md" />
+- <CodeReference repo="applications" path="executables/weather" />
+- [Network subsystem](/explanation/architecture/subsystems/network)

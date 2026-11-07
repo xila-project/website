@@ -1,0 +1,55 @@
+---
+title: An open source OS for the embedded world
+description: An open-source operating system for the embedded world.
+template: splash
+editUrl: false
+lastUpdated: false
+pagefind: false
+hero:
+  announcement:
+    text: Run Calculator in your browser
+    link: /tutorials/browser/
+  title: An open source OS for the embedded world
+  tagline: Embedded, Rust and WebAssembly - a modular, portable system for devices and the people who make them.
+  image:
+    light: ../../../public/images/logo_light.svg
+    dark: ../../../public/images/logo_dark.svg
+    alt: Xila
+  actions:
+    - text: Try Xila
+      link: https://platforms.xila.dev/
+      icon: external
+      variant: primary
+    - text: Documentation
+      link: /docs/
+      icon: open-book
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/Xila-Project
+      icon: github
+      variant: minimal
+    - text: Matrix
+      link: https://matrix.to/#/#xila:anneraud.fr
+      icon: matrix
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Lightweight" icon="rocket">
+    Optimized for embedded systems, ensuring high performance on
+    resource-constrained hardware.
+  </Card>
+  <Card title="Safe" icon="approve-check">
+    Built on Rust's memory-safety guarantees for a robust and secure execution
+    environment.
+  </Card>
+  <Card title="Portable" icon="laptop">
+    Abstracts hardware complexities to run across various architectures and
+    boards.
+  </Card>
+  <Card title="Modular" icon="puzzle">
+    Extend functionality dynamically with isolated WebAssembly modules.
+  </Card>
+</CardGrid>

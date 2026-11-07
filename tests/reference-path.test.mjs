@@ -5,7 +5,7 @@ import {
   getReferenceIframeSrc,
   getReferenceTargetPath,
   getReferenceViewerHref,
-} from "../.vitepress/theme/utilities/reference-path.mjs";
+} from "../scripts/reference-path.mjs";
 
 test("builds a crate-only Rustdoc target", () => {
   assert.equal(getReferenceTargetPath("task"), "task/index.html");
@@ -36,7 +36,7 @@ test("keeps the Rustdoc fragment inside the encoded viewer path", () => {
       "host",
       "virtual_file_system/struct.File.html#method.open",
     ),
-    "/reference/host?path=virtual_file_system%2Fstruct.File.html%23method.open",
+    "/reference/host/?path=virtual_file_system%2Fstruct.File.html%23method.open",
   );
 });
 

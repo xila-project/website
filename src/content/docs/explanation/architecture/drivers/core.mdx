@@ -1,0 +1,27 @@
+---
+title: "Core driver crate"
+docType: explanation
+description: "The drivers_core crate contains dependency-light driver building blocks that can be reused across all targets."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `drivers_core` crate contains dependency-light driver building blocks that can be reused across all targets.
+
+It currently provides foundational devices such as the null device implementation used by higher-level systems.
+
+## Dependencies
+
+- [File system](/explanation/architecture/libraries/file_system): For common device-facing file system traits.
+
+## References
+
+- <HostReference crate="drivers_core" /> - generated Rust API documentation.
+
+- <CodeReference path="drivers/core" />
+
+## See also
+
+- [Drivers](/explanation/architecture/drivers)
+- [Device](/explanation/architecture/libraries/device)

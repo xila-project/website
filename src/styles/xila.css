@@ -1,0 +1,107 @@
+/*
+ * Xila adjustments on top of starlight-theme-black, which provides the
+ * black-and-white palette and the layout.
+ */
+
+/* Xila's typeface instead of the theme's Geist. */
+:root {
+  --sl-font: "Montserrat", Arial, Helvetica, sans-serif;
+}
+
+/*
+ * Layout: a wider text column than the theme's 40rem, and on very wide
+ * screens the whole page (header contents, sidebar, content, table of
+ * contents) is capped and centered so the header lines up with the page.
+ * Percentages on fixed elements resolve against the viewport.
+ */
+:root {
+  --xila-frame-width: 100rem;
+  --xila-frame-gutter: max(0rem, (100% - var(--xila-frame-width)) / 2);
+  --sl-content-width: 52rem;
+}
+
+[data-has-sidebar][data-has-toc] .main-pane {
+  max-width: var(--sl-content-width);
+}
+
+@media (min-width: 48rem) {
+  .main-pane {
+    padding-inline: 1.5rem;
+  }
+}
+
+header.header {
+  padding-inline: calc(var(--xila-frame-gutter) + var(--sl-nav-pad-x));
+}
+
+.main-frame {
+  width: 100%;
+  max-width: var(--xila-frame-width);
+  margin-inline: auto;
+}
+
+.sidebar-pane {
+  inset-inline-start: var(--xila-frame-gutter);
+}
+
+/*
+ * The theme sizes the sidebar for Geist (14rem text box, fixed 30px rows).
+ * Montserrat is wider: use the whole column and let rows grow if they wrap.
+ */
+.sidebar-content {
+  width: 100%;
+  padding-inline-end: 1rem;
+}
+
+.sidebar-content a.entry-link {
+  height: auto;
+  min-height: 30px;
+  line-height: 1.35;
+  padding-block: 6px;
+}
+
+.sidebar-content a.entry-link > .entry-link-inner {
+  width: 100%;
+}
+
+/* Home page: keep the logo a mark, not a poster, and the feature cards mono. */
+.hero {
+  padding-top: 3rem;
+}
+
+/* Let the hero buttons wrap instead of overflowing on narrow screens. */
+.hero .actions {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero .hero-image img {
+  width: min(60%, 13rem);
+  height: auto;
+  margin: auto;
+}
+
+.card .icon {
+  color: var(--sl-color-white);
+  background: var(--sl-color-gray-6);
+  border-color: var(--sl-color-hairline-light);
+}
+
+/* Generated API and source links. */
+.reference-link,
+.external-reference-link {
+  text-decoration: none;
+}
+
+.reference-link:hover,
+.external-reference-link:hover {
+  text-decoration: underline;
+}
+
+/* Mermaid diagrams: no code-block frame, centered. */
+.sl-markdown-content pre.mermaid {
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+}

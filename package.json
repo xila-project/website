@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview",
+    "docs:dev": "astro dev",
+    "docs:build": "astro build",
+    "docs:preview": "astro preview",
     "docs:validate": "node scripts/check-docs.mjs",
     "test:reference": "node --test tests/*.test.mjs",
     "format:fix": "prettier --write .",
@@ -11,14 +11,15 @@
   },
   "devDependencies": {
     "mermaid": "^11.17.2",
-    "prettier": "3.9.10",
-    "typescript": "^7.0.2",
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "prettier": "^3.9.10",
+    "prettier-plugin-astro": "^1.1.2",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "pagefind": "^1.5.2",
-    "vitepress-plugin-pagefind": "^0.4.25",
-    "vue": "^3.5.44"
+    "@astrojs/markdown-remark": "^7.3.6",
+    "@astrojs/sitemap": "^3.7.4",
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.4.7",
+    "starlight-theme-black": "^0.7.1"
   }
 }

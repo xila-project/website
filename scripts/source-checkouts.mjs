@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import {
-  getSourceHref,
-  SOURCE_REPOSITORIES,
-} from "../.vitepress/theme/utilities/source-reference.mjs";
+import { getSourceHref, SOURCE_REPOSITORIES } from "./source-reference.mjs";
 
 export const SOURCE_REPOSITORY_NAMES = Object.freeze(
   Object.keys(SOURCE_REPOSITORIES),

@@ -2,12 +2,12 @@
 
 These are locally authored Xila templates informed by [The Good Docs Project](https://github.com/thegooddocsproject/templates) and organized using [Diátaxis](https://diataxis.fr/). They provide writing prompts; they are not imported upstream templates or a claim of formal certification.
 
-| Reader's question                       | Start with                      | Published location |
-| --------------------------------------- | ------------------------------- | ------------------ |
-| “Can you help me learn by doing?”       | [Tutorial](./tutorial.md)       | `src/tutorials/`   |
-| “How do I complete this task?”          | [How-to](./how-to.md)           | `src/how-to/`      |
-| “What are the exact options or limits?” | [Reference](./reference.md)     | `src/reference/`   |
-| “Why does this work this way?”          | [Explanation](./explanation.md) | `src/explanation/` |
+| Reader's question                       | Start with                      | Published location              |
+| --------------------------------------- | ------------------------------- | ------------------------------- |
+| “Can you help me learn by doing?”       | [Tutorial](./tutorial.md)       | `src/content/docs/tutorials/`   |
+| “How do I complete this task?”          | [How-to](./how-to.md)           | `src/content/docs/how-to/`      |
+| “What are the exact options or limits?” | [Reference](./reference.md)     | `src/content/docs/reference/`   |
+| “Why does this work this way?”          | [Explanation](./explanation.md) | `src/content/docs/explanation/` |
 
 Copy the selected file into the appropriate source directory, choose a descriptive filename, and replace every writing prompt. Delete optional sections that do not help the reader. Keep templates outside `src/` so drafts and placeholders never appear in the site or search results.
 

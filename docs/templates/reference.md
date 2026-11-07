@@ -1,10 +1,8 @@
 ---
-layout: doc
+title: "[Interface or fact set]"
 docType: reference
 description: "Replace with the exact interface or fact set covered by this page."
 ---
-
-# [Interface or fact set]
 
 <!-- Define scope, applicable package/platform/revision, and the authoritative source. -->
 

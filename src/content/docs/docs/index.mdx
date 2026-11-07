@@ -1,0 +1,67 @@
+---
+title: "Xila documentation"
+description: Find a learning path, a task guide, an exact reference, or an explanation of Xila's design.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+import IconLinkCard from "@/components/IconLinkCard.astro";
+
+Start with a guided first run, complete a task, look up an interface, or explore how the system fits together.
+
+<CardGrid>
+  <IconLinkCard
+    title="Tutorials"
+    href="/tutorials/"
+    icon="rocket"
+    description="Run Xila for the first time."
+  />
+  <IconLinkCard
+    title="How-to guides"
+    href="/how-to/"
+    icon="setting"
+    description="Set up tooling, build a guest, or validate a change."
+  />
+  <IconLinkCard
+    title="Reference"
+    href="/reference/"
+    icon="open-book"
+    description="Look up commands, features, limits, or APIs."
+  />
+  <IconLinkCard
+    title="Explanation"
+    href="/explanation/"
+    icon="puzzle"
+    description="Understand architecture and design choices."
+  />
+</CardGrid>
+
+## First experience
+
+<CardGrid>
+  <LinkCard
+    title="Run Xila natively"
+    href="/tutorials/native/"
+    description="Open the native desktop on a supported Linux/Wayland environment."
+  />
+  <LinkCard
+    title="Run Calculator in the browser"
+    href="/tutorials/browser/"
+    description="Build a guest, start the browser example, and evaluate an expression."
+  />
+</CardGrid>
+
+## Common tasks
+
+- [Set up a development environment](/how-to/setup-development).
+- [Build a guest application](/how-to/build-guest).
+- [Create an experimental package](/how-to/package-application) and [submit registry metadata](/how-to/submit-package).
+- [Run Xila with Docker](/how-to/run-container-guest) using a CLI shell or WASI guest.
+- [Integrate Xila into a host application](/how-to/integrate-host).
+- [Validate a Core change](/how-to/validate-core).
+- [Improve the documentation](/how-to/write-documentation).
+
+## Find a component
+
+For package distribution, see [package management architecture](/explanation/package-management) and the [experimental package format](/reference/package-format).
+
+Use the [component map](/explanation/architecture/components) to find modules, crates, drivers, and executables across the documentation. The [project overview](/about/) describes Xila's goals and license.

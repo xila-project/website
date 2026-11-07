@@ -1,4 +1,4 @@
-# Xila documentation — Rust, embedded systems, and WebAssembly
+# Xila documentation - Rust, embedded systems, and WebAssembly
 
 Learn to run Xila, build a WebAssembly application, and explore the architecture
 of an open-source embedded operating system written in Rust. This repository
@@ -26,7 +26,7 @@ the operating system.
 
 ## Documentation stack
 
-- Built with [VitePress](https://vitepress.dev/) for fast, modern documentation
+- Built with [Astro + Starlight](https://starlight.astro.build/) and the [Starlight Black](https://github.com/adrian-ub/starlight-theme-black) theme, adapted to Xila's black-and-white identity
 - Reader-focused documentation organized with [Diátaxis](https://diataxis.fr/)
 - Local authoring templates informed by [The Good Docs Project](https://github.com/thegooddocsproject/templates)
 - Integrated with [Mermaid](https://mermaid-js.github.io/) for diagrams
@@ -37,16 +37,19 @@ the operating system.
 
 ```
 src/
-  docs/            # Documentation entry point
-  tutorials/       # Guided learning experiences
-  how-to/          # Task-focused procedures
-  reference/       # Commands, capabilities, limits, and generated API viewers
-  explanation/     # Concepts, architecture, component map, and design choices
-  about/           # Project information
-  public/          # Static assets (images, robots.txt, etc.)
+  content/docs/    # Starlight documentation collection
+    docs/          # Documentation entry point
+    tutorials/     # Guided learning experiences
+    how-to/        # Task-focused procedures
+    reference/     # Commands, capabilities, limits, and generated API viewers
+    explanation/   # Concepts, architecture, component map, and design choices
+    about/         # Project information
+  components/      # Reference links, API viewer, footer, and card components
+  styles/          # Xila adjustments to the Starlight Black theme
+public/            # Static assets (fonts, images, robots.txt)
 docs/templates/    # Authoring templates, excluded from the published site
-.vitepress/        # Site configuration, navigation, and reference components
-scripts/           # Documentation validation
+astro.config.mjs   # Astro and Starlight configuration, including the sidebar
+scripts/           # Documentation validation and shared reference helpers
 AGENTS.md          # Documentation conventions and maintenance instructions
 ```
 
@@ -83,7 +86,7 @@ cd website
    npm run docs:preview
    ```
 
-Open the local URL printed by VitePress to view the site. Before submitting a
+Open the local URL printed by Astro + Starlight to view the site. Before submitting a
 change, run `npm run check` to check formatting, build the site, and validate
 documentation links.
 
@@ -91,8 +94,8 @@ documentation links.
 
 | Command         | Description                                         |
 | --------------- | --------------------------------------------------- |
-| `docs:dev`      | Start VitePress in development mode                 |
-| `docs:build`    | Build the static site with VitePress                |
+| `docs:dev`      | Start Astro + Starlight in development mode         |
+| `docs:build`    | Build the static site with Astro + Starlight        |
 | `docs:preview`  | Preview the built site locally                      |
 | `format:fix`    | Format all files using Prettier                     |
 | `format:check`  | Check formatting with Prettier                      |
@@ -109,7 +112,7 @@ npm run <command>
 
 Read [AGENTS.md](AGENTS.md) for documentation conventions and [docs/templates/README.md](docs/templates/README.md) to choose a writing template. The [documentation contribution guide](src/how-to/write-documentation.md) covers the workflow for this repository; [Core contributions](src/how-to/contribute-core.md) have their own tooling and checks.
 
-Keep each substantive page focused on one reader need. Split mixed onboarding pages into guided tutorials, independent task guides, exact reference, and conceptual explanation, then connect them with links. Use `.vitepress/navigation.ts` and the landing pages to make content discoverable. The site is pre-production: moved pages use their new URLs directly, without redirects.
+Keep each substantive page focused on one reader need. Split mixed onboarding pages into guided tutorials, independent task guides, exact reference, and conceptual explanation, then connect them with links. Use the `sidebar` in `astro.config.mjs` and the landing pages to make content discoverable. The site is pre-production: moved pages use their new URLs directly, without redirects.
 
 ## License
 
@@ -137,6 +140,6 @@ XILA_STRICT_SOURCE_REFERENCES=1 mise run documentation:check
 ```
 
 The supported repository names come from
-`.vitepress/theme/utilities/source-reference.mjs` and are shared with the
+`scripts/source-reference.mjs` and are shared with the
 source link generator. `npm run test:reference` covers all reference and
 checkout validation tests.

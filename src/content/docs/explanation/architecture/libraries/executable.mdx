@@ -1,0 +1,114 @@
+---
+title: "Executables"
+docType: explanation
+description: "The executable crate defines the native executable contract and the launcher used across Core."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `executable` crate defines the native executable contract and the launcher used across Core.
+
+## Role
+
+- Defines `ExecutableTrait` and typed `GET_MAIN_FUNCTION` command contract.
+- Provides `execute(...)` orchestration: permission checks, task spawn, and standard stream propagation.
+
+## Boundaries
+
+- In scope: executable ABI contract, launch permission logic, standard stream helper type.
+- Out of scope: executable UI/business logic and shell-specific command parsing.
+
+## Internal structure
+
+- `traits.rs`: `ExecutableTrait`, `ExecutableWrapper`, `mount_executables!`, command definition.
+- `lib.rs`: launch path (`execute`) + execution permission helpers.
+- `standard.rs`: `Standard` abstraction (`open`, `duplicate`, `read_line`, `close`).
+- `error.rs`: launcher-level error type.
+
+## Runtime interaction
+
+1. Executables are mounted as character devices exposing `GET_MAIN_FUNCTION`.
+2. `execute(context, path, args, standard, spawner)` uses the context's VFS/users/task managers to fetch statistics and check execute permissions.
+3. It opens executable file and requests main function via control command.
+4. It spawns a task and calls main with `Standard` carrying the same context and the argument vector.
+5. It returns `task::JoinHandle<isize>` to allow join/wait by caller.
+
+## Dependency model
+
+- Core dependencies: [File System](/explanation/architecture/libraries/file_system), [Virtual file system](/explanation/architecture/subsystems/virtual_file_system), [Task](/explanation/architecture/subsystems/task), [Users](/explanation/architecture/subsystems/users), [Shared](/explanation/architecture/libraries/shared), [Log](/explanation/architecture/subsystems/log), [Internationalization](/explanation/architecture/libraries/internationalization).
+
+## Failure semantics
+
+- Permission denial is explicit (`Error::PermissionDenied`).
+- Missing main entrypoint yields `FailedToGetMainFunction`.
+- Task spawn or VFS failures are mapped into crate error variants.
+- Executable runtime errors are converted to negative `isize` task return values in spawned task closure.
+
+## Extension points
+
+- New executable crates implement `ExecutableTrait` and mount through `ExecutableWrapper` or `mount_executables!`.
+- `building` feature gates additional build-time support without changing runtime core path.
+
+## Contract vs implementation
+
+- **Contract**: executable = mounted character device that answers `GET_MAIN_FUNCTION` and receives `Standard + Vec<String>`; `Standard::context` supplies explicit capabilities.
+- **Current implementation**: launcher uses VFS metadata + users/group checks and task spawn under current task context.
+
+## Limitations and trade-offs
+
+`ExecutableContext` carries task/users/time managers, VFS, optional networking, and optional graphics when the graphics feature is enabled. `ExecutableWrapper::new(executable, context)` and `mount_executables!(context, virtual_file_system, task, ...)` bind executables to that context. `Standard::open(..., task, virtual_file_system, context)` opens streams with the same capability set. Required references are `'static`; final binaries own their storage/lifetimes.
+
+- Contract is intentionally narrow (`main` only), simplifying dispatch but leaving richer lifecycle hooks to higher layers.
+- `setuid`-style override logic is constrained and permission-checked at launch time.
+
+## Exact launch and executable entrypoint contracts
+
+An implementation of `ExecutableTrait` exposes one static `main(Standard<'static>, Vec<String>) -> MainFuture` function. `MainFuture` is a pinned boxed future resolving to `Result<(), NonZeroUsize>`. `ExecutableWrapper<T>` owns the implementation value plus a borrowed `'static ExecutableContext`, and publishes the `GET_MAIN_FUNCTION` control command as **family `b'E'`, read command 1**.
+
+```rust
+use executable::{ExecutableTrait, MainFuture, Standard};
+use alloc::{boxed::Box, string::String, vec::Vec};
+
+struct Example;
+impl ExecutableTrait for Example {
+    fn main(mut standard: Standard<'static>, arguments: Vec<String>) -> MainFuture {
+        Box::pin(async move {
+            let _ = arguments;
+            standard.out().write(b"Hello from Xila\n").await.map_err(|_| {
+                core::num::NonZeroUsize::new(1).unwrap()
+            })?;
+            Ok(())
+        })
+    }
+}
+```
+
+The snippet assumes `alloc` is available and the program is mounted with a valid `ExecutableContext`; it illustrates the entrypoint signature rather than a complete runtime launcher.
+
+`execute(context, path, arguments, standard, spawner).await` looks up VFS statistics, checks execute permissions, opens the character device, obtains the main function, and spawns the program in Task. It returns a `JoinHandle<isize>`: **0 means success and negative values encode nonzero program errors**. Launch/permission failures return `executable::Error` before a join handle is produced.
+
+## Permissions and standard streams
+
+`is_execute_allowed` checks owner, group and other execution bits; even root does **not** bypass a file with no execute bits. The set-user-ID override path is intentionally restrictive and can deny unauthorized transitions. `Standard` carries stdin, stdout, stderr and the `ExecutableContext`, which supplies Task/Users/Time/VFS and optional Network/Graphics capabilities.
+
+`Standard::duplicate()` duplicates the three underlying handles, while `Standard::close(vfs)` closes them. `Standard::read_line` currently reads **one byte at a time**, sleeping 10 ms and retrying when a read returns zero. It does not provide general UTF-8 decoding, line-length limits or EOF termination; consumers should not assume an EOF-only input ends that method promptly.
+
+Mounting is done through `ExecutableWrapper::new` or `mount_executables!`. The latter removes pre-existing mount entries, mounts the device and sets `Permissions::EXECUTABLE`. This is a mounted-native-executable protocol, **not** a general ELF loader and not the Wasmi guest runtime.
+
+### Source and API references
+
+- <CodeReference path="libraries/executable/src/traits.rs" /> - command,
+  context, trait and mount macro.
+- <CodeReference path="libraries/executable/src/lib.rs" /> - permissions and
+  execute.
+- <CodeReference path="libraries/executable/src/standard.rs" /> - stdio
+  ownership and read behavior.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> -
+  executable entrypoint.
+
+## References
+
+- <HostReference crate="executable" />
+- <CodeReference path="libraries/executable" />
+- [Executables architecture pages](/explanation/architecture/executables/)

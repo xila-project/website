@@ -1,6 +1,6 @@
 # Xila website agent guide
 
-This repository publishes the English-language Xila website and developer documentation with VitePress. The operating-system implementation lives in the separate `Xila-Project/core` repository. Treat this repository as documentation/site tooling unless the task explicitly asks for a Core change.
+This repository publishes the English-language Xila website and developer documentation with Astro and Starlight. The operating-system implementation lives in the separate `Xila-Project/core` repository. Treat this repository as documentation/site tooling unless the task explicitly asks for a Core change.
 
 ## Instruction scope
 
@@ -12,27 +12,28 @@ This root `AGENTS.md` applies to the entire repository. If a more specific `AGEN
 
 | Path                     | Purpose                                                                    |
 | ------------------------ | -------------------------------------------------------------------------- |
-| `src/docs/`              | Documentation entry point                                                  |
+| `src/content/docs/`      | Documentation collection                                                   |
 | `src/tutorials/`         | Guided first experiences                                                   |
 | `src/how-to/`            | Task-focused procedures                                                    |
 | `src/reference/`         | Exact commands, options, limits, capabilities, and API/source references   |
 | `src/explanation/`       | Concepts, architecture, rationale, trade-offs, and component relationships |
 | `src/about/`             | Project information                                                        |
-| `src/public/`            | Static assets published by VitePress                                       |
+| `public/`                | Static assets published by Astro                                           |
 | `docs/templates/`        | Local authoring templates; never published directly                        |
-| `.vitepress/`            | VitePress configuration, navigation, theme, and custom components          |
+| `src/content/docs/`      | Starlight Markdown and MDX documentation collection                        |
+| `astro.config.mjs`       | Astro and Starlight configuration                                          |
 | `scripts/check-docs.mjs` | Documentation metadata, link, anchor, and Core source-path validation      |
 | `.github/workflows/`     | Pull-request checks and GitHub Pages deployment                            |
 | `package.json`           | Local development, formatting, build, preview, and validation commands     |
 
-Before editing, inspect the target page, its section landing page, nearby related pages, and `.vitepress/navigation.ts` when navigation may be affected.
+Before editing, inspect the target page, its section landing page, nearby related pages, and `astro.config.mjs` when navigation may be affected.
 
 ## Sources of truth
 
 Use the strongest available source for each claim:
 
 1. **Core behavior:** verify against `Xila-Project/core` source, manifests, examples, and CI at a known revision. A sibling checkout at `../core` is preferred when available; `scripts/check-docs.mjs` also honors `XILA_CORE_PATH`.
-2. **Website behavior:** verify against this repository's `package.json`, `.vitepress/`, components, scripts, and workflows.
+2. **Website behavior:** verify against this repository's `package.json`, `astro.config.mjs`, components, scripts, and workflows.
 3. **Existing documentation:** use as supporting context, not as the sole proof for technical behavior that may have changed.
 
 Do not invent commands, flags, supported targets, resource limits, API names, file paths, error messages, or runtime behavior. Preserve identifiers, path casing, feature names, and literal error spellings exactly.
@@ -73,14 +74,14 @@ Keep one primary reader need per substantive page. Split mixed content when read
 
 Substantive pages under `src/tutorials/`, `src/how-to/`, `src/reference/`, and `src/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
 
-Use `layout: doc` unless the page intentionally requires a different layout, such as an API/reference viewer.
+Put the page heading in the `title` frontmatter field; Starlight renders it as the page `<h1>`, so do not repeat it as a `#` heading in the body. Use `template: splash` only for pages that intentionally drop the sidebar, such as the home page or an API/reference viewer.
 
 ### Navigation and links
 
 When adding, moving, or removing documentation:
 
 - update the appropriate section/index page;
-- update `.vitepress/navigation.ts` when the page should appear in site navigation;
+- add the page to the explicit `sidebar` in `astro.config.mjs` when it should appear in site navigation;
 - update relevant related links and incoming links;
 - update the architecture component map when the page changes component discovery;
 - preserve meaningful anchors and query parameters when changing API/reference links.
@@ -129,7 +130,7 @@ Before completing a documentation or site change:
 4. Review the final diff for lost facts, unresolved placeholders, accidental broad formatting, and unrelated changes.
 5. Check the affected navigation and reader journey when pages or links changed.
 
-`npm run check` runs formatting validation, a production VitePress build, Pagefind generation, and `scripts/check-docs.mjs`.
+`npm run check` runs formatting validation, an Astro production build with Starlight search generation, and `scripts/check-docs.mjs`.
 
 The documentation validator checks:
 
@@ -148,7 +149,7 @@ Run Core/runtime/browser/hardware checks only when relevant to the task. Report 
 ## Change discipline
 
 - Make the smallest focused change that fully addresses the request.
-- Do not add dependencies when existing VitePress, Vue, Node, or repository utilities are sufficient.
+- Do not add dependencies when existing Astro, Starlight, MDX, Node, or repository utilities are sufficient.
 - Keep build output, caches, generated search indexes, scratch files, and downloaded binaries out of commits.
 - Do not rewrite unrelated pages or normalize unrelated formatting while touching a focused area.
 - Preserve technical facts when reorganizing documentation; move or link them instead of dropping them.

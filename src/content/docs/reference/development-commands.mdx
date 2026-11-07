@@ -1,0 +1,101 @@
+---
+title: "Development commands"
+docType: reference
+description: Repository-specific mise tasks, native/browser image generation, CI workflows and the split Rust toolchains.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Xila now has three distinct Rust workspaces. **Run each command in the repository that owns the task**. All use [mise](https://mise.jdx.dev/); `MISE_ENV=ci` selects CI tasks. Local task lists are visible with `mise tasks`.
+
+## Common Core tasks
+
+The following portable Core tasks remain available; the guest checks require an external Applications checkout (see below).
+
+## Core: portable OS libraries
+
+Run in [`Xila-Project/core`](https://github.com/xila-project/core):
+
+```sh
+mise trust
+mise run deps:npm
+mise run check:all
+mise run test:workspace
+mise run clippy:all
+mise run docs:host
+```
+
+Core contains portable task, VFS, networking, time, graphics, filesystem, ABI and shared-device crates, and an `xila` façade in `core/src/lib.rs`. Core's default workspace member is `core`, not the former root `[package]`.
+
+It **no longer owns** the `xila-wasm` runtime, bundled guest apps, native/browser seed generators, platform drivers (except `drivers/core`), the native example, the OCI runtime or demonstration deployment. Core's <CodeReference path=".github/workflows/pages.yml" /> now publishes **host Rustdoc only**.
+
+## Applications: guest and host executables
+
+Run in [`Xila-Project/applications`](https://github.com/xila-project/applications):
+
+```sh
+mise trust
+npm ci
+mise run check:guest
+mise run build:applications
+mise run test:workspace
+mise run localization:lint
+```
+
+`build:applications` builds the six official `wasm32-wasip1` applications with the `release-wasm` profile under `target/wasm32-wasip1/release-wasm`. The `xila-wasm` package (host Wasmi runtime and guest bindings) and native shells/settings also live here. Check <CodeReference repo="applications" path="mise.toml" /> and <CodeReference repo="applications" path=".github/workflows/ci.yml" /> for additional ABI, release-package, translation and application tests.
+
+The reusable workflow can generate **unsigned development** `.xpk` release assets using pinned [package_manager](/explanation/package-management) tools; publishing still requires appropriate tags/permissions, and does not constitute a production trust policy.
+
+## Platforms: final runtimes, drivers and demos
+
+Run in [`Xila-Project/platforms`](https://github.com/xila-project/platforms):
+
+```sh
+mise trust
+mise bootstrap packages apply --manager apt
+npm ci
+mise run build:native
+mise run check:browser
+mise run test:seed
+mise run test:drivers
+```
+
+For a seed, first build matching guests in Applications, then run from Platforms:
+
+```sh
+export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
+export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
+mise run image:native
+# or: mise run image:browser
+```
+
+`image:native` produces `target/seed/native/seed.img`; `image:browser` produces `target/seed/browser/seed.img`. Existing disks are preserved. Direct native launch uses `cargo run -p xila-native-example --bin native_example -- …`.
+
+Platforms' <CodeReference repo="platforms" path=".github/workflows/demo.yml" /> publishes the browser demonstration at **[platforms.xila.dev](https://platforms.xila.dev/)**. `MISE_ENV=ci mise run pages:build` builds per-locale guests, seeds and Trunk pages under `pages/demonstrations/wasm/<locale>/`. `MISE_ENV=ci mise run pages:demo` only builds the browser Trunk frontend from an appropriately prepared local seed. See <CodeReference repo="platforms" path="mise.ci.toml" />.
+
+Platforms additionally owns the native/OCI <CodeReference repo="platforms" path=".github/workflows/runtime.yml" />, driver CI, a deep Core test workflow and [cross-repository integration CI](https://github.com/xila-project/platforms/actions/workflows/integration.yml).
+
+## Integrating independent checkouts
+
+`core`, `applications` and `platforms` each pin dependency revisions; cloning all three `main` branches side by side **does not automatically use your local changes**. For targeted integration, generate and pass a temporary Cargo patch config using <CodeReference repo="platforms" path="tools/dev/local_overrides.py" />. A checked-in lockfile should be regenerated without transient local overrides.
+
+All workspaces use target-scoped Rust toolchains and optional mr-boxington caching. Host checks are not measurements of MCU RAM/flash and do not imply validated ESP builds.
+
+## Website commands
+
+Run in [`Xila-Project/website`](https://github.com/xila-project/website):
+
+```sh
+npm ci
+npm run check
+npm run docs:dev
+```
+
+`npm run check` runs tests, Prettier, Astro, Starlight and internal-link validation. Source hyperlinks use the `CodeReference` component with a `repo` attribute (for example `applications` or `platforms`) for relocated files; without `repo`, they default to Core. See [Documentation contribution](/how-to/write-documentation) and [Repository architecture](/explanation/architecture/).
+
+## Related documentation
+
+- [Development setup](/how-to/setup-development).
+- [Native tutorial](/tutorials/native).
+- [Browser tutorial](/tutorials/browser).
+- [Build a guest](/how-to/build-guest).

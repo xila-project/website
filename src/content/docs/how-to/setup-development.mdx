@@ -1,0 +1,70 @@
+---
+title: "Set up a development environment"
+docType: how-to
+description: Set up separate Core, Applications and Platforms workspaces with mise and pinned dependencies.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Xila is now developed in **three Rust workspaces**. [Core](https://github.com/xila-project/core) owns portable OS libraries; [Applications](https://github.com/xila-project/applications) owns official apps and Wasmi; [Platforms](https://github.com/xila-project/platforms) owns native/browser assembly, hardware drivers, demos and reference images.
+
+All three use [mise](https://mise.jdx.dev/) and Rust with repo-specific tasks. **Do not run the old `image:native`, `image:wasm` or `pages:demo` instructions in Core.**
+
+## Prepare checkouts
+
+On a supported x86_64 Debian/Ubuntu Linux development machine:
+
+```sh
+git clone https://github.com/xila-project/core.git
+git clone https://github.com/xila-project/applications.git
+git clone https://github.com/xila-project/platforms.git
+
+cd core
+mise trust
+mise bootstrap packages apply --manager apt
+mise run deps:npm
+export XILA_APPLICATIONS_ROOT="$(realpath ../applications)"
+export XILA_APPLICATIONS_MANIFEST="$XILA_APPLICATIONS_ROOT/Cargo.toml"
+export XILA_FONT_CATALOG_ROOTS="$XILA_APPLICATIONS_ROOT"
+mise run check:all
+cd ../applications
+mise trust
+npm ci
+mise run build:applications
+cd ../platforms
+mise trust
+mise bootstrap packages apply --manager apt
+npm ci
+mise run build:native
+```
+
+The three manifests pin dependent Git revisions. Checking out the latest `main` in each directory **does not automatically override those pins**. For cross-repository development, generate the explicit Cargo patch file from <CodeReference repo="platforms" path="tools/dev/local_overrides.py" /> rather than editing locked dependencies casually. Do not commit a `Cargo.lock` regenerated under temporary local patches.
+
+The exact native OS, linker, graphics/font and display dependencies vary by operation. Mise selects task-scoped tool versions and optional mr-boxington caching; `MISE_ENV=ci` uses separate CI definitions.
+
+## Select the repository for the task
+
+| What you want to do                                                          | Where to run it   |
+| ---------------------------------------------------------------------------- | ----------------- |
+| Portable VFS, Task, Time, Graphics, Network, ABI and device APIs             | `core`            |
+| WASI applications, Wasmi, graphical/CLI shells, localization of applications | `applications`    |
+| Native/browser runtime, Linux/ESP drivers, seed images, OPFS and deployment  | `platforms`       |
+| Manifest/TAR development packages                                            | `package_manager` |
+| Static community publication declarations                                    | `registry`        |
+
+To assemble a desktop or browser demonstration, build WASI apps first, then point Platforms at them:
+
+```sh
+cd platforms
+export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
+export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
+mise run image:native
+```
+
+For the browser use `image:browser`. The CI-only `pages:build` task can build complete localized demonstrations itself.
+
+## Hardware and validation limits
+
+A native Core/Platforms build does **not** establish ESP32 or Wokwi firmware support. The split still contains legacy ESP driver code needing target-specific validation. Build and flash with the intended ESP-IDF/toolchain, partition and board configuration before claiming hardware support.
+
+Continue with [Development commands](/reference/development-commands), [native tutorial](/tutorials/native), and [browser tutorial](/tutorials/browser).

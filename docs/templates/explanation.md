@@ -1,10 +1,8 @@
 ---
-layout: doc
+title: "[Concept or design question]"
 docType: explanation
 description: "Replace with the concept and design relationship this page explains."
 ---
-
-# [Concept or design question]
 
 <!-- Identify the reader and the conceptual question. Introduce required terminology in context. -->
 

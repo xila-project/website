@@ -1,0 +1,48 @@
+---
+title: "System activity"
+docType: explanation
+description: Native Xila system activity dashboard, its metrics, bounded demo workload and provider limitations.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+**System activity** is a native Xila graphical application from [Applications](https://github.com/xila-project/applications), introduced with Core #535 and now mounted by the Platforms native runtime at `/applications/executables/activity`. It is **not a WASI guest**, and no separate WebAssembly binary is produced.
+
+A fresh **native** seed includes a launcher shortcut. Existing disks are not replaced by new seeds; the application can instead be launched from Xila's Terminal if mounted:
+
+```text
+/applications/executables/activity --interval-ms 250
+```
+
+## What the dashboard measures
+
+| Metric                        | Source and meaning                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| Uptime                        | Monotonic time since Time manager initialization; UTC changes do not change it  |
+| Registered tasks              | Entries in Task manager, including root/runtime tasks                           |
+| Allocator used/capacity       | Xila allocator, **not** process RSS, physical RAM or per-application allocation |
+| CPU load / registered devices | **Unavailable** until appropriate service providers are implemented             |
+
+Each metric is sampled separately, not as an atomic snapshot. The default update interval is 1,000 ms; `--interval-ms` accepts 100–10,000 ms, and the Refresh control cycles 250/1,000/2,000 ms.
+
+## Bounded demonstration workload
+
+A temporary 4,096-byte allocation is increased in small batches (up to 512 bytes per 25 ms) and stopped after ten seconds. The app can stop it sooner; closing the window or cancelling its task releases the buffer. It does not spawn another task or benchmark CPU load. Allocation failure is displayed in the UI rather than crashing Xila.
+
+Native Linux headless smoke testing exercised uptime, task counts, changing allocator usage and close/stop behavior. It does **not** establish MCU telemetry correctness or memory/latency guarantees.
+
+## Source and tests
+
+- <CodeReference repo="applications" path="executables/activity/README.md" /> -
+  actual metrics, options, smoke results and limitations.
+- <CodeReference repo="applications" path="executables/activity/src/lib.rs" /> -
+  sampling/event lifecycle.
+- <CodeReference
+    repo="applications"
+    path="executables/activity/src/workload.rs"
+  />
+  - bounded workload.
+- <CodeReference repo="platforms" path="examples/native/src/main.rs" /> - native
+  executable registration.
+
+Run `cargo test -p xila-activity --lib` in Applications. To launch the actual UI, build guests and a fresh image through the [native Platforms tutorial](/tutorials/native).

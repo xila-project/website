@@ -1,0 +1,51 @@
+---
+title: "Reference"
+description: Look up Xila's APIs, shell syntax, development commands, WASM options, and graphics limits.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Use these pages to look up exact interfaces and constraints. For instructions, use the [how-to guides](/how-to/).
+
+<CardGrid>
+  <LinkCard
+    title="Host API"
+    href="/reference/host/"
+    description="Generated Rust documentation for Xila's runtime services."
+  />
+  <LinkCard
+    title="Guest API"
+    href="/reference/guest/"
+    description="Generated Rust documentation for the client library used by guest applications."
+  />
+  <LinkCard
+    title="Shell"
+    href="/reference/shell/"
+    description="Composition syntax, expansion, statuses, resource limits, and built-in command inventory."
+  />
+  <LinkCard
+    title="Development commands"
+    href="/reference/development-commands/"
+    description="mise tasks, targets, version sources, and website commands."
+  />
+  <LinkCard
+    title="Experimental package format"
+    href="/reference/package-format/"
+    description="Development TAR profile, manifest, signing statement, registry entries and developer keys."
+  />
+  <LinkCard
+    title="WASM runtime"
+    href="/reference/wasm-runtime/"
+    description="Command options, Cargo features, execution limits, and browser capabilities."
+  />
+  <LinkCard
+    title="Headless container runtime"
+    href="/reference/container-runtime/"
+    description="OCI image, shell and guest modes, VFS mounts, and isolation boundaries."
+  />
+  <LinkCard
+    title="Graphics bindings"
+    href="/reference/graphics-bindings/"
+    description="Supported calls, checked helpers, status codes, resource limits, and compatibility."
+  />
+</CardGrid>
