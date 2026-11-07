@@ -208,6 +208,7 @@ export default defineConfig({
         PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",
         Sidebar: "./src/components/Sidebar.astro",
+        SiteTitle: "./src/components/SiteTitle.astro",
       },
     }),
   ],
