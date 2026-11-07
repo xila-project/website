@@ -1,0 +1,146 @@
+---
+/*
+ * A menu opening the browser demonstration in one of its locales. The "nav"
+ * variant matches the header links; "primary", "secondary" and "minimal"
+ * match the theme's link buttons.
+ */
+import { Icon } from "@astrojs/starlight/components";
+import { DEMO_LOCALES } from "../data/demo-locales";
+
+interface Props {
+  label?: string;
+  variant?: "nav" | "primary" | "secondary" | "minimal";
+  class?: string;
+}
+
+const {
+  label = "Demonstration",
+  variant = "nav",
+  class: className,
+} = Astro.props;
+const isButton = variant !== "nav";
+---
+
+<details class:list={["demo-menu", `demo-menu-${variant}`, className]}>
+  <summary
+    class:list={[isButton && ["sl-link-button", "not-content", variant]]}
+  >
+    {label}
+    <Icon name="down-caret" size="1rem" class="caret" />
+  </summary>
+  <ul role="list" aria-label="Browser demonstration languages">
+    {DEMO_LOCALES.map(({ code, label, href }) => (
+      <li>
+        <a href={href} hreflang={code} lang={code}>
+          {label}
+          <span class="code">{code}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</details>
+
+<script>
+  // Close open menus on outside clicks and on Escape.
+  document.addEventListener("click", (event) => {
+    for (const menu of document.querySelectorAll<HTMLDetailsElement>(
+      ".demo-menu[open]",
+    )) {
+      if (!menu.contains(event.target as Node)) menu.open = false;
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    for (const menu of document.querySelectorAll<HTMLDetailsElement>(
+      ".demo-menu[open]",
+    )) {
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    }
+  });
+</script>
+
+<style>
+  .demo-menu {
+    position: relative;
+    display: inline-block;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .demo-menu-nav > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 2rem;
+    padding: 0 0.5rem 0 0.625rem;
+    border-radius: calc(var(--radius) - 2px);
+    color: var(--foreground);
+    font-weight: 500;
+  }
+
+  .demo-menu-nav > summary:hover,
+  .demo-menu-nav[open] > summary {
+    background-color: color-mix(in oklab, var(--accent) 80%, transparent);
+  }
+
+  .caret {
+    transition: transform 0.15s;
+  }
+
+  .demo-menu-nav .caret {
+    color: var(--muted-foreground);
+  }
+
+  .demo-menu[open] .caret {
+    transform: rotate(180deg);
+  }
+
+  ul {
+    position: absolute;
+    top: calc(100% + 0.375rem);
+    left: 0;
+    z-index: calc(var(--sl-z-index-navbar) + 1);
+    min-width: 13rem;
+    margin: 0;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--background);
+    box-shadow: var(--sl-shadow-md);
+    list-style: none;
+    text-align: start;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.375rem 0.5rem;
+    border-radius: calc(var(--radius) - 4px);
+    color: var(--foreground);
+    font-weight: 400;
+    text-decoration: none;
+  }
+
+  a:hover,
+  a:focus-visible {
+    background-color: var(--accent);
+  }
+
+  .code {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+</style>

@@ -275,13 +275,7 @@ starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) pre {
 
 /* Home page: keep the logo a mark, not a poster, and the feature cards mono. */
 .hero {
-  padding-block: 3rem 2rem;
-}
-
-/* Let the hero buttons wrap instead of overflowing on narrow screens. */
-.hero .actions {
-  flex-wrap: wrap;
-  justify-content: center;
+  padding-block: 3rem 0;
 }
 
 /*
@@ -296,9 +290,6 @@ starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) pre {
   .hero[data-layout="media-right"]:not([data-has-image]) {
     justify-content: flex-start;
     align-items: flex-start;
-  }
-  .hero[data-layout="media-right"] .actions {
-    justify-content: flex-start;
   }
 }
 

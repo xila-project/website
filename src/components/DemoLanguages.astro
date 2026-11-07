@@ -1,0 +1,22 @@
+---
+/*
+ * Inline links to the browser demonstration in its other locales, for prose
+ * that already links to the English demo.
+ */
+import { DEMO_LOCALES } from "../data/demo-locales";
+
+const others = DEMO_LOCALES.filter(({ code }) => code !== "en");
+---
+
+<span class="demo-languages">
+  Also available in{" "}
+  {others.map(({ code, label, href }, index) => (
+    <>
+      <a href={href} hreflang={code} lang={code}>
+        {label}
+      </a>
+      {index < others.length - 1 && <span aria-hidden="true"> · </span>}
+    </>
+  ))}
+  .
+</span>

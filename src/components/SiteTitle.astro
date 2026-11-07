@@ -1,67 +1,19 @@
 ---
 /*
- * Wraps the theme's site title and navigation to add a "Demonstration" menu
- * listing the browser demo's locales. On desktop the menu replaces the plain
- * "Demonstration" nav link; the theme's mobile menu keeps that link, which
- * opens the English demo.
- *
- * Locales are those published by Platforms under /demonstrations/wasm/<locale>/
- * (see the browser tutorial); English is served at the site root.
+ * Wraps the theme's site title and navigation to add the "Demonstration"
+ * language menu. On desktop the menu replaces the plain "Demonstration" nav
+ * link; the theme's mobile menu keeps that link, which opens the English
+ * demo.
  */
-import { Icon } from "@astrojs/starlight/components";
 import ThemeSiteTitle from "starlight-theme-black/overrides/SiteTitle.astro";
-
-const demo = "https://platforms.xila.dev/";
-const locales = [
-  { code: "en", label: "English", href: demo },
-  { code: "fr", label: "Français" },
-  { code: "es", label: "Español" },
-  { code: "de", label: "Deutsch" },
-  { code: "pt-BR", label: "Português (Brasil)" },
-  { code: "it", label: "Italiano" },
-  { code: "pl", label: "Polski" },
-].map((locale) => ({
-  ...locale,
-  href: locale.href ?? `${demo}demonstrations/wasm/${locale.code}/`,
-}));
+import DemoMenu from "./DemoMenu.astro";
+import { DEMO_URL } from "../data/demo-locales";
 ---
 
-<div class="site-title-with-demo">
+<div class="site-title-with-demo" data-demo-url={DEMO_URL}>
   <ThemeSiteTitle />
-  <details class="demo-menu">
-    <summary>
-      Demonstration
-      <Icon name="down-caret" size="1rem" class="caret" />
-    </summary>
-    <ul role="list" aria-label="Browser demonstration languages">
-      {locales.map(({ code, label, href }) => (
-        <li>
-          <a href={href} hreflang={code} lang={code}>
-            {label}
-            <span class="code">{code}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </details>
+  <DemoMenu class="header-demo-menu" />
 </div>
-
-<script>
-  // Close the menu on outside clicks and on Escape.
-  for (const menu of document.querySelectorAll<HTMLDetailsElement>(
-    ".demo-menu",
-  )) {
-    document.addEventListener("click", (event) => {
-      if (menu.open && !menu.contains(event.target as Node)) menu.open = false;
-    });
-    menu.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && menu.open) {
-        menu.open = false;
-        menu.querySelector("summary")?.focus();
-      }
-    });
-  }
-</script>
 
 <style>
   .site-title-with-demo {
@@ -75,93 +27,22 @@ const locales = [
     display: none;
   }
 
-  .demo-menu {
-    position: relative;
+  .site-title-with-demo :global(.header-demo-menu) {
     display: none;
     /* The theme separates its title row items with --sl-nav-gap, and its
        zero-width mobile menu button sits before this menu: cancel that gap
        so the spacing matches the other nav links. */
     margin-inline-start: calc(0.375rem - var(--sl-nav-gap));
-    font-size: 0.875rem;
-    line-height: 1.25rem;
   }
 
   @media (min-width: 1024px) {
-    .demo-menu {
-      display: block;
+    .site-title-with-demo :global(.header-demo-menu) {
+      display: inline-block;
     }
     /* Starlight clips the title area to protect narrow screens from long
-       titles; on desktop it would also clip this menu's list. */
+       titles; on desktop it would also clip the menu's list. */
     :global(.header .title-wrapper) {
       overflow: visible;
     }
-  }
-
-  summary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    min-height: 2rem;
-    padding: 0 0.5rem 0 0.625rem;
-    border-radius: calc(var(--radius) - 2px);
-    color: var(--foreground);
-    font-weight: 500;
-    list-style: none;
-    cursor: pointer;
-    user-select: none;
-  }
-
-  summary::-webkit-details-marker {
-    display: none;
-  }
-
-  summary:hover,
-  .demo-menu[open] summary {
-    background-color: color-mix(in oklab, var(--accent) 80%, transparent);
-  }
-
-  .caret {
-    color: var(--muted-foreground);
-    transition: transform 0.15s;
-  }
-
-  .demo-menu[open] .caret {
-    transform: rotate(180deg);
-  }
-
-  ul {
-    position: absolute;
-    top: calc(100% + 0.375rem);
-    left: 0;
-    z-index: calc(var(--sl-z-index-navbar) + 1);
-    min-width: 13rem;
-    margin: 0;
-    padding: 0.25rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background-color: var(--background);
-    box-shadow: var(--sl-shadow-md);
-    list-style: none;
-  }
-
-  a {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.375rem 0.5rem;
-    border-radius: calc(var(--radius) - 4px);
-    color: var(--foreground);
-    text-decoration: none;
-  }
-
-  a:hover,
-  a:focus-visible {
-    background-color: var(--accent);
-  }
-
-  .code {
-    color: var(--muted-foreground);
-    font-size: 0.75rem;
   }
 </style>
