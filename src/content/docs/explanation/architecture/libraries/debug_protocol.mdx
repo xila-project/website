@@ -1,0 +1,74 @@
+---
+title: "Debug protocol"
+docType: explanation
+description: Typed headless diagnostics requests, UI input, screenshot metadata and protocol bounds shared by Xila debug clients.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `debug_protocol` crate describes the **data exchanged with Xila's debug/diagnostics endpoint**. It is a small `no_std + alloc` library built around `serde` data types. It neither starts a server nor mounts an executable or a graphics subsystem: the caller is responsible for transport, authorization, scheduling and translating requests into runtime operations.
+
+## Public request model
+
+`Request` is a tagged enum serialized with `#[serde(tag = "op", rename_all = "snake_case")]`. Its currently supported operations are:
+
+- `Diagnostics`: request runtime diagnostic information.
+- `Resolution`: query the graphics resolution.
+- `Screenshot { path }`: request a screenshot using a non-empty destination path.
+- `UiTree { max_elements, max_depth }`: request a bounded LVGL hierarchy snapshot. Defaults are **64 elements** and **16 levels**.
+- `PointerMove { x, y }`, `PointerButton { state }`, `Key { key, state }` and `Text { text }`: describe input to inject. `InputState` serializes to `pressed` or `released`.
+
+Example serialized request:
+
+```json
+{\n  "op": "ui_tree",\n  "max_elements": 64,\n  "max_depth": 16\n}
+```
+
+The helper `validate_request(&request)` currently checks **text payload length** and **non-empty screenshot paths**. It does not inspect every variant's runtime preconditions, validate allowed key names, or enforce the overall encoded request size. Those checks belong to the receiving endpoint.
+
+## Payload and screenshot limits
+
+The crate declares explicit upper bounds to help transport implementations reject oversized requests and payloads:
+
+- `MAX_REQUEST_BYTES`: **16 KiB** for the encoded request.
+- `MAX_TEXT_BYTES`: **4 KiB** for injected text.
+- `MAX_RESPONSE_BYTES`: **64 KiB** for normal diagnostic responses.
+- `MAX_SCREENSHOT_PIXELS`: **2,073,600 pixels**.
+- `MAX_SCREENSHOT_BYTES`: **8,294,400 bytes** for RGBA8888 data.
+
+`ScreenshotMetadata` records `width: u16`, `height: u16`, `format` (currently only `Rgba8888`) and `payload_bytes`. `validate_screenshot_metadata` rejects zero dimensions, integer overflow, mismatched byte lengths and screenshots exceeding the pixel/byte cap.
+
+```rust
+use debug_protocol::{
+    validate_request, validate_screenshot_metadata, Request,
+    ScreenshotMetadata, ScreenshotPixelFormat,
+};
+
+let request = Request::Text { text: "hello".into() };
+validate_request(&request)?;
+
+let frame = ScreenshotMetadata {
+    width: 320,
+    height: 240,
+    format: ScreenshotPixelFormat::Rgba8888,
+    payload_bytes: 320 * 240 * 4,
+};
+validate_screenshot_metadata(frame)?;
+```
+
+Both validations return `ProtocolError`; its `code()` function produces stable-looking snake-case identifiers such as `request_too_large`, `invalid_json`, `text_too_large` and `invalid_screenshot_frame`. A protocol client should treat these as error codes rather than parsing display messages.
+
+## Ownership and trust boundaries
+
+Requests contain owned `String` values for paths, key names and text, while screenshots are described by metadata and transferred by the surrounding debug transport. The library itself performs no file access, display capture or pointer injection. The [Graphics subsystem](/explanation/architecture/subsystems/graphics) provides the actual input and screen APIs.
+
+A caller must still authenticate and authorize diagnostics access, bound the incoming JSON before deserialization, validate file paths, enforce active-display coordinate limits and constrain the work performed by a single UI-tree request. The bounds defined here are **not a security boundary unless the endpoint enforces them**.
+
+## Source and API references
+
+- <HostReference crate="debug_protocol" /> - shared request types.
+- <CodeReference path="libraries/debug_protocol/src/lib.rs" /> - limits,
+  validation and request schema.
+- [Graphics](/explanation/architecture/subsystems/graphics) - actual UI tree, screenshot and injection.
+- [Executable architecture](/explanation/architecture/executables/) - consumers that assemble runtime capabilities.

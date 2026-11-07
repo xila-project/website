@@ -1,0 +1,42 @@
+---
+const { architecture } = Astro.props;
+const base = `https://documentation.xila.dev/${architecture}/xila/index.html`;
+---
+
+<div class="reference-viewer">
+  <iframe
+    src={base}
+    data-architecture={architecture}
+    title={`${architecture} Rust API documentation`}></iframe>
+</div>
+
+<script>
+  import { getReferenceIframeSrc } from "../../scripts/reference-path.mjs";
+
+  for (const frame of document.querySelectorAll<HTMLIFrameElement>(
+    ".reference-viewer iframe[data-architecture]",
+  )) {
+    const path = new URLSearchParams(window.location.search).get("path");
+    if (path) {
+      frame.src = getReferenceIframeSrc(frame.dataset.architecture, path);
+    }
+  }
+</script>
+
+<style>
+  .reference-viewer {
+    height: calc(100vh - var(--sl-nav-height) - 10rem);
+    min-height: 32rem;
+    width: 100%;
+    border: 1px solid var(--sl-color-hairline-light);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #ffffff;
+  }
+  iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

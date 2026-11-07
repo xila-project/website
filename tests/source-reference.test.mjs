@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   getSourceHref,
   getExternalCrateHref,
-} from "../.vitepress/theme/utilities/source-reference.mjs";
+} from "../scripts/source-reference.mjs";
 
 test("Core code references preserve the original default repository", () => {
   assert.equal(

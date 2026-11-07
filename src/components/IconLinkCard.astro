@@ -1,0 +1,84 @@
+---
+/*
+ * A clickable card with a Starlight icon, for navigation hubs. Starlight's
+ * Card has an icon but no link, and LinkCard has a link but no icon.
+ */
+import { Icon } from "@astrojs/starlight/components";
+import type { StarlightIcon } from "@astrojs/starlight/types";
+
+interface Props {
+  title: string;
+  href: string;
+  icon: StarlightIcon;
+  description?: string;
+}
+
+const { title, href, icon, description } = Astro.props;
+---
+
+<div class="not-content">
+  <a class="icon-link-card" href={href}>
+    <span class="icon-box">
+      <Icon name={icon} size="1.25rem" />
+    </span>
+    <span class="text">
+      <span class="title">{title}</span>
+      {description && <span class="description">{description}</span>}
+    </span>
+    <Icon name="right-arrow" size="1.125rem" class="arrow rtl:flip" />
+  </a>
+</div>
+
+<style>
+  .icon-link-card {
+    height: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: calc(var(--radius, 0.5rem) + 0.25rem);
+    background-color: var(--code-background, var(--sl-color-gray-6));
+    color: var(--foreground, var(--sl-color-white));
+    text-decoration: none;
+    transition: background-color 0.15s;
+  }
+  .icon-link-card:hover {
+    background-color: color-mix(
+      in oklab,
+      var(--code-background, var(--sl-color-gray-6)) 75%,
+      var(--secondary, var(--sl-color-gray-5))
+    );
+  }
+  .icon-box {
+    display: flex;
+    padding: 0.5rem;
+    border-radius: calc(var(--radius, 0.5rem) - 2px);
+    background-color: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-hairline-light);
+  }
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .title {
+    font-weight: 600;
+    line-height: 1.5rem;
+  }
+  .description {
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+  }
+  .arrow {
+    align-self: center;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+    transition: transform 0.15s;
+  }
+  .icon-link-card:hover .arrow {
+    color: var(--foreground, var(--sl-color-white));
+    transform: translateX(2px);
+  }
+</style>

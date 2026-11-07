@@ -1,0 +1,103 @@
+---
+title: "Pixel Painter (executable)"
+docType: explanation
+description: "Pixel Painter is a bounded Rust/WASM drawing application exercising Xila's indexed-canvas graphics ABI and WASI file I/O."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Pixel Painter is a `wasm32-wasip1` drawing application bundled in the native and browser demonstrations. It exercises the checked guest graphics ABI, pointer events, on-screen text input, and WASI file I/O.
+
+## Drawing model
+
+The application maintains a 160×100 indexed drawing. The logical image scales to the available canvas with letterboxing so resizing or rotating the display does not change drawing coordinates.
+
+Users can draw with mouse or touch, choose one of eight palette entries, select 1, 3, or 5-pixel square brushes, undo the previous stroke or Clear action, and save/open drawings.
+
+## Runtime integration
+
+New native/browser reference images include `/applications/bundles/xila.pixel-painter/shortcut.json` and `executables/pixel_painter.wasm`. The graphical Shell discovers the descriptor on drawer opening and resolves `@bundle/executables/pixel_painter.wasm` to the bundle-local executable; there is no installation hook.
+
+The Wasm runner sets `XILA_APPLICATION_DATA` to a per-user directory, normally `/users/<uid>/applications/xila.pixel-painter/data`. Pixel Painter defaults to `drawing.xpnt` there. An optional first guest argument selects another initial absolute path. See [Add a launcher shortcut](/how-to/add-shortcut).
+
+The UI uses `indexed_canvas_create` and `indexed_canvas_set_pixels` so the host owns the image backing storage. `window_pop_pointer_event` supplies event-time pointer coordinates relative to the canvas content area. Guest buffers are validated and copied; the host does not retain guest pointers.
+
+## XPNT format
+
+XPNT version 1 is intentionally small and fixed-size:
+
+- 8-byte header: `XPNT`, version 1, width 160, height 100, reserved byte 0.
+- 16,000 one-byte palette indexes in row order.
+
+Open rejects incompatible dimensions, invalid palette indexes, truncated files, and trailing data before modifying the current drawing. Reads are bounded to 16,009 bytes.
+
+## Failure and durability behavior
+
+Open and Close require a second attempt before discarding unsaved changes. Failed reads or writes keep the in-memory drawing available and report an error.
+
+Saving writes directly to the selected file. Current WASI filesystem bindings do not provide an atomic rename/sync adapter, so a failed write may leave an incomplete file and a successful write does not guarantee power-loss durability. In the browser demonstration, the virtual disk is subsequently persisted through the OPFS autosave flow.
+
+## Resource bounds
+
+The guest keeps 16 KB of pixels plus a 16 KB undo snapshot and temporarily uses another 16 KB file buffer during save/open. The host owns a separate 16 KB indexed image plus a 1 KB palette. LVGL/widget/rendering allocations are additional.
+
+The graphics runtime caps indexed-canvas storage at 65,536 pixels per VM. Host buffers are reclaimed after native object deletion or VM teardown.
+
+## Rasterization and bounded undo
+
+`Drawing` owns a `Vec<u8>` of `WIDTH * HEIGHT = 16,000` palette indices plus one equally sized snapshot for **single-step Undo**. Each new stroke takes one snapshot; successive pointer positions are connected by an integer line rasterizer with a bounded square brush. The logical viewport maps input positions back to the 160×100 grid while maintaining letterboxing on rotated or resized screens.
+
+```rust
+// The executable's drawing module is usable by its unit tests.
+let mut drawing = Drawing::new();
+drawing.begin_stroke(20, 30, 3, 5);
+drawing.continue_stroke(35, 40, 3, 5);
+drawing.end_stroke();
+assert!(drawing.is_dirty());
+assert!(drawing.undo());
+```
+
+The snippet assumes `Drawing` has been imported from the application's internal module. This is not an API exposed by the WASI runtime itself. `Clear` also creates an undo snapshot; Undo does not implement a multi-level history.
+
+## XPNT validation and persistence
+
+The file format is exactly **16,008 bytes**: an 8-byte header (`XPNT`, version 1, width 160, height 100, reserved 0) followed by 16,000 palette indices. The loader limits reads to **16,009 bytes** so oversized input is detectable, and `Drawing::replace_from_bytes` rejects wrong lengths, mismatched headers and palette indices outside 0–7 **before** replacing the current canvas.
+
+The default filename is `drawing.xpnt` under `XILA_APPLICATION_DATA` (normally `/users/<uid>/applications/xila.pixel-painter/data/drawing.xpnt`). A provided initial path must be absolute and permitted by VFS. Save creates/truncates the selected file and writes it directly; a short or failed write can leave a partial file. The guest keeps its in-memory pixels for retry but does not provide atomic file replacement or guaranteed power-loss persistence.
+
+The checked graphics host mirrors the guest drawing into an indexed canvas with separate host-owned image storage. Per-VM canvas pixel capacities and handle limits are enforced by the Graphics bridge, not by the XPNT file format.
+
+### Source references
+
+- <CodeReference
+    repo="applications"
+    path="executables/pixel_painter/src/drawing.rs"
+  />
+  - palette, rasterization, viewport and XPNT format.
+- <CodeReference
+    repo="applications"
+    path="executables/pixel_painter/src/storage.rs"
+  />
+  - bounded file I/O and durability.
+- <CodeReference
+    repo="applications"
+    path="executables/pixel_painter/src/interface.rs"
+  />
+  - UI event and pointer mapping.
+- <CodeReference
+    repo="applications"
+    path="executables/pixel_painter/shortcut.json"
+  />
+  - bundle-local launcher descriptor.
+- <CodeReference
+    repo="applications"
+    path="executables/wasm/src/host/graphics/canvas.rs"
+  />
+  - host indexed-canvas storage.
+
+## References
+
+- <CodeReference repo="applications" path="executables/pixel_painter" />
+- [Graphics bindings](/reference/graphics-bindings)
+- [WASM runtime](/reference/wasm-runtime)
+- [Browser storage](/explanation/browser-storage)

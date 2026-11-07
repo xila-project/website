@@ -1,0 +1,83 @@
+---
+title: "Add a launcher shortcut to a bundle"
+docType: how-to
+description: Add a bundle-local shortcut.json so the Xila graphical Shell can discover and launch an application.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Use a `shortcut.json` descriptor to make an installed application visible in Xila's graphical Shell. The Shell reads launcher presentation data; it does not install applications or interpret package manifests.
+
+## Before you begin
+
+- Have a `wasm32-wasip1` executable built for Xila and a bundle source directory containing it. See [Build a guest](/how-to/build-guest).
+- Have an installed bundle directory writable through your packaging/deployment workflow. The Shell must be able to read its descriptor under Xila's normal filesystem permissions.
+- Use the [strict shortcut JSON Schema](https://github.com/xila-project/applications/blob/main/schemas/shell-shortcut.schema.json) to validate the descriptor before packaging.
+
+## 1. Place the descriptor next to the bundle payload
+
+A published application bundle has one directory directly beneath `/applications/bundles/`. Put the descriptor at the **root of that directory**, next to the executable payload:
+
+```text
+/applications/bundles/xila.calculator/
+  shortcut.json
+  executables/
+    calculator.wasm
+```
+
+For the official Calculator guest, the source descriptor is <CodeReference repo="applications" path="executables/calculator/shortcut.json" />. Include `shortcut.json` in the files inventoried by the package builder; a signed package's manifest covers the descriptor's SHA-256 like other payload files.
+
+## 2. Describe the launcher
+
+Create `shortcut.json` with the following contents, matching the [Applications schema](https://raw.githubusercontent.com/xila-project/applications/main/schemas/shell-shortcut.schema.json):
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/xila-project/applications/main/schemas/shell-shortcut.schema.json",
+  "name": "Calculator",
+  "command": "/applications/executables/wasm",
+  "arguments": ["@bundle/executables/calculator.wasm"],
+  "terminal": false,
+  "icon_string": "Ca",
+  "icon_color": [158, 158, 158]
+}
+```
+
+The schema rejects unknown properties. All six launcher fields are required; `$schema` is optional:
+
+| Field         | Constraint                                                                 |
+| ------------- | -------------------------------------------------------------------------- |
+| `name`        | Non-empty display string, at most 128 characters                           |
+| `command`     | Non-empty executable path, at most 256 characters; `@bundle/` is supported |
+| `arguments`   | Array of at most 24 strings, each at most 256 characters                   |
+| `terminal`    | Boolean display metadata                                                   |
+| `icon_string` | Icon text, at most 8 characters                                            |
+| `icon_color`  | Exactly three RGB integers, each between 0 and 255                         |
+
+The Shell resolves any `command` or `arguments` element starting with `@bundle/` relative to the directory holding `shortcut.json`. For example, the Calculator argument becomes `/applications/bundles/xila.calculator/executables/calculator.wasm`. It rejects empty relative paths, empty path components, `.` and `..` components, and backslashes. Other strings are passed through unchanged.
+
+**The `@bundle/` syntax belongs to Shell shortcut resolution, not to the Wasm command-line runner.** The Wasm runner itself invokes only the guest's `_start: () -> ()` export.
+
+## 3. Make the bundle available and check discovery
+
+Deploy the completed bundle directory to `/applications/bundles/<id>/` through your packaging workflow. Open (or reopen) the graphical Shell's application drawer: it rescans bundle shortcuts **each time the drawer opens**, without a startup scan or background daemon. Select the Calculator launcher and check that its interface opens. Incomplete or invalid descriptors are skipped.
+
+Only one active directory per bundle identifier is scanned at this level. Dot-prefixed staging directories are ignored. Native/system shortcuts seeded by Platforms also remain readable from `/configuration/shared/applications/shortcuts/*.json`.
+
+A shortcut is **not** a publisher signature, a permission grant, or proof that the executable is trustworthy. Signing and verification belong to the package manager. The VFS enforces POSIX-style UID/GID/mode permissions: they isolate users/groups, **not separate applications running as the same UID**.
+
+## Related documentation
+
+- [Build a guest application](/how-to/build-guest).
+- [Run a guest](/how-to/run-guest).
+- [WASM runtime options](/reference/wasm-runtime).
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/desk.rs"
+  />
+  - lazy bundle scanning.
+- <CodeReference
+    repo="applications"
+    path="executables/shell/graphical/src/shortcut.rs"
+  />
+  - fields and path validation.

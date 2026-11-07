@@ -36,7 +36,7 @@ jobs:
       - name: "Publish | Upload Pages artifact"
         uses: actions/upload-pages-artifact@v5
         with:
-          path: .vitepress/dist
+          path: dist
 
   deploy:
     environment:

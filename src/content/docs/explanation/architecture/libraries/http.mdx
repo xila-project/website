@@ -1,0 +1,50 @@
+---
+title: "HTTP"
+docType: explanation
+description: Portable bounded HTTP/1 response parsing, body decoding and Xila's streaming network devices.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+Core #522 extracted the reusable `xila_http` package under `libraries/http`. It provides `no_std` HTTP/1 request helpers, response-head parsing, borrowed URL parsing and incremental body decoding. The default feature set does not require a heap allocator; the optional `alloc` feature provides URL formatting helpers.
+
+## Framing and ownership
+
+`parse_response_head::<N>` borrows a caller-managed header buffer and returns an incomplete result when more bytes are needed. Its generic `N` header capacity contributes `N × size_of::<httparse::Header>()` of parser stack storage; the caller must also bound header bytes. Header names and transfer coding names are compared case-insensitively.
+
+`BodyDecoder` accepts fragmented input and decodes chunked bodies **in place**, discarding chunk extensions and trailers. The parser also handles Content-Length, close-delimited responses, informational 1xx replies and responses that cannot carry a body (including HEAD/204/304). It detects truncated bodies when the stream ends. Protocol upgrades, pipelining and content decompression are not implemented.
+
+## HTTP/HTTPS devices
+
+Xila's VFS HTTP and HTTPS devices now stream response data through a **single 2 KiB buffer per opening**, with reader backpressure instead of accumulating the entire download. Device reads return the original response headers followed by **decoded body bytes**: callers must not decode HTTP chunk framing a second time. Head reads may be fragmented, so read through the empty line before interpreting body bytes.
+
+The reported native exchange peak of 2,592 bytes for both 4 KiB and 4 MiB generated downloads excludes socket storage, TLS and application buffers. HTTPS separately uses a 16 KiB + 256-byte receive record buffer and a 16 KiB send record buffer. Core #524 fixed reception of maximum-size TLS records and added optional tests against a real local TLS 1.3 server. TLS certificate policy, public-server interoperability and MCU use are **not** established by those tests.
+
+Sockets are reclaimed through the Network runner after queued traffic and FIN/RST processing. Cancelled exchanges stop their worker, and abandoned shutdowns have a bounded cleanup window.
+
+## Validation and boundaries
+
+```sh
+cargo test -p xila_http --all-features
+cargo test -p xila-network --test https -- --ignored --nocapture
+```
+
+The HTTPS integration test needs Python 3 and OpenSSL and is intentionally ignored by default. Tests cover chunking, fragmented heads, premature EOF, response variants and memory allocation behavior. For protocol sockets and control-plane integration see [Network](/explanation/architecture/subsystems/network).
+
+## References
+
+- <HostReference crate="xila_http" /> - portable HTTP library Rustdoc.
+- <CodeReference path="libraries/http/README.md" /> - formats and memory bounds.
+- <CodeReference path="libraries/http/src/framing.rs" /> - incremental HTTP
+  framing.
+- <CodeReference
+    repo="platforms"
+    path="drivers/shared/src/devices/http_exchange.rs"
+  />
+  - VFS stream transport.
+- <CodeReference
+    repo="platforms"
+    path="drivers/shared/src/devices/https_client.rs"
+  />
+  - HTTPS device.

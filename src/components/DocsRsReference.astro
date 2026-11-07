@@ -1,0 +1,9 @@
+---
+const { crate } = Astro.props;
+---
+
+<a href={`https://docs.rs/${crate}`} class="external-reference-link">
+  <slot>
+    <code>{crate}</code> crate
+  </slot>
+</a>

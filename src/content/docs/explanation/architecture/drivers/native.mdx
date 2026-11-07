@@ -1,0 +1,41 @@
+---
+title: "Native driver crate"
+docType: explanation
+description: "The drivers_native crate provides desktop-host integrations for native targets (Linux, macOS, Windows)."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `drivers_native` crate provides desktop-host integrations for native targets (Linux, macOS, Windows).
+
+It is used for host-side runtime features such as window-backed display/input handling and native integrations used by development and testing flows.
+
+The native example also initializes audio playback through the default host output for [Synth](/explanation/architecture/executables/synth). If audio is unavailable, the OS can still boot and applications can run in silent mode.
+
+For headless workloads, native HostFS supplies explicitly mounted host-directory access to [the container runtime](/reference/container-runtime). Mounts can be read-only or writable, with Linux path-race defenses and no ambient filesystem access.
+
+## Native Wi-Fi mock
+
+Core #529 added a deterministic mock Wi-Fi station controller; it now lives in Core under `drivers/core/src/wifi/` (moved from this crate by Platforms #46). The native example's `--mock-wifi` flag creates a `wlan0` interface for Settings scans and connect/disconnect testing without interacting with the host radio. The mock publishes at most 16 access points and supports one pending operation, configurable association outcomes and generation-checked scans. This is **not a real Wi-Fi driver** and has no Internet connectivity. See [Network](/explanation/architecture/subsystems/network) and <CodeReference repo="platforms" path="drivers/native/tests/wifi.rs" /> for its control-plane tests.
+
+## Dependencies
+
+- [Graphics](/explanation/architecture/subsystems/graphics)
+- [Task](/explanation/architecture/subsystems/task)
+- [Log](/explanation/architecture/subsystems/log)
+- [Synchronization](/explanation/architecture/libraries/synchronization)
+- [Shared](/explanation/architecture/libraries/shared)
+
+## References
+
+- <HostReference repo="platforms" crate="drivers_native" /> - generated Rust API
+  documentation.
+
+- <CodeReference repo="platforms" path="drivers/native" />
+
+## See also
+
+- [Drivers](/explanation/architecture/drivers)
+- [Shared driver crate](/explanation/architecture/drivers/shared)
+- [Std driver crate](/explanation/architecture/drivers/std)

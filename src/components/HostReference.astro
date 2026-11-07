@@ -1,0 +1,17 @@
+---
+import Reference from "./Reference.astro";
+const props = Astro.props;
+// Forward the slot only when it has content, so Reference can fall back to
+// its generated label.
+const label = Astro.slots.has("default")
+  ? await Astro.slots.render("default")
+  : undefined;
+---
+
+{label === undefined ? (
+  <Reference {...props} architecture="host" />
+) : (
+  <Reference {...props} architecture="host">
+    <Fragment set:html={label} />
+  </Reference>
+)}

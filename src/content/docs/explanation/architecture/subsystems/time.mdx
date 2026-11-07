@@ -1,0 +1,51 @@
+---
+title: "Time"
+docType: explanation
+description: Separate monotonic elapsed time and adjustable UTC, including synchronization and WASI clock semantics.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+Xila's Time subsystem has **two distinct clocks** following Core #533 and #534. The monotonic clock measures elapsed time and powers deadlines; the system's signed UTC clock represents civil time and may be explicitly corrected. This separation prevents NTP, manual or RTC corrections from changing uptime, LVGL animation ticks, TCP/ICMP timers or WASI monotonic subscriptions.
+
+## Monotonic clock
+
+`time::Manager::monotonic_now()` returns `Duration` since a platform-defined arbitrary epoch. `uptime()` measures time since manager construction. `monotonic_resolution()` reports the source's nominal resolution and `monotonic_milliseconds_wrapping()` supplies a wrapping u32 clock for LVGL (wrap approximately every 49.7 days). Monotonic timestamps do not encode calendar time and **must not be persisted between reboots**.
+
+The default `EmbassyClock` shares the executor's monotonic tick source with task timers and guest deadlines. Native uses an Instant-backed driver; the browser uses `performance.now()` through Embassy. The resolution is nominal, not a guarantee of physical clock accuracy. On microcontrollers, low-power sleep may pause ticks and deep sleep/reboot starts a new epoch.
+
+A platform can inject a custom `MonotonicClock` if it is nondecreasing and compatible with the executor's timebase.
+
+## Signed UTC and synchronization
+
+`realtime_now()` returns a signed `Timestamp` (Unix nanoseconds stored as `i128`) or an error while unsynchronized or if arithmetic overflows. The time manager derives UTC by applying a checked signed correction to monotonically advancing time, rather than reading a device for every query.
+
+- `Manager::new(source)` initializes from a trusted `RealtimeSource` sample. Native and browser bootstraps read the host clock once.
+- `Manager::unsynchronized()` (or `with_clock(custom_clock)`) allows booting without a trustworthy RTC. The elapsed clock remains usable immediately.
+- `synchronize(source)` reads a trusted epoch and records its provenance. `set_realtime` accepts an explicit UTC setting; source invalidation makes UTC unreadable until resynchronized.
+- Synchronization metadata contains the source kind, application instant, nominal resolution and source-reported accuracy. It is **not** a continuously maintained accuracy guarantee.
+
+Corrections **step immediately**, forward or backward, and failed corrections preserve the old state. No gradual slew, timezone database, daylight-saving conversion, automatic synchronization protocol or persistence across reboot is implemented. Those must be provided at a higher layer.
+
+## Effects on other subsystems
+
+- **Graphics**: LVGL tick scheduling and shell/Settings periodic refresh use monotonic time.
+- **Network**: smoltcp and ICMP timeouts/RTT use monotonic instants; UTC changes cannot alter their deadlines.
+- **WASI**: realtime clock reads require valid UTC and return a WASI error if invalid/out of range. Monotonic `poll_oneoff` subscriptions still function when UTC is unsynchronized or broken, and the host reads only the clocks actually subscribed.
+- **VFS**: timestamps use UTC where available; existing authorized file access remains possible if UTC is invalid. Creating entries requiring a new timestamp can fail until UTC is available. Corrected UTC may legitimately move backwards.
+- **Shell**: unavailable UTC displays `--:--` instead of a bogus clock.
+
+## Construction and ownership
+
+A final runtime owns its Time manager and passes references to clients; it is not a process-global singleton. State changes and reads use short synchronization critical sections, with no allocation or I/O while holding the lock. Custom monotonic sources must be safe to call under that critical section. Clock source trust and persistence are application/platform responsibilities.
+
+The host implementation measured a 128-byte Time manager on x86_64. This is **not** a total RAM, stack or MCU flash measurement. Host and browser tests cover UTC jumps, invalid UTC, overflow, WASI polling, tick rollover and GUI behavior; ESP32-S3 validation remains unproven because the Xtensa toolchain was unavailable.
+
+## Implementation and references
+
+- <CodeReference path="subsystems/time/src/manager.rs" /> - `Manager`,
+  `MonotonicClock`, `EmbassyClock`, and synchronization lifecycle.
+- <CodeReference path="subsystems/time/src/lib.rs" /> - public time API exports.
+- <HostReference crate="time" /> - host Rustdoc.
+- [Network](/explanation/architecture/subsystems/network), [VFS](/explanation/architecture/subsystems/virtual_file_system), and [WASM runtime](/reference/wasm-runtime) - important consumers.

@@ -1,0 +1,90 @@
+---
+title: "Bootsplash"
+docType: explanation
+description: "The bootsplash crate provides a focused startup animation layer around the graphics manager and LVGL objects."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `bootsplash` crate provides a focused startup animation layer around the graphics manager and LVGL objects.
+
+## Role
+
+- Owns creation and teardown of the boot logo animation sequence.
+- Encapsulates the startup-only animation policy so initialization code does not manipulate LVGL animation internals directly.
+
+## Boundaries
+
+- In scope: logo object setup, animation callback wiring, animation lifetime management.
+- Out of scope: window/session management, general UI composition, or reusable animation framework APIs.
+
+## Internal structure
+
+- `lib.rs`: `Bootsplash` state (`lv_anim_t` + `Logo`) and lifecycle methods.
+- `error.rs`: crate-local error type mapped from graphics failures.
+- One `unsafe extern "C"` callback (`load_animation_callback`) updates part opacity across logo children.
+
+## Runtime interaction
+
+1. `Bootsplash::new` acquires `graphics::Manager` lock.
+2. It uses current screen geometry to compute `Logo::get_factor(...)` and instantiate logo.
+3. It initializes `lv_anim_t` (`duration`, reverse timing, repeat count) and registers callback.
+4. `Bootsplash::stop` deletes the animation via `lv_anim_delete` under manager lock.
+
+## Dependency model
+
+- Internal runtime dependency: [Graphics](/explanation/architecture/subsystems/graphics) only.
+- Uses LVGL symbols re-exported through graphics (`lv_anim_*`, `lv_obj_*`).
+
+## Failure semantics
+
+- Setup failures propagate as crate `Error` during `new`.
+- `stop` can fail through graphics lock/manager-level error propagation.
+
+## Extension points
+
+- Animation timing/profile can be changed centrally in `Bootsplash::new`.
+- Alternate startup visuals can reuse the same lifecycle contract (`new`/`stop`) while changing object composition.
+
+## Contract vs implementation
+
+- **Contract**: construct bootsplash with `Bootsplash::new(...)`, stop it with `Bootsplash::stop(...)`.
+- **Current implementation**: LVGL opacity animation over 4 logo parts using theme primary color and ease-in-out path.
+
+## Limitations and trade-offs
+
+- Uses `std::os::raw::c_void` and LVGL callback ABI, so the implementation is intentionally low-level.
+- Animation is tightly tied to current logo part layout and not exposed as a generic animation graph.
+
+## Construction, animation and teardown
+
+`Bootsplash::new(graphics_manager: &'static graphics::Manager).await` obtains the Graphics lock, reads the active LVGL screen size, scales the logo to **30%** of the current screen dimension and picks its foreground from the screen's main text color. It constructs a `Logo` and starts a repeating LVGL opacity animation.
+
+The current animation uses values 64–255, **500 ms forward and 500 ms reverse**, an ease-in/out callback and an effectively indefinite repeat count. The callback cycles the four logo parts. Those exact values are design parameters, not part of the general Graphics contract.
+
+`Bootsplash::stop(self, graphics_manager).await` consumes the splash, takes the Graphics lock, deletes the matching animation callback/variable pair and then lets Rust drop the logo. **Call `stop` explicitly** before releasing the logo or ending the graphics runtime: simply dropping an active splash does not execute the animation-deletion path shown in `stop`.
+
+```rust
+let splash = bootsplash::Bootsplash::new(graphics_manager).await?;
+// Continue initializing the runtime while the graphics loop renders.
+splash.stop(graphics_manager).await?;
+```
+
+The example assumes the Graphics service is running and `graphics_manager` has a `'static` lifetime. An initialized screen and progressing LVGL timer handler are prerequisites for visible animation.
+
+## Ownership and portability caveats
+
+The library owns a boxed `lv_anim_t` and a Graphics `Logo`, but the animation is registered through an unsafe C callback and a static mutable animation-part index. It is therefore **not a reentrant generic animation component**: multiple concurrent splashes and arbitrary LVGL lifecycle resets require care. Its `std::os::raw::c_void` import means the implementation is not universally `no_std` even though many Xila libraries are.
+
+- <CodeReference path="libraries/bootsplash/src/lib.rs" /> - actual animation
+  and stop sequence.
+- <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" /> -
+  construction/teardown API.
+
+## References
+
+- <HostReference crate="bootsplash" /> - generated Rust API documentation.
+
+- <CodeReference path="libraries/bootsplash" />
+- [Graphics](/explanation/architecture/subsystems/graphics)

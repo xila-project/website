@@ -1,0 +1,26 @@
+---
+title: "Drivers"
+docType: explanation
+description: "Drivers are specialized software components that facilitate communication between the operating system and hardware devices."
+---
+
+import HostReference from "@/components/HostReference.astro";
+
+Drivers are specialized software components that facilitate communication between the operating system and hardware devices. In Xila, drivers are designed to be modular and extensible, allowing for easy integration of new hardware components.
+
+## Driver crates
+
+- [Core](/explanation/architecture/drivers/core)
+- [Espressif](/explanation/architecture/drivers/espressif)
+- [Native](/explanation/architecture/drivers/native)
+- [Shared](/explanation/architecture/drivers/shared)
+- [Std](/explanation/architecture/drivers/std)
+- [WASM](/explanation/architecture/drivers/wasm)
+
+## Rust API documentation
+
+Browse the host-side crates: <HostReference crate="drivers_core" />, <HostReference repo="platforms" crate="drivers_espressif" />, <HostReference repo="platforms" crate="drivers_native" />, <HostReference repo="platforms" crate="drivers_shared" />, <HostReference repo="platforms" crate="drivers_std" />, and <HostReference repo="platforms" crate="drivers_wasm" />.
+
+## See also
+
+- [Driver architecture](/explanation/architecture/drivers)

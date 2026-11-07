@@ -1,1 +1,4 @@
 .reference-checkouts/
+node_modules/
+.astro/
+dist/

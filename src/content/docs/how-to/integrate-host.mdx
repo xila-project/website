@@ -1,0 +1,57 @@
+---
+title: "Integrate Xila into a host application"
+docType: how-to
+description: Assemble a host Xila runtime with explicit managers, drivers, and executable capabilities.
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+import CodeReference from "@/components/CodeReference.astro";
+
+Use the native example's assembly to connect Xila services and executables to your host application.
+
+## Before you begin
+
+Complete the [native tutorial](/tutorials/native) or establish a working [development environment](/how-to/setup-development). Read the [runtime assembly overview](/explanation/architecture/#runtime-assembly) and identify your display, time, storage, and executor drivers.
+
+The procedure is an integration outline; <CodeReference repo="platforms" path="examples/native/src/main.rs" /> provides the complete executable example.
+
+## Add the dependencies
+
+In your application's Cargo manifest:
+
+```toml
+[dependencies]
+xila = { git = "https://github.com/Xila-Project/Core.git", features = ["graphics_rendering_xrgb8888"] }
+```
+
+This enables Core's default services and the optional XRGB8888 graphics rendering path. Select features appropriate to your actual display. The package has no `host` feature.
+
+Add platform drivers separately, such as `drivers_std` and `drivers_native`; they are not re-exported through `xila::drivers`.
+
+## Assemble the runtime
+
+<Steps>
+
+1. Construct a task manager and connect it to your executor bootstrap, following the example's `#[task::run(...)]` manager argument.
+2. Register the allocator/logger and construct users/time managers with their platform drivers.
+3. Initialize graphics with the time manager and screen/input devices. Register the FFI manager for callbacks that cannot carry Rust references.
+4. Construct VFS from task/users/time managers and a root filesystem; create the default hierarchy and mount devices. Register the separate C ABI runtime context if your runtime uses it.
+5. Initialize optional networking with its task/VFS/time/random dependencies.
+6. Build an `ExecutableContext`, mount executables with it, and open `Standard` streams carrying the same context.
+7. Launch with `executable::execute(context, path, args, standard, spawner)` and join the returned task when needed.
+
+</Steps>
+
+Keep manager storage alive for its consumers. The examples use static storage and leaked boxes for required `'static` references; plan ownership and RAM costs for your target.
+
+## Verify completion
+
+Build for your actual host target, start the runtime, and launch a mounted executable. Check that it uses the same context/VFS that created its streams. For graphical integration, exercise input and window closing in the supported native session.
+
+## Related documentation
+
+- [Executable context](/explanation/architecture/libraries/executable).
+- [VFS](/explanation/architecture/subsystems/virtual_file_system).
+- [C ABI context](/explanation/architecture/libraries/abi).
+- [Development environments and targets](/explanation/development-environments).

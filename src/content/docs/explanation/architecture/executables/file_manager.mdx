@@ -1,0 +1,90 @@
+---
+title: "File manager (executable)"
+docType: explanation
+description: "The file manager executable provides a graphical VFS browser with directory navigation controls."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The file manager executable provides a graphical VFS browser with directory navigation controls.
+
+## Role
+
+- Presents VFS directory contents in a graphical list view.
+- Handles path navigation (home/up/go/refresh) and directory item traversal.
+- Uses a native launcher shortcut seeded by Platforms; the executable does not register one.
+
+## Startup and lifecycle
+
+1. Platforms seeds the native launcher descriptor at `/configuration/shared/applications/shortcuts/file_manager.json`; the executable constructor does not write a shortcut.
+2. Runtime path creates window, toolbar, path text area, and file list widgets.
+3. Loads current directory entries, sorts directories-first, and renders list buttons.
+4. Processes click/close events in loop until window close.
+
+## Runtime integration points
+
+- Graphics/LVGL for window/list/event handling.
+- `virtual_file_system::Directory` for directory iteration.
+- Task manager for current task identifier during VFS operations.
+
+## Data and control flow / VFS touchpoints
+
+- Core VFS touchpoint: `Directory::open(..., current_path)` + iterative `read()`.
+- Navigation updates `current_path`, then refreshes UI from VFS.
+- File entries are transformed into in-memory `FileItem` records before rendering.
+
+## Concurrency and event-loop model
+
+- The top-level event loop **does not poll every 50 ms**. `FileManager::handle_events()` drains events under the graphics lock, registers the window's waker with `task::suspend`, and wakes when the window signals new activity.
+- Event handlers run asynchronously and mutate local state; there are no separately spawned application worker tasks. Graphics and VFS remain independently scheduled.
+
+## Failure semantics
+
+- UI creation failures return typed `Error` and abort startup.
+- During event handling, directory-read and invalid-path errors are **logged and the event loop continues**, rather than automatically ending the executable.
+- Invalid path text input logs error and retains current path.
+
+## Contract vs implementation
+
+- **Contract**: graphical executable that reflects directory state and reacts to navigation events.
+- **Current implementation**: LVGL list-based browser with direct directory-only navigation and no file-open dispatch path.
+
+## Operational limitations
+
+- Operations are currently browse-oriented; edit/copy/move/delete workflows are not implemented in top-level flow.
+- Path input accepts raw text and relies on `PathOwned` validation.
+
+## Exact API, input handling and ownership
+
+`FileManagerExecutable::new(vfs, task)` constructs the executable without filesystem side effects. The native [Platforms shortcut descriptor](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/file_manager.json) is seeded at `/configuration/shared/applications/shortcuts/file_manager.json` and discovered by the graphical Shell when the app drawer opens. Launch uses the shared `ExecutableTrait` contract and a `'static ExecutableContext`; it creates an `OwnedWindow` with a toolbar, path text area and LVGL list.
+
+`FileManager::new(context).await` begins at `PathOwned::root()` (`/`). `load_directory` opens the current directory with the current task identifier, iterates VFS entries, skips `.` and `..`, and sorts **directories first**, with names in ascending lexicographic order in each group. A `FileItem` contains name, kind and size. Navigation is handled through Home, Up, Refresh, Go and directory-item clicks.
+
+`handle_events().await -> bool` returns false after a close/delete event on the owning window; while waiting, it registers a **window waker**, avoiding a busy-polling UI loop. The event handler logs recoverable errors rather than terminating the process.
+
+The application navigates directories and displays file metadata; it does **not** currently open arbitrary documents in another program or expose copy/move/delete commands. LVGL object pointers are owned by the current window and must only be manipulated under the Graphics lock.
+
+### Source and API references
+
+- <CodeReference
+    repo="applications"
+    path="executables/file_manager/src/lib.rs"
+  />
+  - side-effect-free constructor and executable launch.
+- <CodeReference
+    repo="platforms"
+    path="tools/fs_image/shortcuts/file_manager.json"
+  />
+  - native launcher descriptor.
+- <CodeReference
+    repo="applications"
+    path="executables/file_manager/src/file_manager.rs"
+  />
+  - navigation, sorting, event wake-up and UI.
+- <HostReference repo="applications" crate="file_manager" /> - native Rust API.
+
+## References
+
+- <CodeReference repo="applications" path="executables/file_manager" />
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)

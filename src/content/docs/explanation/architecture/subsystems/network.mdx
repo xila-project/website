@@ -1,0 +1,166 @@
+---
+title: "Network"
+docType: explanation
+description: Understand how Xila turns a platform network device into interface stacks, async sockets, and a VFS control surface.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+Xila's Network module sits between applications and platform network hardware. It gives executables portable DNS/TCP/UDP/ICMP services while `smoltcp` handles the protocol stack and a target-specific driver moves packets to and from the actual device.
+
+The same interface also appears in Xila's file namespace as `/devices/network/<name>`, giving the system one control surface for addresses, routes, DNS, DHCP, link state, Wi-Fi station control and backend-specific commands.
+
+## Mental model
+
+```mermaid
+flowchart LR
+    App[Executable or module] -->|opens socket| Socket[TCP · UDP · DNS · ICMP]
+    Socket --> Network[Network manager]
+    Network --> Stack[Interface stack]
+    Stack --> Driver[Platform network device]
+    Driver --> Hardware[Hardware / host transport]
+    Control[VFS control device] -->|configure / inspect| Network
+```
+
+A <HostReference crate="network" kind="struct" symbol="Manager" /> owns the collection of interface stacks. Each stack represents one named network interface and combines `smoltcp` protocol state with the platform device that performs packet IO.
+
+The key idea is that applications do not talk to the hardware driver directly. They ask the Network manager for sockets, while interface configuration travels through the VFS control device. Both paths converge on the same interface stack.
+
+## From a mounted interface to a usable socket
+
+When <HostReference crate="network" kind="struct" symbol="Manager" member="method.mount_interface">an interface is mounted</HostReference>, Xila creates a `smoltcp` interface/socket set around the supplied device, starts a runner task for that stack, and exposes a character device at `/devices/network/<name>`.
+
+The runner is what keeps the protocol engine moving. It polls `smoltcp` with the platform device, sleeps when there is nothing useful to do, and can be woken when a socket or control operation changes stack state.
+
+Later, when an executable asks <HostReference crate="network" kind="struct" symbol="Manager" member="method.new_tcp_socket">for a TCP socket</HostReference> (or the corresponding UDP/ICMP/DNS facility), the manager chooses the requested interface or the first available one, adds the protocol socket to that interface's socket set, and returns a typed Xila socket wrapper.
+
+```mermaid
+sequenceDiagram
+    participant App as Executable
+    participant Net as Network manager
+    participant Stack as Interface stack
+    participant Runner as Stack runner
+    participant Driver as Platform device
+
+    App->>Net: create/use socket
+    Net->>Stack: attach socket to interface
+    Stack-->>App: typed socket wrapper
+    App->>Stack: read / write / connect
+    Stack->>Runner: wake when progress is needed
+    Runner->>Stack: poll protocol state
+    Stack->>Driver: transmit / receive frames
+```
+
+The application-facing call is asynchronous, but actual network progress depends on that runner continuing to be scheduled.
+
+## Control lives in the VFS
+
+Interface configuration is intentionally exposed through the same namespace used for devices elsewhere in Xila. A file opened at `/devices/network/wlan0`, for example, represents the control endpoint for that interface rather than a stream of network payload bytes.
+
+Control commands handled by Xila update stack state such as addresses, routes, DNS, DHCP, or link settings. Commands the Network layer does not own can be forwarded to the controller device supplied by the platform driver. This lets a target expose hardware-specific controls without teaching the portable network manager every device-specific concept.
+
+That command-oriented design is flexible and fits Xila's device model, but it is less discoverable than a single strongly typed high-level configuration object. Persistent policy (for example, remembered Wi-Fi/network profiles) also belongs above this module rather than inside the network stack itself.
+
+## Relationship with other modules
+
+The Network manager depends on several foundational services rather than duplicating their responsibilities:
+
+- [Task](/explanation/architecture/subsystems/task) provides the runner task and cooperative execution context.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system) provides the `/devices/network/*` control namespace.
+- [Time](/explanation/architecture/subsystems/time) provides the clock converted into `smoltcp` time.
+- a random character device supplies seeds used by network state.
+- the platform driver supplies the concrete `smoltcp::phy::Device` and a controller device.
+
+High-level protocols such as HTTP or TLS are intentionally outside this layer. Network is concerned with interfaces, addresses, routing/control, name resolution, and transport/socket primitives.
+
+## Under the hood
+
+The current <HostReference crate="network" kind="struct" symbol="Manager" /> stores its stack list in an async `RwLock<Vec<Stack>>` alongside explicit references to Task, VFS, Time, and the random device.
+
+Each `Stack` wraps mutable `StackInner` state behind an async mutex and shares a `WakeSignal` with its runner. `StackInner` contains the interface name and state, `smoltcp::iface::Interface`, `SocketSet`, controller device, DNS/DHCP information, MTU metadata, and local ephemeral-port allocation state.
+
+```mermaid
+flowchart LR
+    Manager[Manager]
+    List[(interface stack list)]
+    Stack[Stack + mutex]
+    Inner[StackInner<br/>Interface · SocketSet · config]
+    Wake[WakeSignal]
+    Runner[StackRunner]
+    Device[Platform device]
+
+    Manager --> List
+    List --> Stack
+    Stack --> Inner
+    Stack --> Wake
+    Wake --> Runner
+    Runner --> Inner
+    Runner --> Device
+```
+
+Socket calls access the stack-local socket set; mutations wake the runner so it can poll promptly. The control path may use non-blocking attempts to acquire stack state, which means contention can surface as `file_system::Error::RessourceBusy` rather than waiting indefinitely.
+
+These locks, container types, wake primitives, and the exact runner loop are implementation choices. Integrations should depend on interface/socket/control semantics rather than on `StackInner` or lock granularity.
+
+## Availability and failure boundaries
+
+An interface name must be unique within a manager, and socket creation needs a suitable available interface. Mounting an interface can also fail if its control device cannot be installed in the VFS or if the runner task cannot be spawned.
+
+Protocol-specific failures are translated from `smoltcp` into the Network module's error domain. Architecturally, the important distinction is between **interface availability**, **control/device integration**, and **socket/protocol state**: failures in any of those layers can prevent a network operation even though the others are healthy.
+
+Scheduling is another boundary. Because the runner executes cooperatively, a starved runner delays protocol progress and therefore increases socket latency. The module does not provide preemptive guarantees beyond what the configured task executors can deliver.
+
+## Public API and lifecycle caveats
+
+A manager is constructed with references to Task, VFS, Time and a random device. `mount_interface(task, name, device, controller_device, spawner)` requires a `smoltcp::phy::Device` and a `DirectCharacterDevice` control endpoint. An optional spawner selects the runner's executor. Interface names must be unique within one manager.
+
+TCP and other socket constructors require explicit buffer capacities:
+
+```rust
+let socket = network_manager.new_tcp_socket(2048, 2048, None).await?;
+let addresses = network_manager
+    .resolve("example.org", network::DnsQueryKind::A, true, None)
+    .await?;
+```
+
+`None` selects the first **available** interface. TCP send/receive buffers are allocated on creation; size them consciously on embedded targets. UDP and ICMP also require packet-metadata buffer capacities. An IP literal passed to `resolve` returns immediately without a DNS lookup.
+
+The current `mount_interface` starts its runner **before** creating and mounting the VFS control endpoint, and appends the stack to the manager list only after a successful mount. If a subsequent VFS step fails, the method does not explicitly roll back the runner. Report partial mount failures rather than assuming cleanup.
+
+`get_smoltcp_time` expects the time-device read to succeed; a failed read currently panics at that conversion boundary rather than returning a network error.
+
+## Extension points and trade-offs
+
+A new platform can integrate networking by providing a `smoltcp::phy::Device` plus its controller device; the Network manager above that pair remains the same. New typed socket wrappers can be layered over the stack/socket-set abstraction, and the device command family can grow as portable control needs evolve.
+
+Capability still varies by backend. A portable command can only be as meaningful as the controller underneath it, and platform-specific commands remain intentionally possible. That is the trade-off that lets one control plane cover both portable state and hardware-specific behavior.
+
+## Wi-Fi control plane (Core #529)
+
+Network interfaces can expose a vendor-independent `no_std` station control API under `subsystems/network/src/device/wifi/`. Bounded types cover SSIDs, credentials, scan results, radio state, association status and link availability. Scan, connect and disconnect operations schedule work and return promptly; callers poll generation-checked status/results rather than blocking the network stack. `IS_LINK_UP` from a supporting controller now affects interface availability; unsupported controllers keep the earlier cached-link behavior. Network still uses **smoltcp 0.14** as its single packet stack (Core #238).
+
+**Compatibility change:** network control `GET_KIND` moved from generic command `n/1` to `n/21` in #529 to avoid a collision with `GET_STATE`. Rebuild native control clients and guest/device bindings that use numeric commands; do not treat that command ID as backward-compatible.
+
+The native Wi-Fi mock supports one pending operation and publishes up to 16 APs; its network runner and the Settings → Network → `wlan0` panel can be exercised without physical Wi-Fi or TAP permissions. Credentials are transient and no credential persistence, profile management or reconnection policy is provided. Real ESP32 firmware integration and radio behavior remain unvalidated.
+
+See <CodeReference path="subsystems/network/src/device/wifi/mod.rs" />, <CodeReference path="drivers/core/src/wifi/controller.rs" /> and <CodeReference repo="platforms" path="examples/native/README.md" />.
+
+## HTTP/HTTPS streaming and socket lifetimes
+
+Core #522 replaced whole-response buffering with a per-opening 2 KiB response buffer and reader backpressure. The reusable [HTTP library](/explanation/architecture/libraries/http) parses response framing, handles chunked decoding and detects truncated bodies. HTTP/HTTPS VFS readers receive original headers followed by **decoded** response data. The network runner now reclaims abandoned sockets after the queued data and FIN/RST events have been processed, bounding abandoned shutdowns to 15 seconds. Core #524 allows full-size TLS records by using a 16 KiB + 256-byte HTTPS receive buffer, distinct from the streaming body buffer.
+
+The HTTP transport changes do not implement automatic redirects, certificate policy or untested hardware networking. Seven opt-in TLS 1.3 transport tests exercise local end-to-end behavior, but public-server interoperability remains to be established.
+
+## Explore further
+
+- <HostReference crate="network" /> - complete host-side Network Rustdoc.
+- <HostReference crate="network" kind="struct" symbol="Manager" /> - interface
+  and socket manager API.
+- <CodeReference path="subsystems/network/src/manager/mod.rs" /> - mount and
+  socket APIs.
+- <CodeReference path="subsystems/network/src/manager/runner.rs" /> - interface
+  runner.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system) - the namespace hosting interface control devices.
+- [Task](/explanation/architecture/subsystems/task) - the cooperative runner execution model.
+- [Std driver](/explanation/architecture/drivers/std) and [WASM driver](/explanation/architecture/drivers/wasm) - examples of target adaptation around the portable services.

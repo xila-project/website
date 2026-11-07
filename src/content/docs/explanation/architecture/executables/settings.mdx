@@ -1,0 +1,126 @@
+---
+title: "Settings (executable)"
+docType: explanation
+description: "The Settings executable manages system configuration and persistent per-user appearance preferences."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The Settings executable is a tab-based graphical configuration application. It now includes **Appearance** alongside General, Password, Network, and About.
+
+## Role
+
+- Hosts configurable system UI tabs (general/appearance/password/network/about).
+- Applies a dark/light theme and five primary/secondary color presets to existing windows immediately.
+- Uses a launcher shortcut seeded by Platforms for desktop discovery.
+
+## Startup and lifecycle
+
+1. Platforms seeds `/configuration/shared/applications/shortcuts/settings.json`; `SettingsExecutable::new` does not write it.
+2. Runtime path constructs `Settings` window and tab view.
+3. Event loop repeatedly dispatches window events to tab handlers until close.
+
+## Runtime integration points
+
+- Graphics/LVGL for tabbed UI composition.
+- Task module for environment and current-task context handling in specific tabs.
+- Authentication crate in password tab (`authenticate_user`, `change_user_password`).
+- Network module in network tab via interface control commands.
+- Graphics theme controls for live palette updates, including calls from within an existing LVGL lock.
+- VFS for appearance persistence and network-device opening.
+
+## Data and control flow / VFS touchpoints
+
+- VFS write touchpoint: per-user appearance record at `/users/<uid>/.appearance` (not the native launcher descriptor).
+- Shells create private `/users/<uid>` home directories (mode `0700`) and set `HOME`. Appearance records are mode `0600`.
+- A versioned appearance record is written through a temporary replacement and restored for the user at login; native/browser startup also restore administrator preferences for the login screen.
+- Password tab flow: user resolution -> current password validation -> persisted password update through authentication crate.
+- Network tab flow: enumerate `/devices/network/*`, open interface file, issue control commands for status/config.
+
+## Concurrency and event-loop model
+
+- **Event-driven** executable loop: `Settings::handle_events()` drains the owning window's events and suspends on its registered window waker. It does not sleep at a fixed 50 ms cadence.
+- Tab handlers perform async operations when triggered by UI events; no internal worker task fan-out in top-level loop.
+
+## Failure semantics
+
+- UI creation/mounting failures return non-zero executable result.
+- Tab operation failures are handled per-tab (status labels/logging) or propagated as typed settings errors.
+
+## Contract vs implementation
+
+- **Contract**: settings executable opens configuration UI and processes tab interactions until closed.
+- **Current implementation**: five fixed tabs including appearance persistence and password/network integration; shortcut discovery belongs to the graphical Shell.
+
+## Operational limitations
+
+- Tab set is compile-time fixed.
+- Top-level window-event processing is waker-driven; the Wi-Fi panel additionally uses a timer to refresh connection progress even when the user sends no input. The other Network tab refresh path remains event-driven.
+
+## Wi-Fi settings and native demo
+
+Since Core #529, a Wi-Fi-capable controller exposes a Settings → Network → `wlan0` panel. It supports radio on/off, bounded scan lists, security mode/signal/channel/BSSID details, connection and disconnection, and asynchronous progress/errors. Unsupported authentication methods are shown but cannot be selected for connection. Passwords are masked, transient, and cleared after submission or dismissal; there is no stored profile or automatic reconnection policy.
+
+For a headless native demo, run `mise run image:native` first, then:
+
+```sh
+mise run run:cargo -- -p xila-native-example --bin native_example -- --no-network --mock-wifi --display-driver headless --resolution 800x600 --disk-path /tmp/xila-wifi-demo.img --seed-image target/seed/native/seed.img
+```
+
+The mock advertises `Xila demo` (public test password `xila-demo`) and an open `Xila open` network. This only exercises control/UI behavior; it does not access the host wireless radio or provide Internet access. See <CodeReference repo="applications" path="executables/settings/src/tabs/network/wifi.rs" /> and <CodeReference repo="platforms" path="drivers/native/tests/wifi.rs" />.
+
+## Appearance and per-user homes
+
+The Appearance tab supports light/dark mode and five primary/secondary color presets. The Zinc-based palette updates existing windows immediately, including contrasting text colors.
+
+Each user has a private home directory at `/users/<uid>` (mode `0700`). Appearance preferences are stored in a small versioned record at `/users/<uid>/.appearance` (mode `0600`) and restored on login. The native and browser examples also restore the root user's appearance for the login screen. Changes are saved through a temporary-file replacement strategy; invalid records are rejected.
+
+## Tab composition and event scheduling
+
+`SettingsExecutable::new(vfs, task).await` returns the executable without modifying the filesystem. Platforms provides the [native settings shortcut](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/settings.json) in `/configuration/shared/applications/shortcuts/`. At launch, `Settings::new(context).await` creates an `OwnedWindow` and exactly five `Tab` variants: General, Appearance, Password, Network and About. The tab list is fixed at compile time.
+
+`Settings::handle_events()` acquires the graphics lock, dispatches an event to tabs until one handles it and then suspends on the window's registered waker. Window close/delete ends the task. There is no background worker for tab refresh.
+
+## Appearance, password and network contracts
+
+- Appearance reads the current task's user preferences from `/users/<uid>/.appearance` via `graphics::appearance::Appearance`. The tab applies colors to live windows before attempting to persist the versioned record. **Saving can fail after the UI change has already taken effect**, in which case an error status is shown.
+- The password tab gets the current task identity from Task and Users, checks the current password through `authentication::authenticate_user`, then persists the replacement through `change_user_password`. The current UI requires a non-empty current password, a non-empty new password, matching confirmation and **at least four characters**. This is UI validation, not a strong password-policy implementation; it means a seeded user with an empty password cannot use this screen without first addressing that flow.
+- The Network tab enumerates `/devices/network` and issues typed controls such as `GET_KIND` (now `n/21`) and `IS_LINK_UP`. Non-Wi-Fi details retain event-driven refresh; the new Wi-Fi panel has its own scheduled status refresh while an association or scan is pending.
+
+The graphical shell provisions user homes with restrictive permissions and restores appearance after login. The executable assumes the current VFS credentials permit reading and writing the relevant files.
+
+### Source and API references
+
+- <CodeReference
+    repo="applications"
+    path="executables/settings/src/settings.rs"
+  />
+  - event loop and tab array.
+- <CodeReference repo="applications" path="executables/settings/src/lib.rs" /> -
+  side-effect-free constructor.
+- <CodeReference
+    repo="platforms"
+    path="tools/fs_image/shortcuts/settings.json"
+  />
+  - native launcher descriptor.
+- <CodeReference
+    repo="applications"
+    path="executables/settings/src/tabs/appearance.rs"
+  />
+  - immediate theme application and persistence.
+- <CodeReference
+    repo="applications"
+    path="executables/settings/src/tabs/password.rs"
+  />
+  - password verification and mutation.
+- <CodeReference
+    repo="applications"
+    path="executables/settings/src/tabs/network/mod.rs"
+  />
+  - VFS interface enumeration.
+- [Authentication library](/explanation/architecture/libraries/authentication) - password storage semantics.
+
+## References
+
+- <CodeReference repo="applications" path="executables/settings" />
+- [Internationalization](/explanation/architecture/libraries/internationalization)

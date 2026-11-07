@@ -1,0 +1,29 @@
+---
+title: "Espressif driver crate"
+docType: explanation
+description: "The drivers_espressif crate contains platform-specific drivers for Espressif targets."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+The `drivers_espressif` crate contains platform-specific drivers for Espressif targets.
+
+It includes chip-specific integrations and shared helpers for ESP families (for example ESP32 and ESP32-S3), including pin and file-system related support code.
+
+## Dependencies
+
+This crate is intentionally small and keeps dependencies minimal to stay close to the platform.
+
+## References
+
+- <HostReference repo="platforms" crate="drivers_espressif" /> - generated Rust
+  API documentation.
+
+- <CodeReference repo="platforms" path="drivers/espressif" />
+
+## See also
+
+- [Drivers](/explanation/architecture/drivers)
+- [Core driver crate](/explanation/architecture/drivers/core)
+- [Shared driver crate](/explanation/architecture/drivers/shared)

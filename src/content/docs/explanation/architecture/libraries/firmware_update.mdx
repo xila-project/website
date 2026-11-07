@@ -1,0 +1,60 @@
+---
+title: "Firmware update"
+docType: explanation
+description: Experimental signed firmware update transactions, native NOR simulation and the privileged VFS device.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
+
+Core #532 adds the **experimental** `xila-firmware-update` library and an end-to-end native NOR-flash simulator. This is the prototype portion of [Core #526](https://github.com/xila-project/core/issues/526), **not** an ESP32-S3 OTA implementation or production secure bootloader.
+
+## Transaction model
+
+The `no_std` core defines an allocator-independent `Update<B>` transaction owner around a platform `FirmwareBackend`. The backend owns image format, verification trust, staging geometry and boot state. The intended lifecycle is:
+
+1. Begin a transaction for an exact declared image length and backend-specific metadata.
+2. Stream bytes to durable staging, handling short writes and failures explicitly.
+3. Finish and verify the stored image, receiving a backend-owned proof bound to that staging generation.
+4. Activate only the verified generation, then attempt a trial boot.
+5. Confirm the running image or recover the previous confirmed image. Aborting never activates new firmware.
+
+The native simulator models NOR erase sectors, 1→0 programming, torn writes, two image slots and redundant boot records. After Core #537, it consumes the **pinned shared verification dependency** from [package_manager](https://github.com/xila-project/package_manager/tree/main/crates/verification), reusing SHA-256 and **strict ordinary Ed25519** from [Verification](/explanation/architecture/libraries/verification) and uses a **simulator-specific signed manifest**, distinct from XPK or ESP/MCUboot formats.
+
+## Device contract
+
+The optional VFS façade is mounted at `/devices/system/firmware`. It uses Xila's Unix-like character-device operations instead of exposing flash offsets or slots directly. The root-owned mount uses mode `0600`, allows **one exclusive opening** (including read-only status openings), and rejects duplicated descriptors.
+
+The fixed-byte ABI v1 uses command family `F`: capability/status queries and the write-directed `BEGIN`, `FINISH`, `ACTIVATE`, `ABORT` and `CONFIRM` controls. A `write` streams image bytes after `BEGIN`. Headers carry explicit version/reserved bytes and each operation validates lengths and state. VFS **read-only handles cannot issue write-directed controls**, including through WASI forwarding. Closing a handle never activates firmware.
+
+Capabilities describe guarantees separately: **authenticated update**, **functional revert**, **verified boot**, and **hardware root**. The simulator implements only the first two; its mutable security floor is **not hardware-enforced anti-rollback**.
+
+## Native simulator and validation
+
+Core includes `xila-firmware-sim`, a process-restart test harness, persistent raw-file backing and deterministic fault injection. Tests exercise corrupted signatures, stale proofs, failed operations, torn writes and trial/confirm/revert recovery across restarts.
+
+```sh
+cargo test --locked -p xila-firmware-update --features native
+cargo run -p xila-firmware-update --features native --bin xila-firmware-sim -- --help
+```
+
+See Core's README for complete simulator arguments, storage layout and signed-test-image recipes. The library's focused test suite uses 22 native tests; the final integrated Core run for #532 passed 1,101 workspace tests. Those results are **not hardware qualification**.
+
+## Hardware and security limits
+
+ESP32-S3 secure boot uses the platform's provisioned trust and bootloader verification, not the simulator's Ed25519 format. Any future adapter must use platform OTA APIs, partitions, recovery state and key policy. MCUboot-based Nordic boards have different trailer, signature and swap constraints. Power-loss, brownout, secure-key provisioning, real flash wear and target-specific RAM/stack/flash costs all remain to be validated.
+
+No production boot protection, signing-key management, update transport or application-package enforcement is shipped by this prototype. The separate #402, #491 and #495 work items own package manifests, installation trust and executable enforcement.
+
+## References
+
+- <HostReference crate="firmware_update" /> - transaction API Rustdoc.
+- <CodeReference path="libraries/firmware_update/README.md" /> - platform audit
+  and reproducible simulator procedure.
+- <CodeReference path="libraries/firmware_update/src/lib.rs" /> - transaction
+  and capability contracts.
+- <CodeReference path="libraries/firmware_update/src/device.rs" /> - VFS device
+  command ABI.
+- <CodeReference path="libraries/firmware_update/src/simulator.rs" /> - native
+  reference backend.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system) - namespace and access rules.

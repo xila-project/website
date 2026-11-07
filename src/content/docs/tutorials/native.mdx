@@ -1,0 +1,66 @@
+---
+title: "Run Xila natively"
+docType: tutorial
+description: Build official WASI guests in Applications, seed Platforms and launch the native Linux runtime.
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The native executable and disk generator live in [Platforms](https://github.com/xila-project/platforms); official guest applications live in [Applications](https://github.com/xila-project/applications). **Core is not a runnable desktop checkout** after the repository split.
+
+## Before you begin
+
+Use x86_64 Debian/Ubuntu Linux with Git, [mise](https://mise.jdx.dev/) and a working Wayland display for GUI testing. Native Windows/macOS/ARM Linux and ESP32 are not established as supported desktop environments. Cloning adjacent workspaces helps when checking local changes.
+
+## 1. Build the six guest applications
+
+```sh
+git clone https://github.com/xila-project/applications.git
+git clone https://github.com/xila-project/platforms.git
+cd applications
+mise trust
+mise run build:applications
+cd ..
+```
+
+The WASI `.wasm` files are emitted under `applications/target/wasm32-wasip1/release-wasm/`.
+
+## 2. Create a native filesystem image
+
+```sh
+cd platforms
+mise trust
+mise bootstrap packages apply --manager apt
+npm ci
+export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
+export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
+mise run image:native
+```
+
+The image is written to `target/seed/native/seed.img` by the **Platforms** `xila-fs-image` tool. It is a reference image, not a package-manager installation or an upgrade process. Existing writable disks are not overwritten by newer seeds.
+
+## 3. Start the native runtime
+
+From the `platforms` checkout:
+
+```sh
+mise run run:cargo -- -p xila-native-example --bin native_example -- \
+  --gui --no-network --seed-image target/seed/native/seed.img
+```
+
+If `run:cargo` is unavailable in the selected task profile, use `mise exec -- cargo run -p xila-native-example --bin native_example -- --gui --no-network --seed-image target/seed/native/seed.img`.
+
+On a new disk, log in as **administrator** with an empty password. Test pointer input, application launch and window close. The default writable file is `./drive.img`; select a different one with `--disk-path PATH` to avoid modifying an existing installation.
+
+For terminal mode replace `--gui` with `--terminal`. Headless graphical debugging uses `--display-driver headless --resolution 800x600` plus the `xila-debug` tool.
+
+## Validation and caveats
+
+```sh
+mise run build:native
+mise run test:seed
+```
+
+Platforms also owns driver, browser, integration and runtime-container CI. Native correctness does **not** prove ESP32 operation or flash/RAM consumption. See <CodeReference repo="platforms" path="examples/native/README.md" /> and <CodeReference repo="platforms" path="mise.toml" /> for exact options.
+
+For the browser-hosted build, follow [the browser tutorial](/tutorials/browser).

@@ -1,0 +1,83 @@
+---
+title: "How-to guides"
+description: Complete specific Xila development, guest execution, storage, and documentation tasks.
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Use these guides when you know what you want to accomplish. For a guided first experience, start with a [tutorial](/tutorials/).
+
+## Development
+
+<CardGrid>
+  <LinkCard
+    title="Set up a development environment"
+    href="/how-to/setup-development/"
+    description="Set up separate Core, Applications and Platforms workspaces with mise and pinned dependencies."
+  />
+  <LinkCard
+    title="Integrate Xila into a host application"
+    href="/how-to/integrate-host/"
+    description="Assemble a host Xila runtime with explicit managers, drivers, and executable capabilities."
+  />
+  <LinkCard
+    title="Contribute a Core change"
+    href="/how-to/contribute-core/"
+    description="Prepare a focused Core change, validate affected targets, and update its documentation."
+  />
+  <LinkCard
+    title="Validate a Core change"
+    href="/how-to/validate-core/"
+    description="Select checks from Core, Applications and Platforms based on the touched crate or integration boundary."
+  />
+</CardGrid>
+
+## Guest applications and browser storage
+
+<CardGrid>
+  <LinkCard
+    title="Build a guest application"
+    href="/how-to/build-guest/"
+    description="Compile a wasm32-wasip1 guest from Applications and use the relocated xila-wasm guest API."
+  />
+  <LinkCard
+    title="Add a launcher shortcut to a bundle"
+    href="/how-to/add-shortcut/"
+    description="Add a bundle-local shortcut.json so the Xila graphical Shell can discover and launch an application."
+  />
+  <LinkCard
+    title="Run a guest from Xila's terminal"
+    href="/how-to/run-guest/"
+    description="Launch an installed WASI guest through the mounted Xila WASM executable."
+  />
+  <LinkCard
+    title="Create a development package"
+    href="/how-to/package-application/"
+    description="Build a development-only Xila archive with the shared native xila-package builder."
+  />
+  <LinkCard
+    title="Submit a package to the registry"
+    href="/how-to/submit-package/"
+    description="Publish a released, signed package version to the Xila package registry."
+  />
+  <LinkCard
+    title="Run Xila with Docker"
+    href="/how-to/run-container-guest/"
+    description="Launch Xila's CLI shell or a WASI guest in a persistent headless Docker runtime."
+  />
+  <LinkCard
+    title="Manage browser disks"
+    href="/how-to/reset-browser-storage/"
+    description="Create, switch, or deliberately remove browser-hosted Xila disks."
+  />
+</CardGrid>
+
+## Documentation
+
+<CardGrid>
+  <LinkCard
+    title="Write or update documentation"
+    href="/how-to/write-documentation/"
+    description="Choose a documentation type, write a focused Xila page, and validate its links and build."
+  />
+</CardGrid>
