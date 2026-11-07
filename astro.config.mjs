@@ -166,7 +166,7 @@ export default defineConfig({
           ],
         }),
       ],
-      customCss: ["./src/styles/xila.css", "./src/styles/sidebar-icons.css"],
+      customCss: ["./src/styles/xila.css", "./src/styles/page-icons.css"],
       lastUpdated: true,
       // Plain code frames: shell blocks get no terminal title bar.
       expressiveCode: { defaultProps: { frame: "code" } },
