@@ -31,7 +31,6 @@ const EXTERNAL_CRATE_ROOTS = Object.freeze({
     drivers_shared: "drivers/shared",
     drivers_std: "drivers/std",
     drivers_wasm: "drivers/wasm",
-    testing: "libraries/testing",
   },
 });
 

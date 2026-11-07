@@ -17,7 +17,7 @@ For headless workloads, native HostFS supplies explicitly mounted host-directory
 
 ## Native Wi-Fi mock
 
-Core #529 includes a deterministic mock Wi-Fi station controller under `drivers/native/src/devices/wifi/`. The native example's `--mock-wifi` flag creates a `wlan0` interface for Settings scans and connect/disconnect testing without interacting with the host radio. The mock publishes at most 16 access points and supports one pending operation, configurable association outcomes and generation-checked scans. This is **not a real Wi-Fi driver** and has no Internet connectivity. See [Network](/explanation/architecture/subsystems/network) and <CodeReference repo="platforms" path="drivers/native/tests/wifi.rs" /> for its control-plane tests.
+Core #529 added a deterministic mock Wi-Fi station controller; it now lives in Core under `drivers/core/src/wifi/` (moved from this crate by Platforms #46). The native example's `--mock-wifi` flag creates a `wlan0` interface for Settings scans and connect/disconnect testing without interacting with the host radio. The mock publishes at most 16 access points and supports one pending operation, configurable association outcomes and generation-checked scans. This is **not a real Wi-Fi driver** and has no Internet connectivity. See [Network](/explanation/architecture/subsystems/network) and <CodeReference repo="platforms" path="drivers/native/tests/wifi.rs" /> for its control-plane tests.
 
 ## Dependencies
 

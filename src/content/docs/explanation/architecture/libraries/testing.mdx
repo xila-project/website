@@ -5,7 +5,6 @@ description: "The testing crate assembles a host integration runtime so tests ca
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
 
 The `testing` crate assembles a host integration runtime so tests can run against near-real Core wiring.
 
@@ -87,17 +86,15 @@ Managers and devices are leaked for lifetime convenience. Global logger state an
 
 ### Source and API references
 
-- <CodeReference repo="platforms" path="libraries/testing/src/lib.rs" /> -
-  precise bootstrap order and mounted endpoints.
-- <HostReference repo="platforms" crate="testing" /> - fixture API.
+- <CodeReference path="libraries/testing/src/lib.rs" /> - precise bootstrap
+  order and mounted endpoints.
+- <CodeReference path="libraries/testing/Cargo.toml" /> - `xila-testing` package
+  and its optional `environment` and `graphics` features.
 - [File system](/explanation/architecture/libraries/file_system) - test block device and backend interfaces.
 - [Executable](/explanation/architecture/libraries/executable) - returned Standard context.
 
 ## References
 
-- <HostReference repo="platforms" crate="testing" /> - generated Rust API
-  documentation.
-
-- <CodeReference repo="platforms" path="libraries/testing" />
+- <CodeReference path="libraries/testing" />
 - [Executable crate](/explanation/architecture/libraries/executable)
 - [Architecture](/explanation/architecture/)

@@ -4,6 +4,7 @@ docType: explanation
 description: Discover Xila's reusable Rust contracts, helpers and implementations.
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
 Libraries expose reusable contracts, types, protocols, algorithms, adapters and concrete implementations without owning an independently installed runtime service. They may be internally stateful or use subsystem interfaces; **architectural ownership and lifecycle** determine placement.
@@ -32,7 +33,7 @@ Libraries expose reusable contracts, types, protocols, algorithms, adapters and 
 - [Executable](/explanation/architecture/libraries/executable): executable protocol, context and launcher helpers. <HostReference crate="executable" />.
 - [Authentication](/explanation/architecture/libraries/authentication): reusable credential/verification operations. <HostReference crate="authentication" />.
 - [Bootsplash](/explanation/architecture/libraries/bootsplash): startup animation implementation. <HostReference crate="bootsplash" />.
-- [Testing](/explanation/architecture/libraries/testing): the native integration test harness now lives in [Platforms](https://github.com/xila-project/platforms/tree/main/libraries/testing), not Core.
+- [Testing](/explanation/architecture/libraries/testing): minimal `std` test support (`xila-testing`) with test devices, an allocator and environment setup, without platform drivers. <CodeReference path="libraries/testing" />.
 
 Portable package manifest, TAR reader/writer and host builder crates live in the [separate package_manager workspace](/explanation/package-management), not under Core `libraries/`. Their [provisional file format](/reference/package-format) and [community publication registry](/how-to/submit-package) are documented independently from Core runtime libraries.
 

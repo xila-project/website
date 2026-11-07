@@ -144,7 +144,7 @@ Network interfaces can expose a vendor-independent `no_std` station control API 
 
 The native Wi-Fi mock supports one pending operation and publishes up to 16 APs; its network runner and the Settings → Network → `wlan0` panel can be exercised without physical Wi-Fi or TAP permissions. Credentials are transient and no credential persistence, profile management or reconnection policy is provided. Real ESP32 firmware integration and radio behavior remain unvalidated.
 
-See <CodeReference path="subsystems/network/src/device/wifi/mod.rs" />, <CodeReference repo="platforms" path="drivers/native/src/devices/wifi/controller.rs" /> and <CodeReference repo="platforms" path="examples/native/README.md" />.
+See <CodeReference path="subsystems/network/src/device/wifi/mod.rs" />, <CodeReference path="drivers/core/src/wifi/controller.rs" /> and <CodeReference repo="platforms" path="examples/native/README.md" />.
 
 ## HTTP/HTTPS streaming and socket lifetimes
 
