@@ -167,6 +167,7 @@ export default defineConfig({
         }),
       ],
       customCss: ["./src/styles/xila.css"],
+      lastUpdated: true,
       social: [
         {
           icon: "github",
@@ -199,7 +200,9 @@ export default defineConfig({
         },
       ],
       components: {
+        Banner: "./src/components/Banner.astro",
         Footer: "./src/components/Footer.astro",
+        LastUpdated: "./src/components/LastUpdated.astro",
       },
     }),
   ],

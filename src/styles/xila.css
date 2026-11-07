@@ -66,7 +66,7 @@ header.header {
 
 /* Home page: keep the logo a mark, not a poster, and the feature cards mono. */
 .hero {
-  padding-top: 3rem;
+  padding-block: 3rem 2rem;
 }
 
 /* Let the hero buttons wrap instead of overflowing on narrow screens. */
@@ -75,10 +75,22 @@ header.header {
   justify-content: center;
 }
 
-.hero .hero-image img {
-  width: min(60%, 13rem);
-  height: auto;
-  margin: auto;
+/*
+ * Home hero without an image: left-aligned with the sections below it from
+ * the theme's desktop breakpoint, centered on small screens.
+ */
+.hero:not([data-has-image]) .hero-image {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .hero[data-layout="media-right"]:not([data-has-image]) {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .hero[data-layout="media-right"] .actions {
+    justify-content: flex-start;
+  }
 }
 
 .card .icon {

@@ -1,0 +1,105 @@
+---
+/*
+ * Starlight renders <Banner> just above the page title, so this override adds
+ * a breadcrumb trail and the last-updated date there, then renders the
+ * default banner. The trail follows the sidebar groups; a group links to its
+ * "Overview" entry when it has one.
+ */
+import Default from "@astrojs/starlight/components/Banner.astro";
+
+type Entry = (typeof Astro.locals.starlightRoute.sidebar)[number];
+type Crumb = { label: string; href?: string };
+
+const route = Astro.locals.starlightRoute;
+const { entry, lastUpdated } = route;
+
+const overviewHref = (entries: Entry[]) =>
+  entries.find((e) => e.type === "link" && e.label === "Overview")?.href;
+
+function findTrail(entries: Entry[], trail: Crumb[]): Crumb[] | undefined {
+  for (const item of entries) {
+    if (item.type === "link") {
+      if (!item.isCurrent) continue;
+      // A group's own overview page: the group itself is the page, so the
+      // trail stops at its parent.
+      return item.label === "Overview" ? trail.slice(0, -1) : trail;
+    }
+    const found = findTrail(item.entries, [
+      ...trail,
+      { label: item.label, href: overviewHref(item.entries) },
+    ]);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+const isHero = Boolean(entry.data.hero);
+const trail = isHero ? undefined : findTrail(route.sidebar, []);
+// Top-level pages (the docs hub, About) have no parent group: no trail.
+const crumbs: Crumb[] =
+  trail && trail.length > 0
+    ? [{ label: "Docs", href: "/docs/" }, ...trail]
+    : [];
+
+const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
+const showMeta = !isHero && (crumbs.length > 0 || lastUpdated);
+---
+
+{showMeta && (
+  <div class="page-meta not-content">
+    {crumbs.length > 0 && (
+      <nav aria-label="Breadcrumb">
+        <ol>
+          {crumbs.map(({ label, href }) => (
+            <li>{href ? <a href={href}>{label}</a> : <span>{label}</span>}</li>
+          ))}
+        </ol>
+      </nav>
+    )}
+    {lastUpdated && (
+      <p class="updated">
+        Updated{" "}
+        <time datetime={lastUpdated.toISOString()}>
+          {dateFormat.format(lastUpdated)}
+        </time>
+      </p>
+    )}
+  </div>
+)}
+<Default />
+
+<style>
+  .page-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+  }
+  ol {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li + li::before {
+    content: "/";
+    margin-inline: 0.5rem;
+    opacity: 0.5;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--foreground, var(--sl-color-white));
+  }
+  .updated {
+    margin: 0;
+  }
+</style>
