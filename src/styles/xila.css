@@ -45,73 +45,12 @@ header.header {
 }
 
 /*
- * The theme sizes the sidebar for Geist (14rem text box, fixed 30px rows).
- * Montserrat is wider: use the whole column and let rows grow if they wrap.
+ * The theme sizes the sidebar for Geist (14rem text box). Montserrat is
+ * wider: use the whole column. Item styles live in SidebarSublist.astro.
  */
 .sidebar-content {
   width: 100%;
   padding-inline-end: 1rem;
-}
-
-.sidebar-content a.entry-link {
-  height: auto;
-  min-height: 30px;
-  line-height: 1.35;
-  padding-block: 6px;
-}
-
-.sidebar-content a.entry-link > .entry-link-inner {
-  width: 100%;
-}
-
-/*
- * Sidebar: top-level groups are fixed section headings in small capitals;
- * nested groups (Architecture and its children) collapse, with a guide line
- * along their entries.
- */
-.sidebar-content .top-level > li > details > summary.entry-title {
-  pointer-events: none;
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.sidebar-content .top-level > li > details > summary.entry-title .caret {
-  display: none;
-}
-
-.sidebar-content details details.container-sidebar-entry {
-  padding: 0;
-}
-
-.sidebar-content details details > summary.entry-title {
-  height: auto;
-  min-height: 30px;
-  padding-block: 6px;
-  color: var(--foreground);
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.sidebar-content details details > summary.entry-title:hover {
-  background-color: var(--accent);
-}
-
-.sidebar-content details details > .accordion-content {
-  margin-inline-start: 0.875rem;
-  padding-inline-start: 0.375rem;
-  border-inline-start: 1px solid var(--border);
-}
-
-.sidebar-content details details > summary > span:first-child {
-  display: inline-flex;
-  align-items: center;
-}
-
-.sidebar-content a.entry-link::before {
-  align-self: center;
 }
 
 /*

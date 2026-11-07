@@ -1,10 +1,13 @@
 ---
 /*
- * Wraps the theme's sidebar to add a filter field. "/" focuses it and Escape
- * clears it. Matching links stay visible with their groups opened; a group
- * whose label matches keeps all of its entries.
+ * Sidebar with a filter field. "/" focuses it and Escape clears it. Matching
+ * links stay visible with their groups opened; a section or group whose
+ * label matches keeps all of its entries.
  */
-import ThemeSidebar from "starlight-theme-black/overrides/Sidebar.astro";
+import SidebarPersister from "@astrojs/starlight/components/SidebarPersister.astro";
+import SidebarSublist from "./SidebarSublist.astro";
+
+const { sidebar } = Astro.locals.starlightRoute;
 ---
 
 <div class="sidebar-filter">
@@ -17,7 +20,9 @@ import ThemeSidebar from "starlight-theme-black/overrides/Sidebar.astro";
   />
   <kbd aria-hidden="true">/</kbd>
 </div>
-<ThemeSidebar />
+<SidebarPersister>
+  <SidebarSublist sublist={sidebar} />
+</SidebarPersister>
 
 <script>
   const HIDDEN = "data-filter-hidden";
@@ -43,7 +48,14 @@ import ThemeSidebar from "starlight-theme-black/overrides/Sidebar.astro";
     const apply = () => {
       const query = input.value.trim().toLowerCase();
       showAll(root);
-      const groups = [...root.querySelectorAll<HTMLDetailsElement>("details")];
+      // Sections and collapsible groups, outermost first.
+      const groups = [
+        ...root.querySelectorAll<HTMLElement>("[data-sidebar-group]"),
+      ];
+      const details = groups.filter(
+        (group): group is HTMLDetailsElement =>
+          group instanceof HTMLDetailsElement,
+      );
 
       if (!query) {
         for (const [group, open] of openState) group.open = open;
@@ -51,7 +63,7 @@ import ThemeSidebar from "starlight-theme-black/overrides/Sidebar.astro";
         return;
       }
 
-      for (const group of groups) {
+      for (const group of details) {
         if (!openState.has(group)) openState.set(group, group.open);
       }
       for (const link of root.querySelectorAll("a.entry-link")) {
@@ -61,17 +73,20 @@ import ThemeSidebar from "starlight-theme-black/overrides/Sidebar.astro";
         }
       }
       for (const group of groups) {
-        const label = group.querySelector(":scope > summary")?.textContent;
+        const label = group.querySelector(
+          ":scope > [data-group-label]",
+        )?.textContent;
         if (label?.toLowerCase().includes(query)) showAll(group);
       }
-      // Innermost groups first, so parents see their children's result.
+      // Innermost groups first, so parents see their children's result. A
+      // group's own label link does not count as one of its entries.
       for (const group of groups.reverse()) {
-        const visible = [...group.querySelectorAll("a.entry-link")].some(
-          (link) => !link.closest(`[${HIDDEN}]`),
-        );
+        const visible = [
+          ...group.querySelectorAll(":scope > .group-content a, :scope > ul a"),
+        ].some((link) => !link.closest(`[${HIDDEN}]`));
         const item = group.closest("li");
         if (!visible && item) hide(item);
-        else group.open = true;
+        else if (group instanceof HTMLDetailsElement) group.open = true;
       }
     };
 
