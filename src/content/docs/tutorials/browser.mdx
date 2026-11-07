@@ -5,6 +5,7 @@ description: Run Xila's Platforms-hosted browser demo and build matching Applica
 ---
 
 import { Steps } from "@astrojs/starlight/components";
+import DemoLanguages from "@/components/DemoLanguages.astro";
 
 import CodeReference from "@/components/CodeReference.astro";
 
@@ -16,7 +17,7 @@ The demo runs the browser host (`wasm32-unknown-unknown`) with **separate WASI a
 
 <Steps>
 
-1. Open [the Platforms demonstration](https://platforms.xila.dev/).
+1. Open [the Platforms demonstration](https://platforms.xila.dev/). <DemoLanguages />
 2. Create or select a disk in the browser's Help panel if prompted.
 3. On a fresh installation, log in as **administrator** with an empty password.
 4. Open **Calculator** from the launcher and evaluate `1 + 2 = 3`. Close the window and check that the desktop remains usable.

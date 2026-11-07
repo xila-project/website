@@ -36,6 +36,6 @@ Check the guest's expected output or interface and the terminal for reported err
 
 ## Related documentation
 
-- [Build a guest application](/how-to/build-guest).
-- [Add a launcher shortcut](/how-to/add-shortcut).
-- [Wasmi execution model](/explanation/architecture/executables/wasm).
+- [Build a guest application](/how-to/build-guest)
+- [Add a launcher shortcut](/how-to/add-shortcut)
+- [Wasmi execution model](/explanation/architecture/executables/wasm)

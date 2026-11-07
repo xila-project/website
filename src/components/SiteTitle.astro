@@ -1,0 +1,48 @@
+---
+/*
+ * Wraps the theme's site title and navigation to add the "Demonstration"
+ * language menu. On desktop the menu replaces the plain "Demonstration" nav
+ * link; the theme's mobile menu keeps that link, which opens the English
+ * demo.
+ */
+import ThemeSiteTitle from "starlight-theme-black/overrides/SiteTitle.astro";
+import DemoMenu from "./DemoMenu.astro";
+import { DEMO_URL } from "../data/demo-locales";
+---
+
+<div class="site-title-with-demo" data-demo-url={DEMO_URL}>
+  <ThemeSiteTitle />
+  <DemoMenu class="header-demo-menu" />
+</div>
+
+<style>
+  .site-title-with-demo {
+    display: flex;
+    align-items: center;
+  }
+
+  /* The menu replaces the plain nav link on desktop. */
+  .site-title-with-demo
+    :global(.nav-bar a[href="https://platforms.xila.dev/"]) {
+    display: none;
+  }
+
+  .site-title-with-demo :global(.header-demo-menu) {
+    display: none;
+    /* The theme separates its title row items with --sl-nav-gap, and its
+       zero-width mobile menu button sits before this menu: cancel that gap
+       so the spacing matches the other nav links. */
+    margin-inline-start: calc(0.375rem - var(--sl-nav-gap));
+  }
+
+  @media (min-width: 1024px) {
+    .site-title-with-demo :global(.header-demo-menu) {
+      display: inline-block;
+    }
+    /* Starlight clips the title area to protect narrow screens from long
+       titles; on desktop it would also clip the menu's list. */
+    :global(.header .title-wrapper) {
+      overflow: visible;
+    }
+  }
+</style>

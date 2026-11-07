@@ -166,12 +166,15 @@ export default defineConfig({
           ],
         }),
       ],
-      customCss: ["./src/styles/xila.css"],
+      customCss: ["./src/styles/xila.css", "./src/styles/page-icons.css"],
+      lastUpdated: true,
+      // Plain code frames: shell blocks get no terminal title bar.
+      expressiveCode: { defaultProps: { frame: "code" } },
       social: [
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/Xila-Project",
+          href: "https://github.com/xila-project",
         },
         {
           icon: "matrix",
@@ -180,8 +183,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl:
-          "https://github.com/Xila-Project/Website/edit/main/src/content/docs/",
+        baseUrl: "https://github.com/xila-project/website/edit/main/",
       },
       sidebar,
       head: [
@@ -199,7 +201,16 @@ export default defineConfig({
         },
       ],
       components: {
+        Banner: "./src/components/Banner.astro",
+        EditLink: "./src/components/EditLink.astro",
+        Hero: "./src/components/Hero.astro",
         Footer: "./src/components/Footer.astro",
+        LastUpdated: "./src/components/LastUpdated.astro",
+        PageSidebar: "./src/components/PageSidebar.astro",
+        PageTitle: "./src/components/PageTitle.astro",
+        Search: "./src/components/Search.astro",
+        Sidebar: "./src/components/Sidebar.astro",
+        SiteTitle: "./src/components/SiteTitle.astro",
       },
     }),
   ],

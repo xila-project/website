@@ -6,15 +6,12 @@ editUrl: false
 lastUpdated: false
 pagefind: false
 hero:
+  layout: media-right
   announcement:
     text: Run Calculator in your browser
     link: /tutorials/browser/
   title: An open source OS for the embedded world
   tagline: Embedded, Rust and WebAssembly - a modular, portable system for devices and the people who make them.
-  image:
-    light: ../../../public/images/logo_light.svg
-    dark: ../../../public/images/logo_dark.svg
-    alt: Xila
   actions:
     - text: Try Xila
       link: https://platforms.xila.dev/
@@ -25,7 +22,7 @@ hero:
       icon: open-book
       variant: secondary
     - text: GitHub
-      link: https://github.com/Xila-Project
+      link: https://github.com/xila-project
       icon: github
       variant: minimal
     - text: Matrix
@@ -34,7 +31,48 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
+import { Card, CardGrid, TabItem, Tabs } from "@astrojs/starlight/components";
+import DemoLanguages from "@/components/DemoLanguages.astro";
+import IconLinkCard from "@/components/IconLinkCard.astro";
+
+## Get started
+
+<Tabs>
+  <TabItem label="In the browser" icon="laptop">
+    Open the [hosted demonstration](https://platforms.xila.dev/), create or select a disk if prompted, then log in as **administrator** with an empty password. It needs a browser with OPFS and Web Locks. <DemoLanguages />
+
+    [Follow the browser tutorial →](/tutorials/browser/)
+
+  </TabItem>
+  <TabItem label="With Docker" icon="seti:docker">
+    From a host terminal, pull the runtime, create a persistent volume, and open Xila's own command-line shell:
+
+    ```sh
+    docker pull ghcr.io/xila-project/xila-runtime:latest
+    docker volume create xila-state
+    docker run --rm -it --network none --read-only \
+      --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+      --mount type=volume,src=xila-state,dst=/var/lib/xila \
+      ghcr.io/xila-project/xila-runtime:latest
+    ```
+
+    [Run Xila with Docker →](/how-to/run-container-guest/)
+
+  </TabItem>
+  <TabItem label="Natively" icon="seti:rust">
+    On x86_64 Linux with a Wayland session, build the guests and the filesystem image, then start the native desktop from the `platforms` checkout:
+
+    ```sh
+    mise run run:cargo -- -p xila-native-example --bin native_example -- \
+      --gui --no-network --seed-image target/seed/native/seed.img
+    ```
+
+    [Follow the native tutorial →](/tutorials/native/)
+
+  </TabItem>
+</Tabs>
+
+## Why Xila
 
 <CardGrid>
   <Card title="Lightweight" icon="rocket">
@@ -52,4 +90,33 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
   <Card title="Modular" icon="puzzle">
     Extend functionality dynamically with isolated WebAssembly modules.
   </Card>
+</CardGrid>
+
+## Explore the documentation
+
+<CardGrid>
+  <IconLinkCard
+    title="Tutorials"
+    href="/tutorials/"
+    icon="rocket"
+    description="Run Xila for the first time."
+  />
+  <IconLinkCard
+    title="How-to guides"
+    href="/how-to/"
+    icon="setting"
+    description="Set up tooling, build a guest, or validate a change."
+  />
+  <IconLinkCard
+    title="Reference"
+    href="/reference/"
+    icon="open-book"
+    description="Look up commands, features, limits, or APIs."
+  />
+  <IconLinkCard
+    title="Explanation"
+    href="/explanation/"
+    icon="puzzle"
+    description="Understand architecture and design choices."
+  />
 </CardGrid>

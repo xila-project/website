@@ -1,0 +1,58 @@
+---
+/*
+ * Wraps the theme's hero to render its action buttons here, so the button
+ * linking to the browser demonstration can open the language menu. The
+ * actions still come from the page's `hero.actions` frontmatter.
+ *
+ * The theme's hero reads the current route, so it is given a copy of the
+ * route entry without actions; the shared content entry is not modified.
+ */
+import { LinkButton } from "starlight-theme-black/components";
+import ThemeHero from "starlight-theme-black/overrides/Hero.astro";
+import DemoMenu from "./DemoMenu.astro";
+import { DEMO_URL } from "../data/demo-locales";
+
+const route = Astro.locals.starlightRoute;
+const hero = route.entry.data.hero;
+const actions = hero?.actions ?? [];
+
+if (hero && actions.length > 0) {
+  route.entry = {
+    ...route.entry,
+    data: { ...route.entry.data, hero: { ...hero, actions: [] } },
+  };
+}
+---
+
+<ThemeHero />
+{actions.length > 0 && (
+  <div class="hero-actions">
+    {actions.map(({ attrs = {}, icon, link, text, variant }) =>
+      link === DEMO_URL ? (
+        <DemoMenu label={text} variant={variant} />
+      ) : (
+        <LinkButton href={link} {variant} icon={icon?.name} {...attrs}>
+          {text}
+          {icon?.html && <Fragment set:html={icon.html} />}
+        </LinkButton>
+      ),
+    )}
+  </div>
+)}
+
+<style>
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-block: 0.5rem 2.5rem;
+  }
+
+  /* Matches the theme's left-aligned hero from its desktop breakpoint. */
+  @media (min-width: 1024px) {
+    .hero-actions {
+      justify-content: flex-start;
+    }
+  }
+</style>

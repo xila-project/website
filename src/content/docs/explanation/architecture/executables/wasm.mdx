@@ -91,22 +91,22 @@ Graphics calls are versioned with the LVGL configuration used to generate the bi
 ### Source references
 
 - <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />
-  - options, modules and descriptor setup.
+  (options, modules and descriptor setup).
 - <CodeReference
     repo="applications"
     path="executables/wasm/src/host/execution.rs"
   />
-  - resumable calls, fuel and clock polling.
+  (resumable calls, fuel and clock polling).
 - <CodeReference
     repo="applications"
     path="executables/wasm/src/host/wasi/context.rs"
   />
-  - descriptor table and ownership.
+  (descriptor table and ownership).
 - <CodeReference
     repo="applications"
     path="executables/wasm/src/host/wasi/register.rs"
   />
-  - implemented WASI imports.
+  (implemented WASI imports).
 - <CodeReference repo="applications" path="executables/wasm/Cargo.toml" /> -
   host/guest/graphics feature gates.
 - [Graphics bindings](/explanation/architecture/executables/bindings) - checked guest UI boundary.

@@ -1,0 +1,162 @@
+---
+/*
+ * Sidebar with a filter field. "/" focuses it and Escape clears it. Matching
+ * links stay visible with their groups opened; a section or group whose
+ * label matches keeps all of its entries.
+ */
+import SidebarPersister from "@astrojs/starlight/components/SidebarPersister.astro";
+import SidebarSublist from "./SidebarSublist.astro";
+
+const { sidebar } = Astro.locals.starlightRoute;
+---
+
+<div class="sidebar-filter">
+  <input
+    type="search"
+    placeholder="Filter sidebar"
+    aria-label="Filter sidebar"
+    autocomplete="off"
+    spellcheck="false"
+  />
+  <kbd aria-hidden="true">/</kbd>
+</div>
+<SidebarPersister>
+  <SidebarSublist sublist={sidebar} />
+</SidebarPersister>
+
+<script>
+  const HIDDEN = "data-filter-hidden";
+
+  for (const input of document.querySelectorAll<HTMLInputElement>(
+    ".sidebar-filter input",
+  )) {
+    const root = input.closest(".sidebar-content");
+    if (!root) continue;
+    const openState = new Map<HTMLDetailsElement, boolean>();
+
+    const hide = (el: Element) => {
+      (el as HTMLElement).hidden = true;
+      el.setAttribute(HIDDEN, "");
+    };
+    const showAll = (scope: Element) => {
+      for (const el of scope.querySelectorAll<HTMLElement>(`[${HIDDEN}]`)) {
+        el.hidden = false;
+        el.removeAttribute(HIDDEN);
+      }
+    };
+
+    const apply = () => {
+      const query = input.value.trim().toLowerCase();
+      showAll(root);
+      // Sections and collapsible groups, outermost first.
+      const groups = [
+        ...root.querySelectorAll<HTMLElement>("[data-sidebar-group]"),
+      ];
+      const details = groups.filter(
+        (group): group is HTMLDetailsElement =>
+          group instanceof HTMLDetailsElement,
+      );
+
+      if (!query) {
+        for (const [group, open] of openState) group.open = open;
+        openState.clear();
+        return;
+      }
+
+      for (const group of details) {
+        if (!openState.has(group)) openState.set(group, group.open);
+      }
+      for (const link of root.querySelectorAll("a.entry-link")) {
+        if (!link.textContent?.toLowerCase().includes(query)) {
+          const item = link.closest("li");
+          if (item) hide(item);
+        }
+      }
+      for (const group of groups) {
+        const label = group.querySelector(
+          ":scope > [data-group-label]",
+        )?.textContent;
+        if (label?.toLowerCase().includes(query)) showAll(group);
+      }
+      // Innermost groups first, so parents see their children's result. A
+      // group's own label link does not count as one of its entries.
+      for (const group of groups.reverse()) {
+        const visible = [
+          ...group.querySelectorAll(":scope > .group-content a, :scope > ul a"),
+        ].some((link) => !link.closest(`[${HIDDEN}]`));
+        const item = group.closest("li");
+        if (!visible && item) hide(item);
+        else if (group instanceof HTMLDetailsElement) group.open = true;
+      }
+    };
+
+    input.addEventListener("input", apply);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        input.value = "";
+        apply();
+        input.blur();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("input, textarea, select, [contenteditable]")) return;
+    const input = [
+      ...document.querySelectorAll<HTMLInputElement>(".sidebar-filter input"),
+    ].find((element) => element.offsetParent !== null);
+    if (!input) return;
+    event.preventDefault();
+    input.focus();
+  });
+</script>
+
+<style>
+  .sidebar-filter {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    margin-block-end: 0.5rem;
+    padding-block: 0.25rem;
+    background-color: var(--sl-color-bg-sidebar);
+  }
+  input {
+    width: 100%;
+    height: 2.25rem;
+    padding: 0 2.25rem 0 0.75rem;
+    border: 1px solid var(--border, var(--sl-color-gray-5));
+    border-radius: calc(var(--radius, 0.5rem) - 2px);
+    background-color: transparent;
+    color: var(--foreground, var(--sl-color-white));
+    font: inherit;
+    font-size: 0.875rem;
+  }
+  input::placeholder {
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+  }
+  input:focus-visible {
+    outline: 2px solid var(--foreground, var(--sl-color-white));
+    outline-offset: -1px;
+  }
+  input::-webkit-search-cancel-button {
+    display: none;
+  }
+  kbd {
+    position: absolute;
+    inset-inline-end: 0.5rem;
+    padding: 0 0.375rem;
+    border-radius: 0.25rem;
+    background-color: var(--muted, var(--sl-color-gray-6));
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+    font-family: inherit;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    pointer-events: none;
+  }
+</style>

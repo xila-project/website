@@ -1,0 +1,15 @@
+---
+/*
+ * Renders its slot with the theme's "Copy page" actions marked
+ * data-pagefind-ignore, so their labels ("Open in ChatGPT"...) stay out of
+ * search excerpts. Starlight runs Pagefind without exclude selectors, and
+ * the actions come from the theme's PageTitle markup.
+ */
+const html = await Astro.slots.render("default");
+const marked = html.replaceAll(
+  '<div class="markdown-actions',
+  '<div data-pagefind-ignore class="markdown-actions',
+);
+---
+
+<Fragment set:html={marked} />
