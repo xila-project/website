@@ -437,6 +437,24 @@ header.header {
   }
 }
 
+/*
+ * Tab panels: the theme pulls a code block out to the panel edges, which
+ * suits a panel holding only code. When the panel also has text, keep the
+ * block in the flow with a border so it does not cover the line above.
+ */
+starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) {
+  margin: 1rem 0;
+}
+
+starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) .frame {
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 0.25rem);
+}
+
+starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) pre {
+  border-radius: calc(var(--radius) + 0.25rem);
+}
+
 /* Home page: keep the logo a mark, not a poster, and the feature cards mono. */
 .hero {
   padding-block: 3rem 2rem;
