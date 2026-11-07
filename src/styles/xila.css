@@ -244,6 +244,199 @@ header.header {
   mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M1.44%208.855v-.001l3.527-3.516c.34-.344.802-.541%201.285-.548h6.649l.947-.947c3.07-3.07%206.207-3.072%207.62-2.868a1.821%201.821%200%200%201%201.557%201.557c.204%201.413.203%204.55-2.868%207.62l-.946.946v6.649a1.845%201.845%200%200%201-.549%201.286l-3.516%203.528a1.844%201.844%200%200%201-3.11-.944l-.858-4.275-4.52-4.52-2.31-.463-1.964-.394A1.847%201.847%200%200%201%20.98%2010.693a1.843%201.843%200%200%201%20.46-1.838Zm5.379%202.017-3.873-.776L6.32%206.733h4.638l-4.14%204.14Zm8.403-5.655c2.459-2.46%204.856-2.463%205.89-2.33.134%201.035.13%203.432-2.329%205.891l-6.71%206.71-3.561-3.56%206.71-6.711Zm-1.318%2015.837-.776-3.873%204.14-4.14v4.639l-3.364%203.374Z%22%20clip-rule%3D%22evenodd%22%2F%3E%3Cpath%20d%3D%22M9.318%2018.345a.972.972%200%200%200-1.86-.561c-.482%201.435-1.687%202.204-2.934%202.619a8.22%208.22%200%200%201-1.23.302c.062-.365.157-.79.303-1.229.415-1.247%201.184-2.452%202.62-2.935a.971.971%200%201%200-.62-1.842c-.12.04-.236.084-.35.13-2.02.828-3.012%202.588-3.493%204.033a10.383%2010.383%200%200%200-.51%202.845l-.001.016v.063c0%20.536.434.972.97.972H2.24a7.21%207.21%200%200%200%20.878-.065c.527-.063%201.248-.19%202.02-.447%201.445-.48%203.205-1.472%204.033-3.494a5.828%205.828%200%200%200%20.147-.407Z%22%2F%3E%3C%2Fsvg%3E");
 }
 
+/* Table of contents: a guide line with a bar on the current section. */
+.right-sidebar-panel starlight-toc nav > ul {
+  border-inline-start: 1px solid var(--border);
+}
+
+.right-sidebar-panel starlight-toc a {
+  margin-inline-start: -1px;
+  padding-block: 0.25rem;
+  padding-inline-start: calc(0.875rem + var(--depth, 0) * 0.75rem);
+  border-inline-start: 2px solid transparent;
+}
+
+.right-sidebar-panel starlight-toc a[aria-current="true"] {
+  border-inline-start-color: var(--foreground);
+  color: var(--foreground);
+}
+
+/* Previous and next links: labelled, with a rule above them. */
+.pagination-links {
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-links :is(a.prev, a.next) {
+  display: grid;
+  max-width: 48%;
+  height: auto;
+  padding: 0.25rem 0;
+  column-gap: 0.75rem;
+  row-gap: 0.125rem;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 1rem;
+  white-space: normal;
+}
+
+.pagination-links :is(a.prev, a.next):hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.pagination-links a.prev {
+  grid-template-columns: auto 1fr;
+}
+
+.pagination-links a.next {
+  grid-template-columns: 1fr auto;
+  text-align: end;
+}
+
+.pagination-links :is(a.prev, a.next)::before {
+  grid-row: 1;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.pagination-links a.prev::before {
+  content: "Previous";
+  grid-column: 2;
+}
+
+.pagination-links a.next::before {
+  content: "Next";
+  grid-column: 1;
+}
+
+.pagination-links a.prev > svg {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.pagination-links a.next > svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/*
+ * "Related documentation" and "Next steps" lists render as cards. The whole
+ * card follows its first link; small corner squares echo the Xila mark.
+ */
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul
+  > li {
+  position: relative;
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  background:
+    linear-gradient(var(--border), var(--border)) top left / 6px 6px no-repeat,
+    linear-gradient(var(--border), var(--border)) top right / 6px 6px no-repeat,
+    linear-gradient(var(--border), var(--border)) bottom left / 6px 6px
+      no-repeat,
+    linear-gradient(var(--border), var(--border)) bottom right / 6px 6px
+      no-repeat;
+}
+
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul
+  > li:hover {
+  border-color: var(--muted-foreground);
+}
+
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul
+  > li
+  > a:first-child {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul
+  > li
+  > a:first-child::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * Code blocks: a small language badge in the top corner. It gives way to
+ * the copy button, which appears on hover; on touch screens the copy button
+ * is always shown, so the badge is hidden there.
+ */
+.expressive-code .frame {
+  position: relative;
+}
+
+.expressive-code .frame pre[data-language]::after {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.625rem;
+  right: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  font-family: var(--sl-font);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1rem;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.expressive-code
+  .frame
+  pre:is([data-language="sh"], [data-language="bash"])::after {
+  content: "shell";
+}
+
+.expressive-code
+  .frame
+  pre:is([data-language="text"], [data-language="plaintext"])::after {
+  content: none;
+}
+
+.expressive-code .frame:is(:hover, :focus-within) pre::after {
+  opacity: 0;
+}
+
+@media (hover: none) {
+  .expressive-code .frame pre::after {
+    display: none;
+  }
+}
+
 /* Home page: keep the logo a mark, not a poster, and the feature cards mono. */
 .hero {
   padding-block: 3rem 2rem;

@@ -1,9 +1,9 @@
 ---
 /*
  * Starlight renders <Banner> just above the page title, so this override adds
- * a breadcrumb trail and the last-updated date there, then renders the
- * default banner. The trail follows the sidebar groups; a group links to its
- * "Overview" entry when it has one.
+ * a breadcrumb trail there, then renders the default banner. The trail
+ * follows the sidebar groups; a group links to its "Overview" entry when it
+ * has one.
  */
 import Default from "@astrojs/starlight/components/Banner.astro";
 
@@ -11,7 +11,7 @@ type Entry = (typeof Astro.locals.starlightRoute.sidebar)[number];
 type Crumb = { label: string; href?: string };
 
 const route = Astro.locals.starlightRoute;
-const { entry, lastUpdated } = route;
+const { entry } = route;
 
 const overviewHref = (entries: Entry[]) =>
   entries.find((e) => e.type === "link" && e.label === "Overview")?.href;
@@ -40,31 +40,16 @@ const crumbs: Crumb[] =
   trail && trail.length > 0
     ? [{ label: "Docs", href: "/docs/" }, ...trail]
     : [];
-
-const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
-const showMeta = !isHero && (crumbs.length > 0 || lastUpdated);
 ---
 
-{showMeta && (
-  <div class="page-meta not-content">
-    {crumbs.length > 0 && (
-      <nav aria-label="Breadcrumb">
-        <ol>
-          {crumbs.map(({ label, href }) => (
-            <li>{href ? <a href={href}>{label}</a> : <span>{label}</span>}</li>
-          ))}
-        </ol>
-      </nav>
-    )}
-    {lastUpdated && (
-      <p class="updated">
-        Updated{" "}
-        <time datetime={lastUpdated.toISOString()}>
-          {dateFormat.format(lastUpdated)}
-        </time>
-      </p>
-    )}
-  </div>
+{crumbs.length > 0 && (
+  <nav class="page-meta not-content" aria-label="Breadcrumb">
+    <ol>
+      {crumbs.map(({ label, href }) => (
+        <li>{href ? <a href={href}>{label}</a> : <span>{label}</span>}</li>
+      ))}
+    </ol>
+  </nav>
 )}
 <Default />
 
@@ -98,8 +83,5 @@ const showMeta = !isHero && (crumbs.length > 0 || lastUpdated);
   }
   a:hover {
     color: var(--foreground, var(--sl-color-white));
-  }
-  .updated {
-    margin: 0;
   }
 </style>

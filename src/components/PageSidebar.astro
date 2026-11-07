@@ -1,0 +1,140 @@
+---
+/*
+ * Adds a feedback prompt and a "Report issue" link under the table of
+ * contents. Feedback is sent as a "Page feedback" event to the site's
+ * existing Umami analytics; nothing else is collected.
+ */
+import { Icon } from "@astrojs/starlight/components";
+import Default from "@astrojs/starlight/components/PageSidebar.astro";
+
+const { toc, entry } = Astro.locals.starlightRoute;
+const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
+const issueUrl =
+  "https://github.com/Xila-Project/Website/issues/new?" +
+  new URLSearchParams({
+    title: `Documentation: ${entry.data.title}`,
+    body: `Page: ${pageUrl}\n\n`,
+  });
+const thumb =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+---
+
+<Default />
+{toc && (
+  <div class="right-sidebar-panel sl-hidden lg:sl-block">
+    <div class="page-actions">
+      <div class="feedback" data-page={Astro.url.pathname}>
+        <p class="label">Was this helpful?</p>
+        <div class="buttons">
+          <button type="button" data-helpful="yes">
+            <Fragment set:html={thumb} />
+            Yes
+          </button>
+          <button type="button" data-helpful="no">
+            <span class="flip">
+              <Fragment set:html={thumb} />
+            </span>
+            No
+          </button>
+        </div>
+        <p class="status" role="status" hidden />
+      </div>
+      <a href={issueUrl}>
+        <Icon name="github" size="1rem" />
+        Report issue
+      </a>
+    </div>
+  </div>
+)}
+
+<script>
+  type Umami = { track: (event: string, data?: object) => void };
+
+  for (const feedback of document.querySelectorAll<HTMLElement>(
+    ".page-actions .feedback",
+  )) {
+    const buttons = feedback.querySelector<HTMLElement>(".buttons");
+    const status = feedback.querySelector<HTMLElement>(".status");
+    for (const button of feedback.querySelectorAll<HTMLButtonElement>(
+      "button[data-helpful]",
+    )) {
+      button.addEventListener("click", () => {
+        const umami = (window as Window & { umami?: Umami }).umami;
+        if (!status || !buttons) return;
+        if (umami) {
+          umami.track("Page feedback", {
+            page: feedback.dataset.page,
+            helpful: button.dataset.helpful,
+          });
+          status.textContent = "Thanks for your feedback.";
+        } else {
+          // Analytics blocked or unavailable: say so rather than pretend.
+          status.textContent =
+            "Feedback could not be sent. Report an issue instead.";
+        }
+        buttons.hidden = true;
+        status.hidden = false;
+      });
+    }
+  }
+</script>
+
+<style>
+  .page-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border, var(--sl-color-hairline));
+    font-size: 0.8125rem;
+  }
+  .label {
+    margin: 0 0 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+  }
+  .buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .buttons[hidden] {
+    display: none;
+  }
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.75rem;
+    border: 1px solid var(--border, var(--sl-color-gray-5));
+    border-radius: calc(var(--radius, 0.5rem) - 2px);
+    background: transparent;
+    color: var(--foreground, var(--sl-color-white));
+    font: inherit;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: var(--accent, var(--sl-color-gray-6));
+  }
+  .flip {
+    display: inline-flex;
+    transform: rotate(180deg);
+  }
+  .status {
+    margin: 0;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+  }
+  .page-actions > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--muted-foreground, var(--sl-color-gray-3));
+    text-decoration: none;
+  }
+  .page-actions > a:hover {
+    color: var(--foreground, var(--sl-color-white));
+  }
+</style>

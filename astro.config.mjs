@@ -168,6 +168,8 @@ export default defineConfig({
       ],
       customCss: ["./src/styles/xila.css"],
       lastUpdated: true,
+      // Plain code frames: shell blocks get no terminal title bar.
+      expressiveCode: { defaultProps: { frame: "code" } },
       social: [
         {
           icon: "github",
@@ -201,8 +203,11 @@ export default defineConfig({
       ],
       components: {
         Banner: "./src/components/Banner.astro",
+        EditLink: "./src/components/EditLink.astro",
         Footer: "./src/components/Footer.astro",
         LastUpdated: "./src/components/LastUpdated.astro",
+        PageSidebar: "./src/components/PageSidebar.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         Sidebar: "./src/components/Sidebar.astro",
       },
     }),
