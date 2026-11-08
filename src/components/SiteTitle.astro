@@ -21,6 +21,25 @@ import { DEMO_URL } from "../data/demo-locales";
     align-items: center;
   }
 
+  /* The theme otherwise removes the brand entirely below 1024px. */
+  .site-title-with-demo :global(.site-title) {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 1023px) {
+    .site-title-with-demo {
+      --sl-nav-gap: 0.75rem;
+    }
+  }
+
+  @media (max-width: 26rem) {
+    /* The trigger retains its screen-reader label beside the brand. */
+    .site-title-with-demo :global(black-menu-button .label) {
+      display: none;
+    }
+  }
+
   /* The menu replaces the plain nav link on desktop. */
   .site-title-with-demo
     :global(.nav-bar a[href="https://platforms.xila.dev/"]) {

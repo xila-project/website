@@ -15,6 +15,7 @@ import { DEMO_URL } from "../data/demo-locales";
 const route = Astro.locals.starlightRoute;
 const hero = route.entry.data.hero;
 const actions = hero?.actions ?? [];
+const isHome = Astro.url.pathname === "/";
 
 if (hero && actions.length > 0) {
   route.entry = {
@@ -24,23 +25,94 @@ if (hero && actions.length > 0) {
 }
 ---
 
-<ThemeHero />
-{actions.length > 0 && (
-  <div class="hero-actions">
-    {actions.map(({ attrs = {}, icon, link, text, variant }) =>
-      link === DEMO_URL ? (
-        <DemoMenu label={text} variant={variant} />
-      ) : (
-        <LinkButton href={link} {variant} icon={icon?.name} {...attrs}>
-          {text}
-          {icon?.html && <Fragment set:html={icon.html} />}
-        </LinkButton>
-      ),
+<div class:list={{ "homepage-hero": isHome }}>
+  <div class="hero-copy">
+    <ThemeHero />
+    {actions.length > 0 && (
+      <div class="hero-actions">
+        {actions.map(({ attrs = {}, icon, link, text, variant }) =>
+          link === DEMO_URL ? (
+            <DemoMenu label={text} variant={variant} />
+          ) : (
+            <LinkButton href={link} {variant} icon={icon?.name} {...attrs}>
+              {text}
+              {icon?.html && <Fragment set:html={icon.html} />}
+            </LinkButton>
+          ),
+        )}
+      </div>
     )}
   </div>
-)}
+  {isHome && (
+    <div class="hero-brand" aria-hidden="true">
+      <img
+        class="light:sl-hidden"
+        src="/images/logo_dark.svg"
+        alt=""
+        width="256"
+        height="256"
+        decoding="async"
+      />
+      <img
+        class="dark:sl-hidden"
+        src="/images/logo_light.svg"
+        alt=""
+        width="256"
+        height="256"
+        decoding="async"
+      />
+    </div>
+  )}
+</div>
 
 <style>
+  .homepage-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding-top: 2rem;
+  }
+
+  .hero-copy {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .homepage-hero :global(.hero) {
+    padding-top: 0;
+  }
+
+  .hero-brand {
+    display: grid;
+    place-items: center;
+    order: -1;
+    width: 4.5rem;
+    flex-shrink: 0;
+  }
+
+  .hero-brand img {
+    width: 100%;
+    height: auto;
+  }
+
+  @media (min-width: 1024px) {
+    .homepage-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 40rem) minmax(12rem, 1fr);
+      align-items: center;
+      gap: clamp(2rem, 5vw, 5rem);
+      padding-top: 3rem;
+    }
+
+    .hero-brand {
+      order: 0;
+      justify-self: center;
+      width: clamp(12rem, 20vw, 16rem);
+      margin-bottom: 2.5rem;
+    }
+  }
+
   .hero-actions {
     display: flex;
     flex-wrap: wrap;
