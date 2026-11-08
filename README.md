@@ -1,13 +1,20 @@
-# Xila documentation - Rust, embedded systems, and WebAssembly
+<h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/brand/header-dark.svg">
+  <img src=".github/brand/header-light.svg" alt="Xila Website — Documentation, tutorials and architecture guides." width="1280">
+</picture>
+</h1>
+
+[Documentation](https://www.xila.dev/docs/) ·
+[Try Xila](https://platforms.xila.dev/) ·
+[Community](https://matrix.to/#/#xila:anneraud.fr)
 
 Learn to run Xila, build a WebAssembly application, and explore the architecture
 of an open-source embedded operating system written in Rust. This repository
 publishes **[xila.dev](https://www.xila.dev/)**, the official Xila website and
 developer documentation.
 
-[Read the documentation](https://www.xila.dev/docs/) ·
-[Explore Core](https://github.com/xila-project/core) ·
-[Join the community](https://matrix.to/#/#xila:anneraud.fr)
+[Explore Core](https://github.com/xila-project/core)
 
 ## Find your starting point
 
@@ -143,3 +150,13 @@ The supported repository names come from
 `scripts/source-reference.mjs` and are shared with the
 source link generator. `npm run test:reference` covers all reference and
 checkout validation tests.
+
+<!-- xila:footer:start -->
+
+---
+
+Part of **[Xila](https://www.xila.dev/)** ·
+[Repositories](https://github.com/xila-project) ·
+[Community](https://matrix.to/#/#xila:anneraud.fr)
+
+<!-- xila:footer:end -->
