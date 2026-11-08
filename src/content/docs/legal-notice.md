@@ -20,7 +20,11 @@ The website's static files are hosted and delivered by GitHub Pages, provided by
 
 ## Personal data and cookies
 
-This website does not provide accounts or contact forms and does not use an analytics service or advertising trackers. The theme preference is stored in your browser's local storage and is not sent to Xila. GitHub may process technical request data to operate and secure the hosted site; see [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement) for information about that processing.
+This website does not provide accounts or contact forms and does not use advertising trackers. It uses [Umami](https://umami.is/) analytics, served from `s.anneraud.fr`, to measure page views and aggregate site usage. Umami does not use cookies. Its tracker processes browser and network information to create anonymous analytics; see [Umami's metric definitions](https://docs.umami.is/docs/metric-definitions) for details.
+
+The documentation's “Was this helpful?” buttons send a `Page feedback` event to Umami only when clicked. The event contains the page path and the selected yes/no response. The site does not send a name or email address with this event.
+
+The theme preference is stored in your browser's local storage and is not sent to Xila. GitHub may process technical request data to operate and secure the hosted site; see [GitHub's privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement) for information about that processing. For questions about data handled through the site, contact [alix@anneraud.fr](mailto:alix@anneraud.fr).
 
 Links to the Xila demonstration and other external sites lead to services operated by their respective providers, which have their own privacy practices.
 
