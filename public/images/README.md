@@ -4,6 +4,8 @@ The editable masters and export tooling live in [xila-project/brand](https://git
 
 Imported revision: `a9e95e72a1eca6d9b2d0f577095f4aebba721f14` (Monogram, identity version `2.0.0`).
 
+Logo design by [Martin Legand](https://www.behance.net/martinlegand).
+
 | File             | Use                                                         |
 | ---------------- | ----------------------------------------------------------- |
 | `logo_light.svg` | Black symbol for light backgrounds                          |
