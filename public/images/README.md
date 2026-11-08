@@ -2,7 +2,7 @@
 
 The editable masters and export tooling live in [xila-project/brand](https://github.com/xila-project/brand).
 
-Imported revision: `a7f0b4441c2328935d92970a585cdfe999f0537e` (Continuity, identity version `1.1.0`).
+Imported revision: `a9e95e72a1eca6d9b2d0f577095f4aebba721f14` (Monogram, identity version `2.0.0`).
 
 | File             | Use                                                         |
 | ---------------- | ----------------------------------------------------------- |
@@ -13,11 +13,13 @@ Imported revision: `a7f0b4441c2328935d92970a585cdfe999f0537e` (Continuity, ident
 
 These are local deployment copies. Preserve their public paths: external README files also reference them. Original artwork is archived with provenance in the brand repository.
 
-To update them, use a checkout of the reviewed brand revision:
+To update them, run the following from the website repository root with a checkout of the reviewed brand revision. The historical brand sync script targets the former VitePress layout; Astro publishes these files from `public/images/`:
 
 ```sh
-python /path/to/brand/scripts/sync_website.py /path/to/website
-cp /path/to/brand/assets/favicon/favicon.svg /path/to/website/src/public/images/favicon.svg
+cp /path/to/brand/integrations/website/images/logo_light.svg public/images/logo_light.svg
+cp /path/to/brand/integrations/website/images/logo_dark.svg public/images/logo_dark.svg
+cp /path/to/brand/integrations/website/images/logo_dark.png public/images/logo_dark.png
+cp /path/to/brand/assets/favicon/favicon.svg public/images/favicon.svg
 ```
 
 Record the imported commit here, format changed text files, and run `npm run check` in the website checkout. Edit the master in brand rather than changing these copies. Website builds require no access to the brand repository.
