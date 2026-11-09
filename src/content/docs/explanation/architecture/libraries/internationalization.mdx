@@ -7,11 +7,11 @@ description: Understand Xila's build-time locale selection and external embedded
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Xila uses the external `embedded-i18n` dependency for build-time localization. Core re-exports it as `xila::internationalization`; there is no separate `internationalization` crate under the new `libraries/` tree.
+Xila uses the external `embedded-i18n` 0.2.0 dependency for build-time localization. Core re-exports it as `xila::internationalization`; there is no separate `internationalization` crate under the new `libraries/` tree.
 
 ## Build-time language selection
 
-Core's `.cargo/config.toml` selects locale and fallback using `EMBEDDED_I18N_LOCALE` and `EMBEDDED_I18N_FALLBACK`. English is the fallback. Executables use `embedded_i18n::translate!` for ordinary and C-string literals and keep translations in their `locales/` directories.
+Core's `.cargo/config.toml` selects the build locale with `EMBEDDED_I18N_LOCALE`. Each translating crate configures its catalog directory, English fallback and strict checking in `[package.metadata.i18n]`. Executables use `embedded_i18n::t!` for ordinary and C-string literals and keep translations in their `locales/` directories. The removed `EMBEDDED_I18N_FALLBACK` and `EMBEDDED_I18N_STRICT` environment overrides no longer control translations.
 
 Core and Applications maintain compiled catalogs for **English (`en`), French (`fr`), Spanish (`es`), German (`de`), Brazilian Portuguese (`pt-BR`), Italian (`it`), Polish (`pl`) and Simplified Chinese (`zh-CN`)**. The seven Latin-script locales are included in the deployment demonstrations; Chinese can be built and validated but has not completed native-speaker/embedded-device review and is **not enabled in deployment bundles**. Languages require separately built, matching host, guest and seed-image artifacts; no runtime language selector is implemented.
 
@@ -39,7 +39,7 @@ All **160 non-empty catalogs across 20 localized namespaces and eight locales** 
 }
 ```
 
-This is accessed as `translate!("alarm.controls.delete")`. The shared `tools/localization/catalog.mjs` flattener rejects duplicate paths and parent/leaf collisions rather than silently overwriting keys. `tolgee.config.ts` retains `JSON_C` and sets `pull.delimiter: "."` to export nested JSON; `push.removeOtherKeys` remains **false**. A real remote Tolgee push/pull was **not** validated in #528: inspect the first synchronization carefully and avoid `tolgee pull --empty-dir` during migration.
+This is accessed as `t!("alarm.controls.delete")`. The shared `tools/localization/catalog.mjs` flattener rejects duplicate paths and parent/leaf collisions rather than silently overwriting keys. `tolgee.config.ts` retains `JSON_C` and sets `pull.delimiter: "."` to export nested JSON; `push.removeOtherKeys` remains **false**. A real remote Tolgee push/pull was **not** validated in #528: inspect the first synchronization carefully and avoid `tolgee pull --empty-dir` during migration.
 
 Test the new catalog behavior with `node --test tools/localization/catalog.test.mjs`, `mise run localization:lint` and the usual strict per-locale builds. See <CodeReference path="tools/localization/README.md" />.
 
@@ -49,13 +49,13 @@ Xila does not currently maintain a separate `internationalization` crate in `lib
 
 Use the build-time locale and fallback consistently across host binaries, WebAssembly guests, generated fonts and reference seed images. Locale strings are compiled into the binaries, so changing the preferred language **requires rebuilding compatible artifacts**; there is no persistent per-user runtime language selector.
 
-`embedded_i18n::track_locales!()` declares the translation integration for crates with catalogs, while `translate!` selects the appropriate compiled key. Pluralized strings need the CLDR categories supported by each locale: missing `few` or `many` variants are especially noticeable in Polish.
+`embedded_i18n::i18n!("locales")` declares the translation integration at the crate root, before module declarations, while `t!` selects the compiled key. Translating applications need a direct `embedded-i18n` dependency even when calling the macros through Xila's re-export. Arguments are named: `t!("errors.device_error", arg0 = error)` fills `{arg0}` in the catalog. Positional placeholders from 0.1 are migrated consistently across locales; IDs and wording remain unchanged. `t!("stopwatch.laps.recorded", count = count)` selects and formats a plural message without allocation. Pluralized strings need the CLDR categories supported by each locale: missing `few` or `many` variants are especially noticeable in Polish.
 
 ## End-to-end update workflow
 
-1. Add a stable dotted semantic ID to an executable/library `translate!` call, keeping user-facing English text in its `en.json` catalog. Do not use the English message itself as the key.
+1. Add a stable dotted semantic ID to an executable/library `t!` call, keeping user-facing English text in its `en.json` catalog. Do not use the English message itself as the key.
 2. Add translations under that crate's `locales/<locale>.json`, preserving the intended namespace and plural categories.
-3. Run `mise run localization:lint` and `node --test tolgee.extractor.test.mjs`; check `tools/localization/mappings/` for historical key mapping and use strict per-locale compilation (`EMBEDDED_I18N_LOCALE=fr EMBEDDED_I18N_STRICT=1 mise run localization:check`) for affected locales. Do not remove unused Tolgee keys automatically.
+3. Run `mise run localization:lint` and `node --test tolgee.extractor.test.mjs`; check `tools/localization/mappings/` for historical key mapping and use strict per-locale compilation (`EMBEDDED_I18N_LOCALE=fr mise run localization:check`) for affected locales. Do not remove unused Tolgee keys automatically.
 4. Build **host, guests and seeded disk content for the same locale**. Cargo regenerates and compiles the locale-dependent graphics font archive as needed; install the Core workspace's Node dependencies with `npm ci` before building graphics.
 5. Check text truncation, symbol availability and UI layout in Graphics.
 
@@ -63,7 +63,7 @@ The Graphics font inputs live in `subsystems/graphics/fonts/` and generation is 
 
 ## Limitations and references
 
-English fallback prevents missing-key failures but does not guarantee appropriate terminology or glyph coverage. Language completeness needs review on the actual display and guest programs.
+English fallback remains configured, while strict builds reject missing messages in the selected locale. These checks do not guarantee appropriate terminology or glyph coverage. Language completeness needs review on the actual display and guest programs.
 
 - <CodeReference path="core/src/lib.rs" /> - public re-export.
 - <CodeReference path=".cargo/config.toml" /> - locale defaults.
