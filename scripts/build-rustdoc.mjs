@@ -10,20 +10,106 @@ const defaultRoot = path.resolve(
   "..",
 );
 
+// Core and Applications own the Rustdoc commands (features, targets, toolchain
+// and native dependencies). This script only runs their mise tasks and stages
+// the output; it must not duplicate their Cargo flags.
+const SOURCES = Object.freeze({
+  host: {
+    repository: "core",
+    crate: "xila",
+    target: "x86_64-unknown-linux-gnu",
+    // Core's graphics build script needs Core's own npm dependencies
+    // (lv_font_conv) unless XILA_LV_FONT_CONV_DIR points to a converter.
+    prepare: (environment) =>
+      environment.XILA_LV_FONT_CONV_DIR ? [] : [["deps:npm"]],
+    // Core's docs:host documents dependencies too; the website only publishes
+    // the workspace crates, as Core's Pages workflow does.
+    task: ["docs:host", "--", "--no-deps"],
+  },
+  guest: {
+    repository: "applications",
+    crate: "wasm",
+    target: "wasm32-wasip1",
+    prepare: () => [],
+    task: ["docs:guest"],
+  },
+});
+
 function resolveCheckout(repository, websiteRoot, environment) {
   const configured = environment[sourceEnvironmentKey(repository)];
-  const candidates = [
-    configured,
-    path.join(websiteRoot, ".reference-checkouts", repository),
-    path.resolve(websiteRoot, "..", repository),
-  ].filter(Boolean);
+  const candidates = configured
+    ? [configured]
+    : [
+        path.join(websiteRoot, ".reference-checkouts", repository),
+        path.resolve(websiteRoot, "..", repository),
+      ];
 
-  for (const candidate of candidates) {
-    if (fs.existsSync(path.join(candidate, "Cargo.toml"))) {
-      return candidate;
-    }
+  return (
+    candidates.find((candidate) =>
+      fs.existsSync(path.join(candidate, "Cargo.toml")),
+    ) ?? null
+  );
+}
+
+function runTask(checkout, [task, ...args], environment) {
+  execFileSync("mise", ["run", task, ...args], {
+    cwd: checkout,
+    env: environment,
+    stdio: "inherit",
+  });
+}
+
+function stage(source, destination, crate) {
+  if (!fs.existsSync(path.join(source, crate, "index.html"))) {
+    throw new Error(
+      `Rustdoc output ${source} does not contain ${crate}/index.html`,
+    );
   }
-  return null;
+  fs.rmSync(destination, { recursive: true, force: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.cpSync(source, destination, { recursive: true });
+}
+
+function buildOne(architecture, { root, output, environment, strict }) {
+  const source = SOURCES[architecture];
+  const destination = path.join(output, architecture);
+  const prebuilt =
+    environment[`XILA_${architecture.toUpperCase()}_RUSTDOC_DIR`];
+
+  if (prebuilt) {
+    stage(prebuilt, destination, source.crate);
+    return "copied";
+  }
+
+  const checkout = resolveCheckout(source.repository, root, environment);
+  if (!checkout) {
+    if (strict) {
+      throw new Error(
+        `Missing ${source.repository} checkout for ${architecture} Rustdoc (set ${sourceEnvironmentKey(source.repository)} or XILA_${architecture.toUpperCase()}_RUSTDOC_DIR).`,
+      );
+    }
+    return "skipped";
+  }
+
+  const targetDirectory =
+    environment[`XILA_${architecture.toUpperCase()}_CARGO_TARGET_DIR`] ??
+    path.join(root, "target", `rustdoc-${architecture}`);
+  const taskEnvironment = {
+    ...environment,
+    CARGO_TARGET_DIR: targetDirectory,
+    RUSTDOCFLAGS: environment.RUSTDOCFLAGS ?? "--deny warnings",
+  };
+
+  for (const task of source.prepare(environment)) {
+    runTask(checkout, task, taskEnvironment);
+  }
+  runTask(checkout, source.task, taskEnvironment);
+  stage(
+    path.join(targetDirectory, source.target, "doc"),
+    destination,
+    source.crate,
+  );
+  return "built";
 }
 
 export function buildRustdoc({
@@ -31,126 +117,22 @@ export function buildRustdoc({
   output = path.join(root, "dist", "rustdoc"),
   environment = process.env,
 } = {}) {
-  const strict = environment.XILA_STRICT_RUSTDOC === "1";
-  const prebuiltHost = environment.XILA_HOST_RUSTDOC_DIR;
-  const prebuiltGuest = environment.XILA_GUEST_RUSTDOC_DIR;
-
-  const hostOut = path.join(output, "host");
-  const guestOut = path.join(output, "guest");
-
-  let builtHost = false;
-  let builtGuest = false;
-
-  if (
-    prebuiltHost &&
-    fs.existsSync(path.join(prebuiltHost, "xila", "index.html"))
-  ) {
-    fs.rmSync(hostOut, { recursive: true, force: true });
-    fs.mkdirSync(hostOut, { recursive: true });
-    fs.cpSync(prebuiltHost, hostOut, { recursive: true });
-    builtHost = true;
-  } else {
-    const coreCheckout = resolveCheckout("core", root, environment);
-    if (coreCheckout) {
-      const targetDir =
-        environment.XILA_HOST_CARGO_TARGET_DIR ??
-        path.join(root, "target", "rustdoc-host");
-      const env = {
-        ...environment,
-        CARGO_TARGET_DIR: targetDir,
-        RUSTDOCFLAGS: environment.RUSTDOCFLAGS ?? "--deny warnings",
-      };
-      execFileSync(
-        "cargo",
-        [
-          "doc",
-          "--manifest-path",
-          path.join(coreCheckout, "Cargo.toml"),
-          "--workspace",
-          "--features",
-          "xila/graphics,xila/abi_definitions,xila/graphics_rendering_xrgb8888,xila/audio,xila/neural_network,xila/bootsplash,xila-testing/graphics",
-          "--target",
-          "x86_64-unknown-linux-gnu",
-          "--no-deps",
-        ],
-        { cwd: coreCheckout, env, stdio: "inherit" },
-      );
-      const generatedHost = path.join(
-        targetDir,
-        "x86_64-unknown-linux-gnu",
-        "doc",
-      );
-      fs.rmSync(hostOut, { recursive: true, force: true });
-      fs.mkdirSync(hostOut, { recursive: true });
-      fs.cpSync(generatedHost, hostOut, { recursive: true });
-      builtHost = true;
-    } else if (strict) {
-      throw new Error(
-        "Missing Core checkout for host rustdoc generation (set XILA_CORE_PATH or XILA_HOST_RUSTDOC_DIR).",
-      );
-    }
-  }
-
-  if (
-    prebuiltGuest &&
-    fs.existsSync(path.join(prebuiltGuest, "wasm", "index.html"))
-  ) {
-    fs.rmSync(guestOut, { recursive: true, force: true });
-    fs.mkdirSync(guestOut, { recursive: true });
-    fs.cpSync(prebuiltGuest, guestOut, { recursive: true });
-    builtGuest = true;
-  } else {
-    const applicationsCheckout = resolveCheckout(
-      "applications",
-      root,
-      environment,
-    );
-    if (applicationsCheckout) {
-      const targetDir =
-        environment.XILA_GUEST_CARGO_TARGET_DIR ??
-        path.join(root, "target", "rustdoc-guest");
-      const env = {
-        ...environment,
-        CARGO_TARGET_DIR: targetDir,
-        RUSTDOCFLAGS: environment.RUSTDOCFLAGS ?? "--deny warnings",
-      };
-      execFileSync(
-        "cargo",
-        [
-          "doc",
-          "--manifest-path",
-          path.join(applicationsCheckout, "Cargo.toml"),
-          "--locked",
-          "--package",
-          "xila-wasm",
-          "--no-default-features",
-          "--features",
-          "default_guest",
-          "--target",
-          "wasm32-wasip1",
-          "--no-deps",
-        ],
-        { cwd: applicationsCheckout, env, stdio: "inherit" },
-      );
-      const generatedGuest = path.join(targetDir, "wasm32-wasip1", "doc");
-      fs.rmSync(guestOut, { recursive: true, force: true });
-      fs.mkdirSync(guestOut, { recursive: true });
-      fs.cpSync(generatedGuest, guestOut, { recursive: true });
-      builtGuest = true;
-    } else if (strict) {
-      throw new Error(
-        "Missing Applications checkout for guest rustdoc generation (set XILA_APPLICATIONS_PATH or XILA_GUEST_RUSTDOC_DIR).",
-      );
-    }
-  }
-
-  return { builtHost, builtGuest, hostOut, guestOut };
+  const options = {
+    root,
+    output,
+    environment,
+    strict: environment.XILA_STRICT_RUSTDOC === "1",
+  };
+  return {
+    host: buildOne("host", options),
+    guest: buildOne("guest", options),
+  };
 }
 
 function main() {
   const result = buildRustdoc();
   console.log(
-    `Rustdoc staging complete (host: ${result.builtHost ? "copied" : "skipped"}, guest: ${result.builtGuest ? "copied" : "skipped"}).`,
+    `Rustdoc staging complete (host: ${result.host}, guest: ${result.guest}).`,
   );
 }
 
