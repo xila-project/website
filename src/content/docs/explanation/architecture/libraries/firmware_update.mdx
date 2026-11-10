@@ -1,13 +1,15 @@
 ---
 title: "Firmware update"
 docType: explanation
-description: Experimental signed firmware update transactions, native NOR simulation and the privileged VFS device.
+description: Experimental firmware update transactions, the privileged VFS device and the native NOR simulator in Platforms.
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Core #532 adds the **experimental** `xila-firmware-update` library and an end-to-end native NOR-flash simulator. This is the prototype portion of [Core #526](https://github.com/xila-project/core/issues/526), **not** an ESP32-S3 OTA implementation or production secure bootloader.
+Core #532 adds the **experimental** `xila-firmware-update` library, and Platforms provides an end-to-end native NOR-flash simulator for it. This is the prototype portion of [Core #526](https://github.com/xila-project/core/issues/526), **not** an ESP32-S3 OTA implementation or production secure bootloader.
+
+Since Core #585 and Platforms #59, Core holds only the platform-independent contracts: `FirmwareBackend`, the error and capability types, and the VFS `device` adapter. The simulator and its NOR model live in Platforms, which also removed Core's dependency on the shared `verification` crate.
 
 ## Transaction model
 
@@ -19,7 +21,7 @@ The `no_std` core defines an allocator-independent `Update<B>` transaction owner
 4. Activate only the verified generation, then attempt a trial boot.
 5. Confirm the running image or recover the previous confirmed image. Aborting never activates new firmware.
 
-The native simulator models NOR erase sectors, 1→0 programming, torn writes, two image slots and redundant boot records. After Core #537, it consumes the **pinned shared verification dependency** from [package_manager](https://github.com/xila-project/package_manager/tree/main/crates/verification), reusing SHA-256 and **strict ordinary Ed25519** from [Verification](/explanation/architecture/libraries/verification) and uses a **simulator-specific signed manifest**, distinct from XPK or ESP/MCUboot formats.
+The native simulator models NOR erase sectors, 1→0 programming, torn writes, two image slots and redundant boot records. It consumes the **pinned shared verification dependency** from [package_manager](https://github.com/xila-project/package_manager/tree/main/crates/verification), reusing SHA-256 and **strict ordinary Ed25519** from [Verification](/explanation/architecture/libraries/verification) and uses a **simulator-specific signed manifest**, distinct from XPK or ESP/MCUboot formats.
 
 ## Device contract
 
@@ -31,14 +33,14 @@ Capabilities describe guarantees separately: **authenticated update**, **functio
 
 ## Native simulator and validation
 
-Core includes `xila-firmware-sim`, a process-restart test harness, persistent raw-file backing and deterministic fault injection. Tests exercise corrupted signatures, stale proofs, failed operations, torn writes and trial/confirm/revert recovery across restarts.
+Platforms' `xila-firmware-native` package (`tools/firmware_sim`) provides the `xila-firmware-sim` command, a process-restart test harness, persistent raw-file backing and deterministic fault injection. Tests exercise corrupted signatures, stale proofs, failed operations, torn writes and trial/confirm/revert recovery across restarts. From a Platforms checkout:
 
 ```sh
-cargo test --locked -p xila-firmware-update --features native
-cargo run -p xila-firmware-update --features native --bin xila-firmware-sim -- --help
+mise run firmware:test
+cargo run --bin xila-firmware-sim -- --help
 ```
 
-See Core's README for complete simulator arguments, storage layout and signed-test-image recipes. The library's focused test suite uses 22 native tests; the final integrated Core run for #532 passed 1,101 workspace tests. Those results are **not hardware qualification**.
+See the simulator README in Platforms for complete arguments, the flash layout and signed-test-image recipes. In Core, `libraries/firmware_update/tests/device.rs` tests the VFS adapter against a minimal in-test fake backend. These results are **not hardware qualification**.
 
 ## Hardware and security limits
 
@@ -49,12 +51,13 @@ No production boot protection, signing-key management, update transport or appli
 ## References
 
 - <HostReference crate="firmware_update" /> - transaction API Rustdoc.
-- <CodeReference path="libraries/firmware_update/README.md" /> - platform audit
-  and reproducible simulator procedure.
+- <CodeReference path="libraries/firmware_update/README.md" /> - platform audit.
 - <CodeReference path="libraries/firmware_update/src/lib.rs" /> - transaction
   and capability contracts.
 - <CodeReference path="libraries/firmware_update/src/device.rs" /> - VFS device
   command ABI.
-- <CodeReference path="libraries/firmware_update/src/simulator.rs" /> - native
-  reference backend.
+- Native reference backend, in Platforms:
+  <CodeReference repo="platforms" path="tools/firmware_sim/src/simulator.rs" />.
+- Simulator flash layout and reproducible procedure, in Platforms:
+  <CodeReference repo="platforms" path="tools/firmware_sim/README.md" />.
 - [Virtual file system](/explanation/architecture/subsystems/virtual_file_system) - namespace and access rules.
