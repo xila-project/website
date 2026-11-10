@@ -1,30 +1,229 @@
 ---
-title: "Guest API"
+title: Guest API Reference
+description: Complete reference for the xila-wasm guest API, application lifecycle, graphical event loop, WASI Preview 1 host imports, and VFS device control used by WebAssembly applications on Xila.
 docType: reference
-description: Source and local Rustdoc instructions for the Xila guest API now hosted in Applications.
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
+import CodeReference from "../../../components/CodeReference.astro";
+import GuestReference from "../../../components/GuestReference.astro";
+import ReferenceViewer from "../../../components/ReferenceViewer.astro";
 
-The `xila-wasm` guest API moved into **[Xila Applications](https://github.com/xila-project/applications)** with the Wasmi host runtime (Core #551, Applications #2). Core Pages now publishes **only Core Rustdoc**, so the former `documentation.xila.dev/guest/` viewer is no longer a reliable current API reference.
+Xila guest applications are sandboxed WebAssembly modules compiled for the `wasm32-wasip1` target and linked against the `xila-wasm` crate (`wasm` library name). At runtime, the host [`wasm` executable](/reference/wasm-runtime/) executes the module inside the `wasmi` interpreter and exposes two host-import namespaces:
 
-Browse the source directly:
+- `wasi_snapshot_preview1` — standard WASI Preview 1 system calls for file I/O, directory traversal, environment variables, clocks, random bytes, cooperative yielding, and Xila's custom [`fd_control`](#vfs-device-control-fd_control) character-device extension (<CodeReference repo="applications" path="executables/wasm/src/guest/wasi.rs" />).
+- `xila` — the multiplexer import `xila_graphics_call(function_id: u16, payload_ptr: usize) -> i32`, wrapped by safe Rust functions and types in <GuestReference repo="applications" crate="wasm" /> (<CodeReference repo="applications" path="executables/wasm/src/guest/graphics/mod.rs" />).
 
-- <CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />
-  (guest API).
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/guest/graphics"
-  />
-  (supported LVGL guest wrappers).
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/guest/wasi.rs"
-  />
-  (WASI-facing integration).
-- <CodeReference repo="applications" path="executables/wasm/Cargo.toml" /> -
-  host versus guest feature selection.
+## Embedded Rustdoc browser
 
-To build a **local** Rustdoc reference for the guest crate in the Applications checkout, run an appropriate Cargo documentation command using `--no-default-features --features default_guest` and the `wasm32-unknown-unknown` target when its toolchain prerequisites are installed. Consult the repository's feature matrix; generated graphical bindings are not a promise of full LVGL coverage.
+Browse the generated `wasm32-wasip1` Rustdoc for <GuestReference repo="applications" crate="wasm" /> directly below, or open the [standalone Guest Rustdoc index](/rustdoc/guest/wasm/index.html) in a full browser tab. Every `<GuestReference>` link across the documentation resolves into this embedded viewer via `?path=wasm/...`.
 
-For portable Core APIs, use the separate [Host API](/reference/host). See [Build a guest](/how-to/build-guest) and [Graphics bindings](/reference/graphics-bindings).
+<ReferenceViewer architecture="guest" />
+
+---
+
+## Crate and feature matrix
+
+Guest applications depend on `xila-wasm` (<CodeReference repo="applications" path="executables/wasm/Cargo.toml" />) with `default-features = false` so the host-only `wasmi` runtime dependencies are excluded when compiling for `wasm32-wasip1`:
+
+```toml
+[dependencies]
+wasm = { package = "xila-wasm", path = "../wasm", default-features = false, features = ["default_guest"] }
+```
+
+| Cargo feature      | Target                  | Purpose                                                                                                                                                                                                                                                                                                                                               | Source                                                                                           |
+| :----------------- | :---------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| `default_guest`    | Guest (`wasm32-wasip1`) | Convenience bundle enabling `guest`, `graphics`, and `memory_32`.                                                                                                                                                                                                                                                                                     | <CodeReference repo="applications" path="executables/wasm/Cargo.toml">Cargo.toml</CodeReference> |
+| `guest`            | Guest (`wasm32-wasip1`) | Enables the `guest` module, error types (<GuestReference repo="applications" crate="wasm" kind="type" symbol="Error" /> / <GuestReference repo="applications" crate="wasm" kind="type" symbol="Result" />), and the `wasi_snapshot_preview1::fd_control` wrapper (<GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" />). | <CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />                   |
+| `graphics`         | Guest (`wasm32-wasip1`) | Exposes the generated LVGL 9.6 guest graphics wrappers, enums, layout helpers, and widget constructors at the root of `wasm`.                                                                                                                                                                                                                         | <CodeReference repo="applications" path="executables/wasm/src/guest/graphics/mod.rs" />          |
+| `memory_32`        | Guest (`wasm32-wasip1`) | Selects 32-bit guest pointer width (`usize = u32`) in ABI payload headers (`#[repr(C)]`). Required for standard `wasm32-wasip1` modules.                                                                                                                                                                                                              | <CodeReference repo="applications" path="executables/wasm/Cargo.toml">Cargo.toml</CodeReference> |
+| `memory_64`        | Guest (`wasm64`)        | Selects 64-bit guest pointer width (`usize = u64`) for experimental 64-bit WebAssembly targets. Mutually exclusive with `memory_32`.                                                                                                                                                                                                                  | <CodeReference repo="applications" path="executables/wasm/Cargo.toml">Cargo.toml</CodeReference> |
+| `c_bindings`       | Guest (`wasm32-wasip1`) | Exports `#[unsafe(no_mangle)] pub extern "C"` symbols (`xila_window_create`, `xila_label_create`, etc.) for C/C++ guest toolchains.                                                                                                                                                                                                                   | <CodeReference repo="applications" path="executables/wasm/src/guest/graphics/c_functions.rs" />  |
+| `default` (`host`) | Host                    | Compiles the `wasmi` host interpreter, WASI Preview 1 host table, and `/bin/wasm` executable entrypoint. Do not enable in guest crates.                                                                                                                                                                                                               | <CodeReference repo="applications" path="executables/wasm/src/host/mod.rs" />                    |
+
+---
+
+## Guest application structure and lifecycle
+
+### 1. Entrypoint and CLI arguments
+
+A Xila WebAssembly guest is a standard Rust binary crate compiled with `cargo build --target wasm32-wasip1`. The Rust standard library's `wasm32-wasip1` runtime exports `_start: () -> ()`, which invokes `fn main()` and converts any returned `Result::Err` or panic into `proc_exit`.
+
+When the host launches `/bin/wasm <wasm_file> -- <args...>`, the host runtime (<CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />) strips the host flags and forwards the guest binary path plus trailing arguments through `args_sizes_get` and `args_get` (`std::env::args()`).
+
+### 2. Per-application VFS directories and environment variables
+
+Before instantiating the guest module, [`VirtualMachine::new`](/reference/wasm-runtime/#command-syntax) derives the application identifier from the `.wasm` filename stem (for example, `calculator.wasm` -> `calculator`), resolves the active user via `users::get_user_name`, and creates three application directories in the Virtual File System (<CodeReference repo="applications" path="executables/wasm/src/host/execution.rs" />):
+
+| Environment variable             | Provisioned VFS path                                 | Purpose                                             |
+| :------------------------------- | :--------------------------------------------------- | :-------------------------------------------------- |
+| `XILA_APPLICATION_CONFIGURATION` | `/users/<username>/applications/<app>/configuration` | Persistent per-user configuration files.            |
+| `XILA_APPLICATION_DATA`          | `/users/<username>/applications/<app>/data`          | Persistent per-user application data and documents. |
+| `XILA_APPLICATION_CACHE`         | `/users/<username>/applications/<app>/cache`         | Disposable per-user runtime cache.                  |
+
+Guest code reads these paths with `std::env::var("XILA_APPLICATION_DATA")` and opens files inside them using `std::fs::File`.
+
+### 3. Application bundle layout (`.xap`)
+
+When packaged for the Xila package manager or installed into the rootfs via `build_Shortcut_Package`, an application bundle contains the compiled `.wasm` binary and a `shortcut.json` manifest (<CodeReference repo="applications" path="executables/calculator/shortcut.json" />):
+
+```json
+{
+  "name": "Calculator",
+  "command": "/bin/wasm",
+  "arguments": ["{application_folder_path}/calculator.wasm"],
+  "terminal": false,
+  "icon_string": "±",
+  "icon_color": [40, 120, 210]
+}
+```
+
+---
+
+## Graphical event loop and window lifecycle
+
+Guest graphical applications follow a poll-and-sleep event loop driven by the guest thread (<CodeReference repo="applications" path="executables/calculator/src/interface.rs" />, <CodeReference repo="applications" path="executables/pixel_painter/src/interface.rs" />):
+
+1. **Create the root window** with <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_create" /> and configure its taskbar icon using <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_set_icon" /> and <GuestReference repo="applications" crate="wasm" kind="struct" symbol="Color" />.
+2. **Build the widget tree** by passing the window (or a container widget) as the `parent: u16` handle to constructors such as <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="label_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="button_create" />, or <GuestReference repo="applications" crate="wasm" kind="fn" symbol="buttonmatrix_create" />.
+3. **Poll window events** in a loop using <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_pop_event" /> (or <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_pop_pointer_event" /> when reading pointer coordinates `(x, y)` on an <GuestReference repo="applications" crate="wasm" kind="fn" symbol="indexed_canvas_create" /> surface).
+4. **Yield cooperatively when idle**: When the window's 32-slot event queue is empty, `window_pop_event` succeeds and returns `code == EventCode::All` (<GuestReference repo="applications" crate="wasm" kind="enum" symbol="EventCode" />). The guest calls `std::thread::sleep(Duration::from_millis(20))` (which invokes WASI `poll_oneoff` on the host) so the host graphics task and other virtual machines can run.
+5. **Exit on window close**: When the user closes the window, the host pushes <GuestReference repo="applications" crate="wasm" kind="constant" symbol="EVENT_CLOSE_REQUESTED" /> (`EventCode::Cancel`, raw value `24`). Breaking out of the loop and returning from `main()` drops the VM instance, and the host automatically destroys all remaining widgets and the window (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/objects.rs" />).
+
+### Minimal graphical guest example
+
+```rust
+use std::{thread::sleep, time::Duration};
+use wasm::{
+    Color, EVENT_CLOSE_REQUESTED, EventCode, FlexAlign, FlexFlow, button_create, label_create,
+    label_set_text, object_set_flex_align, object_set_flex_flow, window_create, window_pop_event,
+    window_set_icon,
+};
+
+fn main() -> Result<(), String> {
+    let window = window_create().map_err(|e| format!("Failed to create window: {e:?}"))?;
+    window_set_icon(window, "+", Color::new(40, 120, 210))
+        .map_err(|e| format!("Failed to set window icon: {e:?}"))?;
+
+    object_set_flex_flow(window, FlexFlow::Column)
+        .map_err(|e| format!("Failed to set flex flow: {e:?}"))?;
+    object_set_flex_align(
+        window,
+        FlexAlign::Center,
+        FlexAlign::Center,
+        FlexAlign::Center,
+    )
+    .map_err(|e| format!("Failed to set flex align: {e:?}"))?;
+
+    let button = button_create(window).map_err(|e| format!("Failed to create button: {e:?}"))?;
+    let label = label_create(button).map_err(|e| format!("Failed to create label: {e:?}"))?;
+    label_set_text(label, "Click me").map_err(|e| format!("Failed to set text: {e:?}"))?;
+
+    let mut clicks = 0u32;
+    loop {
+        let (code, target) =
+            window_pop_event(window).map_err(|e| format!("Failed to pop event: {e:?}"))?;
+
+        if code == EVENT_CLOSE_REQUESTED {
+            break;
+        }
+        if code == EventCode::All {
+            sleep(Duration::from_millis(20));
+            continue;
+        }
+        if code == EventCode::Clicked && target == button {
+            clicks += 1;
+            let text = format!("Clicked {clicks} times");
+            label_set_text(label, &text).map_err(|e| format!("Failed to update label: {e:?}"))?;
+        }
+    }
+
+    Ok(())
+}
+```
+
+---
+
+## Graphics API surface (`xila::xila_graphics_call`)
+
+All graphical operations in <GuestReference repo="applications" crate="wasm" /> serialize a `#[repr(C)]` request struct on the guest stack and call <GuestReference repo="applications" crate="wasm" kind="fn" symbol="xila_graphics_call" /> (`(function_id: u16, payload_ptr: usize) -> i32`). Negative return codes map to <GuestReference repo="applications" crate="wasm" kind="type" symbol="Error" /> (<GuestReference repo="applications" crate="wasm" kind="enum" symbol="LvglResult" />), while non-negative return values carry object handles (<GuestReference repo="applications" crate="wasm" kind="type" symbol="ObjectHandle" />), booleans, or scalar measurements.
+
+For the binary ABI layout, per-VM resource limits (up to **256** object handles per VM without slot reuse, 32 queued events per window), and numeric status codes, see the [Graphics Bindings ABI Reference](/reference/graphics-bindings/).
+
+### Windowing, base objects, and layout
+
+| Category                       | Key symbols in `wasm`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Description                                                                                                                                                                    |
+| :----------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Window lifecycle & events**  | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_set_icon" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_pop_event" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_pop_pointer_event" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="EventCode" />, <GuestReference repo="applications" crate="wasm" kind="constant" symbol="EVENT_CLOSE_REQUESTED" />                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Create top-level application windows, set taskbar icon strings and colors, and dequeue input or lifecycle events.                                                              |
+| **Object tree & geometry**     | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_size" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_width" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_height" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_pos" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_align" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="Align" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="percentage" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="size_content" />                                                                                                                                | Allocate and delete widget handles, query dimensions, and position or size objects in pixels, content-fit, or parent percentages (`percentage(100)`).                          |
+| **Object flags & states**      | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_add_flag" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_remove_flag" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="ObjectFlag" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_add_state" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_remove_state" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_get_state" />, <GuestReference repo="applications" crate="wasm" kind="type" symbol="State" />, <GuestReference repo="applications" crate="wasm" kind="constant" symbol="STATE_CHECKED" />, <GuestReference repo="applications" crate="wasm" kind="constant" symbol="STATE_DISABLED" />                                                                                                                                                                                            | Toggle visibility (`ObjectFlag::Hidden`), clickability (`ObjectFlag::Clickable`), scrolling (`ObjectFlag::Scrollable`), and widget states (`STATE_CHECKED`, `STATE_DISABLED`). |
+| **Flex & Grid layouts**        | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_layout" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_flex_flow" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_flex_align" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_flex_grow" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="FlexFlow" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="FlexAlign" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_grid_dsc_array" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_grid_align" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_grid_cell" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="GridAlign" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="grid_fr" /> | Arrange children using Flexbox flows or 2D Grid descriptor arrays (`object_set_grid_dsc_array`) and fractional tracks (`grid_fr`).                                             |
+| **Local styling & typography** | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_background" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_text_color" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_border" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_padding" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_radius" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_font" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_surface" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_set_theme_variant" />, <GuestReference repo="applications" crate="wasm" kind="type" symbol="Part" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="Color" />                                                                                           | Apply per-part and per-state background/border/text colors, padding, corner radius, theme variants, and built-in fonts (`object_set_font`).                                    |
+
+### Widget families
+
+| Widget family                      | Key functions & types in `wasm`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Description                                                                                                                               |
+| :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Labels & Text areas**            | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="label_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="label_set_text" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="LabelLongMode" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_get_text" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_set_text" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_set_one_line" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_set_max_length" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="keyboard_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="keyboard_set_textarea" />                                                                                                  | Static or scrolling text labels, editable single/multi-line text inputs, and on-screen virtual keyboards.                                 |
+| **Buttons & Matrices**             | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="button_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="buttonmatrix_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="buttonmatrix_set_map" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="buttonmatrix_get_selected_button" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="ButtonmatrixCtrl" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="checkbox_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="checkbox_set_text" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="switch_create" />                                                                                                                                                                                                                                                                           | Push buttons, dense keypad grids (maps terminated by `""` with `"\n"` row breaks, up to 64 entries), checkboxes, and toggle switches.     |
+| **Numeric & Range controls**       | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="slider_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="bar_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="arc_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="range_set_value" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="range_get_value" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="range_set_range" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="spinbox_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="spinner_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="led_create" />                                                                                                                                                                                                                                 | Linear sliders, progress bars, rotary arcs (shared `range_*` value/range helpers), numeric spinboxes, activity spinners, and status LEDs. |
+| **Selectors & Pickers**            | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="dropdown_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="dropdown_set_options" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="dropdown_get_selected" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="roller_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="calendar_create" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="CalendarDate" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="file_picker_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="file_picker_get_status" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="file_picker_get_path" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="FilePickerMode" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="FilePickerStatus" /> | Dropdown menus, drum rollers, calendar date pickers, and Xila's modal VFS file/directory picker dialog.                                   |
+| **Containers, Lists & Tabs**       | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="card_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="badge_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="list_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="list_add_text_button" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="list_add_text" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="tabview_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="tabview_add_tab" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="tileview_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="tileview_add_tile" />                                                                                                                                                                                                                     | Styled cards, semantic status badges, vertical lists with text headers and buttons, tabbed views, and swipeable tile views.               |
+| **Charts, Lines & Indexed Canvas** | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="chart_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="chart_add_series_slot" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="chart_set_values" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="ChartType" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="line_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="line_set_points" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="PointPrecise" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="indexed_canvas_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="indexed_canvas_set_pixels" />                                                                                                                                                                                                 | Line/bar/scatter charts, polyline vectors (up to 256 points), and palette-indexed pixel canvases (`I1`, `I2`, `I4`, `I8`).                |
+
+---
+
+## WASI Preview 1 and VFS device control (`fd_control`)
+
+### Supported WASI Preview 1 host imports
+
+The host `wasm` runtime implements a deterministic, non-blocking subset of `wasi_snapshot_preview1` (<CodeReference repo="applications" path="executables/wasm/src/host/wasi/mod.rs" />):
+
+| Domain                            | Imported functions                                                                                                                      | Behavior and guest constraints                                                                                                                                                                                                                                                                                                               |
+| :-------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Arguments & Environment**       | `args_get`, `args_sizes_get`, `environ_get`, `environ_sizes_get`                                                                        | Populates `std::env::args()` and `std::env::vars()` (including `XILA_APPLICATION_{CONFIGURATION,DATA,CACHE}` and task environment variables).                                                                                                                                                                                                |
+| **Descriptor I/O**                | `fd_read`, `fd_write`, `fd_close`, `fd_seek`, `fd_fdstat_get`, `fd_filestat_get`, `fd_readdir`, `fd_prestat_get`, `fd_prestat_dir_name` | Scatter/gather `ciovec`/`iovec` transfers over Xila VFS files, pipes, and character devices. Preopened descriptors at startup are `0` (`stdin`), `1` (`stdout`), `2` (`stderr`), and `3` (root directory `/`).                                                                                                                               |
+| **Filesystem paths**              | `path_open`, `path_create_directory`, `path_filestat_get`, `path_readlink`, `path_symlink`, `path_unlink_file`                          | Resolves paths relative to preopened directory descriptor `3` (`/`). Relative paths that attempt to escape above the preopen root via `..` are rejected with `__WASI_ERRNO_NOTCAPABLE`.                                                                                                                                                      |
+| **Clocks & Randomness**           | `clock_res_get`, `clock_time_get`, `random_get`                                                                                         | Reads monotonic/realtime clocks from `/devices/time` (or monotonic fallback) and fills random buffers from `/devices/random` in chunks up to 256 bytes (<CodeReference repo="applications" path="executables/wasm/src/host/wasi/environment.rs" />).                                                                                         |
+| **Process, Scheduling & Polling** | `proc_exit`, `sched_yield`, `poll_oneoff`                                                                                               | `proc_exit` halts execution with an exit code; `sched_yield` yields the host task; `poll_oneoff` supports up to **64** clock subscriptions (`__WASI_EVENTTYPE_CLOCK`) and rejects file-descriptor readiness subscriptions with `__WASI_ERRNO_ENOTSUP` (<CodeReference repo="applications" path="executables/wasm/src/host/wasi/poll.rs" />). |
+
+### VFS device control (`fd_control`)
+
+In addition to standard WASI calls, Xila exposes `wasi_snapshot_preview1::fd_control` and its safe guest wrapper <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> (<CodeReference repo="applications" path="executables/wasm/src/guest/wasi.rs" />) so guest applications can issue typed `Control_Command_Identifier` requests to VFS character devices such as `/devices/audio/playback`:
+
+```rust
+pub fn fd_control(
+    file_descriptor: i32,
+    command: u32,
+    input: &[u8],
+    output: &mut [u8],
+) -> Result<(), u16>
+```
+
+The host handler (<CodeReference repo="applications" path="executables/wasm/src/host/wasi/file.rs" />) enforces four safety invariants on every `fd_control` invocation:
+
+1. **Write-capability check**: Commands whose write-direction bit is set (`(command & 0x4000_0000) != 0`) require the descriptor to have been opened with write access (`OpenOptions::new().write(true)`), returning `__WASI_ERRNO_BADF` (`8`) otherwise.
+2. **Payload size bound**: Neither `input.len()` nor `output.len()` may exceed **256 bytes** (`Control_Buffer_Data::MAX_CAPACITY`); larger slices fail with `__WASI_ERRNO_INVAL` (`28`).
+3. **16-byte guest alignment**: When `input` or `output` is non-empty, its guest pointer must be 16-byte aligned (`ptr % 16 == 0`) to match `Control_Buffer_Data`'s alignment (`#[repr(C, align(16))]`). Use a `#[repr(C, align(16))]` wrapper buffer on the guest stack (<CodeReference repo="applications" path="executables/synth/src/device.rs" />).
+4. **Non-overlapping buffers**: When both `input` and `output` are non-empty, their byte ranges in guest linear memory must not overlap (`__WASI_ERRNO_INVAL`).
+
+---
+
+## Runtime constraints and local documentation build
+
+- **Cooperative fuel slicing**: The host executes guest bytecode in slices of `--instruction-limit` (default `100_000` `wasmi` fuel units) before yielding to the async executor (<CodeReference repo="applications" path="executables/wasm/src/host/execution.rs" />). Avoid busy-wait spin loops; always sleep via `std::thread::sleep` when waiting for UI events or audio buffers.
+- **Monotonic object handles**: Each VM instance can allocate up to **256** graphics handles (`MAX_OBJECTS = 256`). Calling <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" /> frees the underlying LVGL widget and clears the table entry, but handle indices are not recycled within the same VM run (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/objects.rs" />). Reuse persistent widgets (by updating text or toggling `ObjectFlag::Hidden`) rather than repeatedly creating and deleting transient widgets in a loop.
+- **Generating Guest Rustdoc locally**:
+
+```bash
+# From the applications repository:
+RUSTDOCFLAGS="--deny warnings" mise run docs:guest
+```
+
+The exact package, features and target are defined by `docs:guest` in Applications' <CodeReference repo="applications" path="mise.toml" />. The website's `npm run docs:rustdoc` runs this same task.
+
+## Related pages
+
+- [WebAssembly Host & Guest Runtime (`xila-wasm`)](/reference/wasm-runtime/) — CLI synopsis, `wasmi` host architecture, and WASI / graphics dispatch internals.
+- [Graphics Bindings ABI Reference](/reference/graphics-bindings/) — Binary ABI layout, status codes, per-VM resource caps, and code generator details.
+- [Host API Reference](/reference/host/) — Rust API documentation for Xila's host subsystems and libraries.
+- [Build a WebAssembly Guest Application](/how-to/build-guest/) — Step-by-step guide to creating and building a graphical guest application.

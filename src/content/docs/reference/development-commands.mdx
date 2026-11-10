@@ -40,9 +40,11 @@ mise run check:guest
 mise run build:applications
 mise run test:workspace
 mise run localization:lint
+mise run docs:guest
+mise run docs:host
 ```
 
-`build:applications` builds the six official `wasm32-wasip1` applications with the `release-wasm` profile under `target/wasm32-wasip1/release-wasm`. The `xila-wasm` package (host Wasmi runtime and guest bindings) and native shells/settings also live here. Check <CodeReference repo="applications" path="mise.toml" /> and <CodeReference repo="applications" path=".github/workflows/ci.yml" /> for additional ABI, release-package, translation and application tests.
+`build:applications` builds the six official `wasm32-wasip1` applications with the `release-wasm` profile under `target/wasm32-wasip1/release-wasm`. `docs:guest` generates the `wasm32-wasip1` Rustdoc for `xila-wasm` (`wasm`). The `xila-wasm` package (host Wasmi runtime and guest bindings) and native shells/settings also live here. Check <CodeReference repo="applications" path="mise.toml" /> and <CodeReference repo="applications" path=".github/workflows/ci.yml" /> for additional ABI, release-package, translation and application tests.
 
 The reusable workflow can generate **unsigned development** `.xpk` release assets using pinned [package_manager](/explanation/package-management) tools; publishing still requires appropriate tags/permissions, and does not constitute a production trust policy.
 
@@ -88,10 +90,11 @@ Run in [`Xila-Project/website`](https://github.com/xila-project/website):
 ```sh
 npm ci
 npm run check
+npm run docs:rustdoc
 npm run docs:dev
 ```
 
-`npm run check` runs tests, Prettier, Astro, Starlight and internal-link validation. Source hyperlinks use the `CodeReference` component with a `repo` attribute (for example `applications` or `platforms`) for relocated files; without `repo`, they default to Core. See [Documentation contribution](/how-to/write-documentation) and [Repository architecture](/explanation/architecture/).
+`npm run check` runs tests, Prettier, Astro, Starlight and internal-link validation. `npm run docs:rustdoc` runs Core's `deps:npm` and `docs:host -- --no-deps` tasks and Applications' `docs:guest` task in the checkouts named by `XILA_CORE_PATH` and `XILA_APPLICATIONS_PATH` (or found under `.reference-checkouts/` or next to the website), then stages the output into `dist/rustdoc/host` and `dist/rustdoc/guest`. Run it after `npm run check`, because the Astro build replaces `dist/`. Core's native packages must already be installed (`MISE_ENV=ci mise run ci:packages-host` in Core on Debian-based CI runners). Without the checkouts, the command skips the Rustdoc and the embedded viewers stay empty. Source hyperlinks use the `CodeReference` component with a `repo` attribute (for example `applications` or `platforms`) for relocated files; without `repo`, they default to Core. See [Documentation contribution](/how-to/write-documentation) and [Repository architecture](/explanation/architecture/).
 
 ## Related documentation
 

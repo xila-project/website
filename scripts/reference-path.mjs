@@ -34,7 +34,20 @@ export function getReferenceViewerHref(architecture, targetPath) {
   return `/reference/${architecture}/?path=${encodeURIComponent(targetPath)}`;
 }
 
-export function getReferenceIframeSrc(architecture, targetPath) {
+export function getReferenceDefaultIframeSrc(
+  architecture,
+  basePrefix = "/rustdoc",
+) {
   assertArchitecture(architecture);
-  return `https://documentation.xila.dev/${architecture}/${targetPath}`;
+  const crateName = architecture === "guest" ? "wasm" : "xila";
+  return `${basePrefix.replace(/\/$/, "")}/${architecture}/${crateName}/index.html`;
+}
+
+export function getReferenceIframeSrc(
+  architecture,
+  targetPath,
+  basePrefix = "/rustdoc",
+) {
+  assertArchitecture(architecture);
+  return `${basePrefix.replace(/\/$/, "")}/${architecture}/${targetPath}`;
 }

@@ -78,7 +78,7 @@ A reference can target a crate, a top-level Rustdoc symbol, or an associated-ite
 
 `CodeReference` defaults to Core. Set `repo="applications"` for Wasmi and official executable sources, or `repo="platforms"` for platform drivers, examples and deployment files. For an exact moved file, use its full path relative to that repository's root.
 
-`HostReference` and `GuestReference` also accept `repo`. Core host references still use the deployed Rustdoc viewer. Because external Applications/Platforms Rustdoc is not deployed at the former Core Pages URLs, those references link to the crate's GitHub source directory rather than a symbol-specific page.
+`HostReference` and `GuestReference` also accept `repo`. Core host references (`repo="core"`) and Applications `wasm` guest references (`<GuestReference repo="applications" crate="wasm" ... />`) open inside the embedded Rustdoc viewers at `/reference/host/` and `/reference/guest/`. Host executables in `applications` and platform driver crates in `platforms` link to the crate's GitHub source directory.
 
 CI checks paths against current Core, Applications and Platforms checkouts. Locally, provide `XILA_CORE_PATH`, `XILA_APPLICATIONS_PATH` and `XILA_PLATFORMS_PATH` to enable all source checks.
 

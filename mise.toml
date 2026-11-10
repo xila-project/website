@@ -6,6 +6,22 @@ node = "24.22.0"
 description = "Validate references, formatting and build the Astro and Starlight documentation"
 run = "npm run check"
 
+# Core and Applications own the Rustdoc toolchains, features and native
+# packages; these tasks only delegate to their mise tasks.
+[tasks."documentation:rustdoc"]
+description = "Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it into dist/rustdoc"
+run = "npm run docs:rustdoc"
+
+[tasks."ci:rustdoc-toolchain"]
+description = "Prepare Core's pinned Rust toolchain and report its cache key"
+dir = "{{ env.XILA_CORE_PATH | default(value='.reference-checkouts/core') }}"
+run = "mise run ci:toolchain"
+
+[tasks."ci:rustdoc-packages"]
+description = "Install Core's native host packages needed to document its graphics stack"
+dir = "{{ env.XILA_CORE_PATH | default(value='.reference-checkouts/core') }}"
+run = "mise run ci:packages-host"
+
 [tasks."documentation:development"]
 description = "Start the Astro local development server"
 run = "npm run docs:dev"

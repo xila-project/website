@@ -21,18 +21,54 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      MISE_ENV: ci
+      CARGO_TERM_COLOR: always
+      XILA_CORE_PATH: ${{ github.workspace }}/.reference-checkouts/core
+      XILA_APPLICATIONS_PATH: ${{ github.workspace }}/.reference-checkouts/applications
     steps:
       - name: "Setup | Checkout documentation"
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: "Setup | Node and locked dependencies"
         uses: xila-project/workspace/.github/actions/setup-node@0adf14f42ce3bb004b2fe6e7e66be813abda9666
+      - name: "Setup | Checkout core references"
+        uses: actions/checkout@v5
+        with:
+          repository: xila-project/core
+          ref: main
+          path: .reference-checkouts/core
+          fetch-depth: 1
+          persist-credentials: false
+      - name: "Setup | Checkout applications references"
+        uses: actions/checkout@v5
+        with:
+          repository: xila-project/applications
+          ref: main
+          path: .reference-checkouts/applications
+          fetch-depth: 1
+          persist-credentials: false
+      - name: "Setup | Rust toolchain and build cache"
+        uses: xila-project/workspace/.github/actions/setup-rust@0adf14f42ce3bb004b2fe6e7e66be813abda9666
+        with:
+          toolchain-task: ci:rustdoc-toolchain
+          cache-mode: objects
+          cache-generation: v1-website-rustdoc
+          working-directory: .reference-checkouts/core
+      - name: "Setup | Core native packages"
+        run: mise run ci:rustdoc-packages
       - name: "Publish | Configure Pages"
         uses: actions/configure-pages@v6
 
       - name: "Build | Validate documentation"
         run: mise exec -- npm run check
+      - name: "Build | Generate Host and Guest Rustdoc"
+        env:
+          XILA_STRICT_RUSTDOC: "1"
+        run: mise run documentation:rustdoc
       - name: "Publish | Upload Pages artifact"
         uses: actions/upload-pages-artifact@v5
         with:
@@ -44,6 +80,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     name: Deploy
     steps:
       - name: "Publish | Deploy Pages"

@@ -12,13 +12,15 @@ const {
   symbol,
   member,
 } = Astro.props;
-const href =
-  repo === "core"
-    ? getReferenceViewerHref(
-        architecture,
-        getReferenceTargetPath(crate, kind, symbol, member),
-      )
-    : getExternalCrateHref(repo, crate);
+const usesViewer =
+  repo === "core" ||
+  (architecture === "guest" && repo === "applications" && crate === "wasm");
+const href = usesViewer
+  ? getReferenceViewerHref(
+      architecture,
+      getReferenceTargetPath(crate, kind, symbol, member),
+    )
+  : getExternalCrateHref(repo, crate);
 const isCrate = !kind || !symbol;
 const label = isCrate
   ? crate

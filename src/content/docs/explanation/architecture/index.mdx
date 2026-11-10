@@ -41,7 +41,7 @@ The global allocator, logger and C/LVGL callbacks can still require process-glob
 
 ## Docs and demonstrations
 
-Core's <CodeReference path=".github/workflows/pages.yml" /> publishes **host Rustdoc only**. The [Host API](/reference/host) embeds those docs. The [Guest API](/reference/guest) points to Applications source because that Rustdoc is not currently published under the old Core Pages `/guest/` location.
+The website's [`.github/workflows/deploy.yml`](https://github.com/xila-project/website/blob/main/.github/workflows/deploy.yml) builds and embeds both Core's [Host API Rustdoc](/reference/host) (`/rustdoc/host/`) and Applications' `wasm32-wasip1` [Guest API Rustdoc](/reference/guest) (`/rustdoc/guest/`). Core's <CodeReference path=".github/workflows/pages.yml" /> also publishes standalone host Rustdoc at `documentation.xila.dev`.
 
 Platforms' <CodeReference repo="platforms" path=".github/workflows/demo.yml" /> publishes [the browser demo](https://platforms.xila.dev/) including localized routes under `/demonstrations/wasm/<locale>/`. For runtime details see [development environments](/explanation/development-environments).
 
