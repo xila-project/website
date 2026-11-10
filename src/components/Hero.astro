@@ -55,22 +55,21 @@ if (hero && actions.length > 0) {
         </span>
         <span class="orbit-crosshair" />
       </div>
-      <img
-        class="light:sl-hidden"
-        src="/images/logo_dark.svg"
-        alt=""
+      <svg
+        class="hero-logo"
+        viewBox="0 0 64 64"
         width="256"
         height="256"
-        decoding="async"
-      />
-      <img
-        class="dark:sl-hidden"
-        src="/images/logo_light.svg"
-        alt=""
-        width="256"
-        height="256"
-        decoding="async"
-      />
+        focusable="false"
+      >
+        <g fill="currentColor" transform="scale(0.1036504388948272)">
+          <rect class="logo-center" height="118.02" rx="4.4" ry="4.4" width="118.02" x="249.72" y="249.72"/>
+          <path class="logo-arm logo-arm-bottom-right" d="M374.18,403.63h-36.85v66.01c0,6.66,2.65,13.05,7.36,17.76l122.69,122.69c4.71,4.71,11.1,7.36,17.76,7.36h107.18c13.87,0,25.12-11.25,25.12-25.12v-107.21c0-6.66-2.65-13.05-7.36-17.76l-122.67-122.67c-4.71-4.71-11.1-7.36-17.76-7.36h-66.01v36.85c0,16.2-13.25,29.45-29.45,29.45Z" />
+          <path class="logo-arm logo-arm-top-right" d="M403.63,243.27v36.85h66.01c6.66,0,13.05-2.65,17.76-7.36l122.69-122.69c4.71-4.71,7.36-11.1,7.36-17.76V25.14c0-13.87-11.25-25.12-25.12-25.12h-107.21c-6.66,0-13.05,2.65-17.76,7.36l-122.67,122.67c-4.71,4.71-7.36,11.1-7.36,17.76v66.01h36.85c16.2,0,29.45,13.25,29.45,29.45Z" />
+          <path class="logo-arm logo-arm-top-left" d="M243.27,213.82h36.85v-66.01c0-6.66-2.65-13.05-7.36-17.76L150.08,7.36c-4.71-4.71-11.1-7.36-17.76-7.36H25.14C11.26,0,.02,11.25.02,25.12v107.21c0,6.66,2.65,13.05,7.36,17.76l122.67,122.67c4.71,4.71,11.1,7.36,17.76,7.36h66.01v-36.85c0-16.2,13.25-29.45,29.45-29.45Z" />
+          <path class="logo-arm logo-arm-bottom-left" d="M213.82,374.18v-36.85h-66.01c-6.66,0-13.05,2.65-17.76,7.36L7.36,467.38c-4.71,4.71-7.36,11.1-7.36,17.76v107.18c0,13.87,11.25,25.12,25.12,25.12h107.21c6.66,0,13.05-2.65,17.76-7.36l122.67-122.67c4.71-4.71,7.36-11.1,7.36-17.76v-66.01h-36.85c-16.2,0-29.45-13.25-29.45-29.45Z" />
+        </g>
+      </svg>
     </div>
   )}
   {isHome && (
@@ -134,10 +133,98 @@ if (hero && actions.length > 0) {
     flex-shrink: 0;
   }
 
-  .hero-brand img {
+  .hero-logo {
     position: relative;
+    display: block;
     width: 100%;
     height: auto;
+    color: var(--foreground);
+    overflow: visible;
+  }
+
+  /*
+   * Same motion as the device boot splash: the centre appears, then each arm
+   * slides in along its diagonal, clockwise from the top left. It plays once;
+   * hovering ripples the arms outward in turn, as the splash does while
+   * loading. Rest state is the plain logo, so every animation only needs
+   * its starting frames.
+   */
+  .logo-center,
+  .logo-arm {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .logo-center {
+    animation: logo-center-in 300ms ease-out backwards;
+  }
+
+  .logo-arm {
+    --out-x: 1;
+    --out-y: 1;
+    animation: logo-arm-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+
+  .logo-arm-top-left {
+    --out-x: -1;
+    --out-y: -1;
+    animation-delay: 150ms;
+  }
+
+  .logo-arm-top-right {
+    --out-y: -1;
+    animation-delay: 270ms;
+  }
+
+  .logo-arm-bottom-right {
+    animation-delay: 390ms;
+  }
+
+  .logo-arm-bottom-left {
+    --out-x: -1;
+    animation-delay: 510ms;
+  }
+
+  .hero-brand:hover .logo-arm {
+    animation: logo-arm-ripple 800ms ease-in-out;
+  }
+
+  .hero-brand:hover .logo-arm-top-left {
+    animation-delay: 0ms;
+  }
+
+  .hero-brand:hover .logo-arm-top-right {
+    animation-delay: 200ms;
+  }
+
+  .hero-brand:hover .logo-arm-bottom-right {
+    animation-delay: 400ms;
+  }
+
+  .hero-brand:hover .logo-arm-bottom-left {
+    animation-delay: 600ms;
+  }
+
+  @keyframes logo-center-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+  }
+
+  @keyframes logo-arm-in {
+    from {
+      opacity: 0;
+      /* User units of the brand path (about a fifth of an arm). */
+      transform: translate(calc(var(--out-x) * 70px), calc(var(--out-y) * 70px));
+    }
+  }
+
+  @keyframes logo-arm-ripple {
+    50% {
+      opacity: 0.7;
+      transform: translate(calc(var(--out-x) * 22px), calc(var(--out-y) * 22px));
+    }
   }
 
   .hero-orbits {
@@ -216,7 +303,10 @@ if (hero && actions.length > 0) {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .orbit {
+    .orbit,
+    .logo-center,
+    .logo-arm,
+    .hero-brand:hover .logo-arm {
       animation: none;
     }
   }
