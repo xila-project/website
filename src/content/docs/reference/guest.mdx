@@ -217,10 +217,9 @@ The host handler (<CodeReference repo="applications" path="executables/wasm/src/
 ```bash
 # From the applications repository:
 RUSTDOCFLAGS="--deny warnings" mise run docs:guest
-
-# Or directly with cargo:
-cargo doc --package xila-wasm --no-default-features --features default_guest --target wasm32-wasip1 --no-deps
 ```
+
+The exact package, features and target are defined by `docs:guest` in Applications' <CodeReference repo="applications" path="mise.toml" />. The website's `npm run docs:rustdoc` runs this same task.
 
 ## Related pages
 

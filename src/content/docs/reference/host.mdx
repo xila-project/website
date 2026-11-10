@@ -105,7 +105,7 @@ mise run deps:npm
 RUSTDOCFLAGS="--deny warnings" mise run docs:host -- --no-deps
 ```
 
-This runs `cargo doc` across the full Core workspace for `x86_64-unknown-linux-gnu` with `xila/graphics`, `xila/abi_definitions`, `xila/graphics_rendering_xrgb8888`, `xila/audio`, `xila/neural_network`, `xila/bootsplash`, and `xila-testing/graphics` enabled, outputting HTML to `target/x86_64-unknown-linux-gnu/doc/xila/index.html`.
+`docs:host` runs `cargo doc` across the full Core workspace for `x86_64-unknown-linux-gnu`; its exact feature list is defined in Core's <CodeReference path="mise.toml" />. The HTML entry point is `target/x86_64-unknown-linux-gnu/doc/xila/index.html`. The website's `npm run docs:rustdoc` runs these same Core tasks.
 
 ## Related documentation
 
