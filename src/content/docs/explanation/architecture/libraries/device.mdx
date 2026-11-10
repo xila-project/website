@@ -7,7 +7,7 @@ description: "The device crate defines typed device-control commands and a backe
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `device` crate contains shared contracts between Xila consumers and device implementations.
+The `device` crate (package `xila-device`, in Core's top-level `devices/` directory since Core #586) contains shared contracts between Xila consumers and device implementations.
 
 ## Device-control commands
 
@@ -47,16 +47,16 @@ No production inference kernels, accelerator discovery, background inference or 
 
 ### Source and API references
 
-- <CodeReference path="libraries/device/src/hash.rs" /> - hash command
-  identifiers and algorithm discriminants.
-- <CodeReference path="libraries/device/src/neural_network.rs" /> - model,
-  workspace, tensor and lifecycle contracts.
+- <CodeReference path="devices/src/hash.rs" /> - hash command identifiers and
+  algorithm discriminants.
+- <CodeReference path="devices/src/neural_network.rs" /> - model, workspace,
+  tensor and lifecycle contracts.
 - <HostReference crate="device" kind="trait" symbol="NeuralNetworkDevice" /> -
   backend adapter trait.
 
 ## References
 
 - <HostReference crate="device" />
-- <CodeReference path="libraries/device/src/hash.rs" />
-- <CodeReference path="libraries/device/src/neural_network.rs" />
+- <CodeReference path="devices/src/hash.rs" />
+- <CodeReference path="devices/src/neural_network.rs" />
 - [Drivers](/explanation/architecture/drivers)
