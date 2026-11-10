@@ -30,7 +30,7 @@ The `xila-wasm` crate lives in Applications and owns **both** Wasmi host integra
 
 The Linux/amd64 headless OCI runtime is assembled/published by Platforms, separate from the mise development environment. Its host filesystem mounts and permissions remain part of the runtime policy; Docker's isolation is not proof of MCU security.
 
-Core publishes **only its host Rust API** at [documentation.xila.dev](https://documentation.xila.dev/); the browser demo and localized builds now live at [platforms.xila.dev](https://platforms.xila.dev/). Applications' guest Rustdoc is not currently published under Core's old `/guest/` path; use the [guest source reference](/reference/guest) until it has a dedicated publishing pipeline.
+The website publishes both the [Host API Rustdoc](/reference/host/) (for Core workspace crates) and the [Guest API Rustdoc](/reference/guest/) (for Applications' `wasm32-wasip1` `xila-wasm` guest bindings), while Core's standalone Pages workflow (<CodeReference path=".github/workflows/pages.yml" />) publishes host Rustdoc at [documentation.xila.dev](https://documentation.xila.dev/) and the browser demo and localized builds live at [platforms.xila.dev](https://platforms.xila.dev/).
 
 ## Validation limits
 

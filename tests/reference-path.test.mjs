@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getReferenceDefaultIframeSrc,
   getReferenceIframeSrc,
   getReferenceTargetPath,
   getReferenceViewerHref,
@@ -43,7 +44,15 @@ test("keeps the Rustdoc fragment inside the encoded viewer path", () => {
 test("restores the Rustdoc fragment when building the iframe URL", () => {
   assert.equal(
     getReferenceIframeSrc("guest", "wasm/struct.Example.html#method.run"),
-    "https://documentation.xila.dev/guest/wasm/struct.Example.html#method.run",
+    "/rustdoc/guest/wasm/struct.Example.html#method.run",
+  );
+  assert.equal(
+    getReferenceDefaultIframeSrc("host"),
+    "/rustdoc/host/xila/index.html",
+  );
+  assert.equal(
+    getReferenceDefaultIframeSrc("guest"),
+    "/rustdoc/guest/wasm/index.html",
   );
 });
 

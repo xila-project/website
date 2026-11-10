@@ -6,6 +6,11 @@ node = "24.22.0"
 description = "Validate references, formatting and build the Astro and Starlight documentation"
 run = "npm run check"
 
+[tasks."documentation:rustdoc"]
+description = "Generate or stage host and WebAssembly guest Rustdoc into dist/rustdoc"
+tools.rust = { version = "1.99.0", profile = "minimal", targets = ["wasm32-wasip1"] }
+run = "npm run docs:rustdoc"
+
 [tasks."documentation:development"]
 description = "Start the Astro local development server"
 run = "npm run docs:dev"

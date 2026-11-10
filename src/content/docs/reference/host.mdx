@@ -1,12 +1,116 @@
 ---
 docType: reference
 title: Host API
-template: splash
-tableOfContents: false
-showMarkdownActions: false
-description: Generated Rust reference for Xila host runtime services.
+description: Generated Rust API documentation and crate inventory for Xila's host subsystems, libraries, and drivers.
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
+import DocsRsReference from "@/components/DocsRsReference.astro";
+import HostReference from "@/components/HostReference.astro";
 import ReferenceViewer from "@/components/ReferenceViewer.astro";
 
+The Xila host API comprises the portable Rust crates in **[Xila Core](https://github.com/xila-project/core)** (`Xila-Project/core`), re-exported through the <HostReference crate="xila" /> façade crate (<CodeReference path="core/src/lib.rs" />), together with the host-side WebAssembly runtime and native executables in **[Xila Applications](https://github.com/xila-project/applications)**. Platform-specific hardware and OS drivers live in **[Xila Platforms](https://github.com/xila-project/platforms)**.
+
+Use the interactive Rustdoc viewer below to browse crate, module, trait, struct, and function signatures across the Core workspace, or jump directly to a specific crate in the [workspace inventory](#core-workspace-crate-inventory).
+
+## Generated Rustdoc viewer
+
 <ReferenceViewer architecture="host" />
+
+## Façade crate (`xila`) and Cargo features
+
+The `xila` package in <CodeReference path="core/Cargo.toml" /> is a `#![no_std]` façade that re-exports the Core subsystems and libraries under unified module names.
+
+| Cargo feature                 | Enabled re-exports / behavior                                                                                                                                                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(default)_                   | Always-available subsystems (`task`, `virtual_file_system`, `network`, `users`, `time`, `log`, `memory`) and foundational libraries (`file_system`, `little_fs`, `executable`, `authentication`, `abi_declarations`, `shared`, `synchronization`, `internationalization` via `embedded_i18n`). |
+| `graphics`                    | Re-exports <HostReference crate="graphics" /> (LVGL 9.6 windowing, display, input, theme, and font management).                                                                                                                                                                                |
+| `graphics_rendering_argb8888` | Configures `graphics` for 32-bit `ARGB8888` software rendering.                                                                                                                                                                                                                                |
+| `graphics_rendering_xrgb8888` | Configures `graphics` for 32-bit `XRGB8888` software rendering (used by native Linux, headless, and browser targets).                                                                                                                                                                          |
+| `graphics_rendering_rgb565`   | Configures `graphics` for 16-bit `RGB565` rendering.                                                                                                                                                                                                                                           |
+| `graphics_rendering_rgb888`   | Configures `graphics` for 24-bit `RGB888` rendering.                                                                                                                                                                                                                                           |
+| `audio`                       | Re-exports <HostReference crate="audio" /> (bounded PCM stream contracts and software mixer).                                                                                                                                                                                                  |
+| `neural_network`              | Re-exports <HostReference crate="neural_network" /> and <HostReference crate="drivers_neural_network" /> (synchronous inference backend trait and VFS character-device adapter).                                                                                                               |
+| `bootsplash`                  | Re-exports <HostReference crate="bootsplash" /> (Monogram startup splash screen animation). Requires `graphics`.                                                                                                                                                                               |
+| `abi_definitions`             | Re-exports <HostReference crate="abi_definitions" /> (exported `#[unsafe(no_mangle)] extern "C"` allocator, string, time, VFS, and user symbols linked by C libraries such as LittleFS and LVGL).                                                                                              |
+
+## Core workspace crate inventory
+
+### Runtime subsystems (`subsystems/*`)
+
+Each subsystem owns runtime state and coordinates access through an explicit `Manager` constructed during platform composition.
+
+| Crate                                         | Package                    | Primary entrypoints                                                                                                                                                                                                                                     | Responsibility                                                                                                  |
+| --------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| <HostReference crate="task" />                | `xila-task`                | <HostReference crate="task" kind="struct" symbol="Manager" />, <HostReference crate="task" kind="struct" symbol="TaskIdentifier" />, <HostReference crate="task" kind="fn" symbol="yield_now" />                                                        | Cooperative Embassy task registry, spawner load balancing, parent-child inheritance, and per-task environment.  |
+| <HostReference crate="virtual_file_system" /> | `xila-virtual-file-system` | <HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" />, <HostReference crate="virtual_file_system" kind="struct" symbol="File" />, <HostReference crate="virtual_file_system" kind="struct" symbol="SynchronousFile" /> | Mounted path namespace, UNIX owner/group/mode permission enforcement, character/block devices, and pipes.       |
+| <HostReference crate="graphics" />            | `xila-graphics`            | <HostReference crate="graphics" kind="struct" symbol="Manager" />, <HostReference crate="graphics" kind="struct" symbol="Window" />, <HostReference crate="graphics" kind="macro" symbol="lock" />                                                      | LVGL 9.6 display/pointer/keyboard loop, window lifecycle, Shadcn theme palette, and compile-time ROM fonts.     |
+| <HostReference crate="network" />             | `xila-network`             | <HostReference crate="network" kind="struct" symbol="Manager" />, <HostReference crate="network" kind="struct" symbol="TcpSocket" />, <HostReference crate="network" kind="struct" symbol="UdpSocket" />                                                | `smoltcp` interface stacks, background packet runners, DNS resolution, and TCP/UDP/ICMP socket handles.         |
+| <HostReference crate="users" />               | `xila-users`               | <HostReference crate="users" kind="struct" symbol="Manager" />, <HostReference crate="users" kind="struct" symbol="UserIdentifier" />, <HostReference crate="users" kind="struct" symbol="GroupIdentifier" />                                           | User and group identifiers, names, primary/supplementary groups, and credential storage.                        |
+| <HostReference crate="time" />                | `xila-time`                | <HostReference crate="time" kind="struct" symbol="Manager" />, <HostReference crate="time" kind="trait" symbol="MonotonicClock" />, <HostReference crate="time" kind="trait" symbol="RealtimeSource" />                                                 | Monotonic uptime clock and adjustable signed UTC realtime clock with explicit synchronization status.           |
+| <HostReference crate="memory" />              | `xila-memory`              | <HostReference crate="memory" kind="struct" symbol="Manager" />, <HostReference crate="memory" kind="trait" symbol="ManagerTrait" />, <HostReference crate="memory" kind="fn" symbol="global_manager" />                                                | Global allocator integration (`GlobalAlloc`), capability-tagged allocations (executable, DMA), and usage stats. |
+| <HostReference crate="log" />                 | `xila-log`                 | <HostReference crate="log" kind="trait" symbol="LoggerTrait" />, <HostReference crate="log" kind="fn" symbol="initialize" />, <HostReference crate="log" kind="macro" symbol="information" />                                                           | Process-global structured logging façade and severity filtering macros.                                         |
+
+### System libraries, device contracts, and drivers
+
+| Crate                                            | Package                       | Source path                                                     | Purpose                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ----------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <HostReference crate="file_system" />            | `xila-file-system`            | <CodeReference path="libraries/file_system" />                  | Core traits (<HostReference crate="file_system" kind="trait" symbol="FileSystemOperations" />, <HostReference crate="file_system" kind="trait" symbol="DirectCharacterDevice" />), typed `ControlCommand` identifiers, paths, and metadata.                      |
+| <HostReference crate="device" />                 | `xila-device`                 | <CodeReference path="devices" />                                | Typed VFS `define_command!` control contracts for `adc`, `audio`, `gpio`, `hash`, `i2c`, `neural_network`, `pwm`, `screen`, `spi`, and `uart` devices.                                                                                                           |
+| <HostReference crate="little_fs" />              | `xila-little-fs`              | <CodeReference path="libraries/little_fs" />                    | Embedded block-device filesystem implementation (<HostReference crate="little_fs" kind="struct" symbol="FileSystem" />) backed by `littlefs2-sys`.                                                                                                               |
+| <HostReference crate="executable" />             | `xila-executable`             | <CodeReference path="libraries/executable" />                   | <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />, <HostReference crate="executable" kind="struct" symbol="ExecutableContext" />, <HostReference crate="executable" kind="struct" symbol="Standard" /> streams, and `execute` launcher. |
+| <HostReference crate="authentication" />         | `xila-authentication`         | <CodeReference path="libraries/authentication" />               | Password hashing via `/devices/hasher` and user login/creation helpers (<HostReference crate="authentication" kind="struct" symbol="Context" />).                                                                                                                |
+| <HostReference crate="audio" />                  | `xila-audio`                  | <CodeReference path="libraries/audio" />                        | Bounded PCM stream buffer and multi-stream mixer (<HostReference crate="audio" kind="struct" symbol="AudioSystem" />).                                                                                                                                           |
+| <HostReference crate="neural_network" />         | `xila-neural-network`         | <CodeReference path="libraries/neural_network" />               | Allocation-neutral synchronous inference trait (<HostReference crate="neural_network" kind="trait" symbol="Backend" />).                                                                                                                                         |
+| <HostReference crate="drivers_neural_network" /> | `xila-drivers-neural-network` | <CodeReference path="drivers/neural_network" />                 | VFS character-device adapter (<HostReference crate="drivers_neural_network" kind="struct" symbol="NeuralNetworkDevice" />) wrapping a `neural_network::Backend`.                                                                                                 |
+| <HostReference crate="peripherals" />            | `xila-peripherals`            | <CodeReference path="libraries/peripherals" />                  | `embedded-hal` GPIO pin contract and deterministic fixed-capacity mock controller.                                                                                                                                                                               |
+| <HostReference crate="drivers_peripherals" />    | `xila-drivers-peripherals`    | <CodeReference path="drivers/peripherals" />                    | VFS character-device adapters exposing `peripherals` buses (`adc`, `gpio`, `i2c`, `pwm`, `spi`, `uart`).                                                                                                                                                         |
+| <HostReference crate="drivers_core" />           | `xila-drivers-core`           | <CodeReference path="drivers/core" />                           | Minimal platform-independent device implementations (`NullDevice`, deterministic `wifi` control-plane mock).                                                                                                                                                     |
+| <HostReference crate="firmware_update" />        | `xila-firmware-update`        | <CodeReference path="libraries/firmware_update" />              | Bounded `no_std` firmware update transaction state machine (<HostReference crate="firmware_update" kind="struct" symbol="Update" />) and `/devices/system/firmware` VFS adapter.                                                                                 |
+| <HostReference crate="xila_http" />              | `xila_http`                   | <CodeReference path="libraries/http" />                         | Portable, bounded `no_std` HTTP/1.1 response header and chunked-transfer parser.                                                                                                                                                                                 |
+| <HostReference crate="debug_protocol" />         | `xila-debug-protocol`         | <CodeReference path="libraries/debug_protocol" />               | Wire protocol requests, synthetic UI input events, and frame validation for headless diagnostics.                                                                                                                                                                |
+| <HostReference crate="bootsplash" />             | `xila-bootsplash`             | <CodeReference path="libraries/bootsplash" />                   | Startup splash screen animation (<HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" />).                                                                                                                                                        |
+| <HostReference crate="shared" />                 | `xila-shared`                 | <CodeReference path="libraries/shared" />                       | Type-erased aligned buffer views (<HostReference crate="shared" kind="struct" symbol="AnyByLayout" />), size formatting, and helpers.                                                                                                                            |
+| <HostReference crate="synchronization" />        | `xila-synchronization`        | <CodeReference path="libraries/synchronization" />              | Async `Mutex`, `RwLock`, `Channel`, `Signal`, and `OnceLock` primitives backed by Embassy sync.                                                                                                                                                                  |
+| <HostReference crate="abi_declarations" />       | `xila-abi-declarations`       | <CodeReference path="libraries/abi/declarations" />             | C ABI type and function declarations shared between Xila and C libraries.                                                                                                                                                                                        |
+| <HostReference crate="abi_definitions" />        | `xila-abi-definitions`        | <CodeReference path="libraries/abi/definitions" />              | Exported C ABI symbol definitions (`xila_memory_*`, `xila_time_*`, `xila_file_system_*`).                                                                                                                                                                        |
+| <HostReference crate="graphics_bindgen" />       | `xila-graphics-bindgen`       | <CodeReference path="subsystems/graphics/bindings_generator" /> | Build-time LVGL header parser and `GraphicsRegistry` used to generate guest/host WebAssembly graphics bindings.                                                                                                                                                  |
+| <HostReference crate="testing" />                | `xila-testing`                | <CodeReference path="libraries/testing" />                      | `std` test harness devices (`MemoryManager`, `TimeDevice`, `RandomDevice`, `HashDevice`, `HeadlessScreenDevice`, and `initialize`).                                                                                                                              |
+| <DocsRsReference crate="embedded-i18n" />        | `embedded-i18n`               | <CodeReference path="core/src/lib.rs" />                        | Re-exported as `xila::internationalization` for compile-time localized string and C-string lookup (`i18n!`, `t!`).                                                                                                                                               |
+
+## Host executables and platform drivers
+
+After the multi-repository split, host executables and target drivers are maintained outside `core`:
+
+- **Applications (`Xila-Project/applications`)**:
+  - <HostReference repo="applications" crate="wasm" /> (
+    <CodeReference
+      repo="applications"
+      path="executables/wasm/src/host/mod.rs"
+    />
+    ): the `wasmi` 2.0 WebAssembly host interpreter (`WasmDevice`), WASI Preview
+    1 host imports (`WasiContext`, `add_wasi_to_linker`), linear-memory
+    translation (`GuestMemory`), and host LVGL dispatch (`GraphicsState`).
+  - Native Xila executables implementing `ExecutableTrait`: <HostReference repo="applications" crate="graphical_shell" />, <HostReference repo="applications" crate="command_line_shell" />, <HostReference repo="applications" crate="terminal" />, <HostReference repo="applications" crate="file_manager" />, <HostReference repo="applications" crate="settings" />, <HostReference repo="applications" crate="activity" />, <HostReference repo="applications" crate="debug_application" />, and `package` (<CodeReference repo="applications" path="executables/package" />).
+- **Platforms (`Xila-Project/platforms`)**:
+  - Target driver crates: <HostReference repo="platforms" crate="drivers_native" />, <HostReference repo="platforms" crate="drivers_wasm" />, <HostReference repo="platforms" crate="drivers_std" />, <HostReference repo="platforms" crate="drivers_shared" />, <HostReference repo="platforms" crate="drivers_headless" />, and <HostReference repo="platforms" crate="drivers_espressif" />.
+
+## Building host documentation locally
+
+From a `core` checkout with [mise](https://mise.jdx.dev/) and locked npm dependencies installed (`npm ci` for `lv_font_conv`):
+
+```sh
+mise trust
+mise run deps:npm
+RUSTDOCFLAGS="--deny warnings" mise run docs:host -- --no-deps
+```
+
+This runs `cargo doc` across the full Core workspace for `x86_64-unknown-linux-gnu` with `xila/graphics`, `xila/abi_definitions`, `xila/graphics_rendering_xrgb8888`, `xila/audio`, `xila/neural_network`, `xila/bootsplash`, and `xila-testing/graphics` enabled, outputting HTML to `target/x86_64-unknown-linux-gnu/doc/xila/index.html`.
+
+## Related documentation
+
+- [Guest API reference](/reference/guest/)
+- [WASM runtime reference](/reference/wasm-runtime/)
+- [Graphics bindings reference](/reference/graphics-bindings/)
+- [Integrate a host application](/how-to/integrate-host/)
+- [Architecture overview](/explanation/architecture/)

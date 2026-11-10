@@ -2,6 +2,7 @@
   "scripts": {
     "docs:dev": "astro dev",
     "docs:build": "astro build",
+    "docs:rustdoc": "node scripts/build-rustdoc.mjs",
     "docs:preview": "astro preview",
     "docs:validate": "node scripts/check-docs.mjs",
     "test:reference": "node --test tests/*.test.mjs",

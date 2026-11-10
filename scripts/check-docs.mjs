@@ -45,6 +45,9 @@ function resolveTarget(output, current, href) {
   const target = new URL(decode(href), currentUrl);
   if (target.origin !== "https://docs.invalid") return null;
   let pathname = decodeURIComponent(target.pathname);
+  if (pathname.startsWith("/rustdoc/")) {
+    return null;
+  }
   if (pathname.endsWith("/")) pathname += "index.html";
   else if (!path.extname(pathname)) pathname += "/index.html";
   return {
@@ -85,7 +88,11 @@ export function validateDocs({
     return { errors: [...errors], pages: pages.length };
   }
 
-  const rendered = files(output, ".html");
+  const rustdocOutput = path.join(output, "rustdoc");
+  const rendered = files(output, ".html").filter(
+    (file) =>
+      file !== rustdocOutput && !file.startsWith(rustdocOutput + path.sep),
+  );
   const documents = new Map(
     rendered.map((file) => {
       const html = fs.readFileSync(file, "utf8");
