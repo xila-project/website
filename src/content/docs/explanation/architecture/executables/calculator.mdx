@@ -1,99 +1,48 @@
 ---
-title: "Calculator (executable)"
+title: "Calculator"
 docType: explanation
-description: "The calculator executable provides a scientific-expression evaluation UI primarily for WASM targets."
+description: "Understand how Calculator evaluates mathematical expressions."
 ---
 
+import HostReference from "@/components/HostReference.astro";
+import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The calculator executable provides a scientific-expression evaluation UI primarily for WASM targets.
+Calculator evaluates mathematical expressions. The Applications repository provides it as a WebAssembly (Wasm) guest application (`wasm32-wasip1`).
 
-## Role
+## Context
 
-- Owns calculator expression language pipeline (lexer/parser/evaluator) and button-matrix UI bindings.
-- Serves as a target-specific application (interactive on wasm32, informational fallback on non-wasm targets).
+The guest uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint, and its shortcut launches it through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
 
-## Startup and lifecycle
+## How it works
 
-- `wasm32` target: creates interface window and enters event loop (`Interface::run`).
-- non-`wasm32` target: prints localized informational message and exits.
+The keypad offers basic and scientific layouts. The expression engine uses `nanoexpr`.
 
-## Runtime integration points
+The following diagram shows the launch path.
 
-- WASM graphics/UI API (`wasm` crate guest graphics functions) for window, labels, button matrix, and events.
-- Internationalization for UI labels/messages.
-- Internal parser/evaluator modules for expression execution.
-
-## Data and control flow / VFS touchpoints
-
-- Primary flow: button event -> expression text mutation -> parse -> evaluate -> display update.
-- Constants/functions are translated to parser-friendly textual forms before evaluation.
-- No direct VFS touchpoint in executable runtime path.
-
-## Concurrency and event-loop model
-
-- Single synchronous UI event loop in `Interface::run`.
-- No separate worker tasks; computations run inline on event handling.
-
-## Failure semantics
-
-- Expression parse/evaluation failures are rendered as localized `Error: ...` display output.
-- UI creation failures abort startup (`Interface::new().unwrap()` in wasm main path).
-
-## Contract vs implementation
-
-- **Contract**: calculator executable computes expressions from UI/user input and renders result text.
-- **Current implementation**: wasm-focused LVGL-like button matrix, direct string-based expression assembly, and inline parser/evaluator execution.
-
-## Operational limitations
-
-- Intended runtime is wasm32; native targets only print fallback message.
-- The guest handles window-close events and exits; the runtime then removes its owned window and children. Calculator is included in newly seeded bundle images for the browser example and is covered by native headless acceptance tests.
-
-## Evaluation engine and numerical semantics
-
-The expression engine lives in `engine.rs` and delegates parsing/evaluation to **`nanoexpr`**. `evaluate_expression(input, radian_mode) -> Result<Exact<14, 99>, String>` uses an exact-number representation when possible. For example, `0.1 + 0.2` evaluates to the exact fraction `3/10`; an irrational result such as `sqrt(2)` falls back to a limited-precision decimal.
-
-Supported calculator actions include ordinary arithmetic, percent notation, factorial, implicit multiplication and the functions `sqr`, `cube`, `pow10`, `inv`, `sin`, `cos`, `tan`. When radian mode is disabled, the engine converts degree arguments using π/180 before trigonometric evaluation. The expression evaluator is depth-bounded (`Evaluator::<_, 4>`), so it is intentionally not a full symbolic algebra environment.
-
-```rust
-// From executables/calculator/src/engine.rs, enabled in WASM builds/tests.
-let result = evaluate_expression("1 / 3 + 1 / 6", true)?;
-assert_eq!(result.to_string(), "1/2");
+```mermaid
+flowchart LR
+    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Calculator"] --> API["Guest API"]
 ```
 
-The code assumes access to the internal `engine` module: it illustrates the evaluator's contract, **not an exported crate-level API**. Parsing or domain errors include localized explanations and source spans, such as `Division by zero (0..5)`.
+The shortcut starts the Wasm runner with the bundle entrypoint. The guest uses the guest API for its interface.
 
-## Guest lifecycle and graphics boundary
+## Design choices and trade-offs
 
-On `wasm32`, the main function creates `Interface` and enters its LVGL event loop; non-WASM builds display an informational message instead of launching the UI. The guest uses checked graphics calls, button-matrix events and owned temporary expression strings. The host must expose a compatible subset of the graphics ABI; arbitrary LVGL calls are not automatically available to the guest.
+Expressions are evaluated locally; graphics and input use the guest API.
 
-Calculator does not write its expression history to VFS. It depends on the window and the guest runtime's event scheduling, and the `main` path currently uses `unwrap` for UI setup/run failures.
+## Limits
 
-### Source references
+The interface switches between compact and wide layouts at 560 by 360 pixels.
 
-- <CodeReference
-    repo="applications"
-    path="executables/calculator/src/engine.rs"
-  />
-  (numerical model, supported functions and tests).
-- <CodeReference
-    repo="applications"
-    path="executables/calculator/src/interface.rs"
-  />
-  (button matrix, event handling and display).
-- <CodeReference
-    repo="applications"
-    path="executables/calculator/src/main.rs"
-  />
-  (target-specific startup).
-- <CodeReference
-    repo="applications"
-    path="executables/calculator/shortcut.json"
-  />
-  (bundle-local launcher descriptor read by the graphical Shell).
+## API reference
 
-## References
+- <HostReference repo="applications" crate="calculator" />: application source.
+- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="packaging/calculator.json" />:
+  package metadata.
 
-- <CodeReference repo="applications" path="executables/calculator" />
-- [WASM](/explanation/architecture/executables/wasm)
+## Related
+
+- [Wasm runtime](/explanation/architecture/executables/wasm/)
+- [Guest API reference](/reference/guest/)
