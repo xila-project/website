@@ -20,6 +20,7 @@ This guide shows how to compose a host runtime using the native example as a ref
 2. If using graphics, initialize graphics with a screen and input devices and start its loop as a task.
 3. Prepare and mount storage, then initialize the virtual file system with the task, users and time managers. Initialize the ABI context with the virtual file system and time manager.
 4. Mount the devices and initialize the network manager and application context required by your host. Follow the native example for authentication and executable registration.
+5. Mount the executables with <HostReference crate="executable" kind="macro" symbol="mount_executables" />, open the standard streams with <HostReference crate="executable" kind="struct" symbol="Standard" /> and start the first executable, such as the shell, with <HostReference crate="executable" kind="fn" symbol="execute" />.
 
 The following diagram shows the order in the native example.
 
@@ -37,9 +38,11 @@ sequenceDiagram
     Host->>VFS: Initialize and set ABI context
     Host->>VFS: Mount devices
     Host->>Network: Initialize manager
+    Host->>VFS: Mount executables
+    Host->>VFS: Open standard streams and execute shell
 ```
 
-The host initializes managers before optional graphics, then mounts storage and initializes the virtual file system (VFS). It mounts devices and initializes networking afterward.
+The host initializes managers before optional graphics, then mounts storage and initializes the virtual file system (VFS). It then mounts devices, initializes networking, mounts the executables under `/applications/executables/`, opens the standard streams and executes the shell.
 
 ## Verify the result
 
