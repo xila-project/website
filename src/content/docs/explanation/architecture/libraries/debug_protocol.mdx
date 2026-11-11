@@ -1,74 +1,139 @@
 ---
 title: "Debug protocol"
 docType: explanation
-description: Typed headless diagnostics requests, UI input, screenshot metadata and protocol bounds shared by Xila debug clients.
+description: "Framing, request models, and validation for headless debugging and UI automation."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `debug_protocol` crate describes the **data exchanged with Xila's debug/diagnostics endpoint**. It is a small `no_std + alloc` library built around `serde` data types. It neither starts a server nor mounts an executable or a graphics subsystem: the caller is responsible for transport, authorization, scheduling and translating requests into runtime operations.
+The `debug_protocol` crate defines typed data contracts, validation rules, and protocol bounds for Xila's headless diagnostics and automation interface. It lives in the Core repository under `libraries/debug_protocol/` and is published as the `xila-debug-protocol` package.
 
-## Public request model
+## Context
 
-`Request` is a tagged enum serialized with `#[serde(tag = "op", rename_all = "snake_case")]`. Its currently supported operations are:
+Test runners, diagnostic tools, and automation clients (such as `xila-debug`) require a consistent, portable protocol to inspect system state, capture framebuffers, and simulate user input. The `debug_protocol` library defines this wire format independently of network or transport layers, allowing headless testing across desktop environments, CI pipelines, and embedded targets.
 
-- `Diagnostics`: request runtime diagnostic information.
-- `Resolution`: query the graphics resolution.
-- `Screenshot { path }`: request a screenshot using a non-empty destination path.
-- `UiTree { max_elements, max_depth }`: request a bounded LVGL hierarchy snapshot. Defaults are **64 elements** and **16 levels**.
-- `PointerMove { x, y }`, `PointerButton { state }`, `Key { key, state }` and `Text { text }`: describe input to inject. `InputState` serializes to `pressed` or `released`.
+## How it works
+
+### Request model and wire format
+
+Requests are modeled by the <HostReference crate="debug_protocol" kind="enum" symbol="Request" /> enum, serialized as JSON with `#[serde(tag = "op", rename_all = "snake_case")]`. The supported operations include:
+
+- `Diagnostics`: Query runtime diagnostic statistics.
+- `Capabilities`: Query supported driver capabilities.
+- `Click { role, name, text, button }`: Hit-test and click a visible UI widget matching selector fields.
+- `PointerClick { x, y }`: Click directly at the specified coordinates.
+- `Resolution`: Query display dimensions.
+- `Screenshot { path }`: Request screenshot save to a destination path.
+- `UiTree { max_elements, max_depth }`: Query snapshot of the LVGL widget hierarchy. Defaults are 64 elements and 16 levels.
+- `PointerMove { x, y }`: Move the mouse pointer to coordinates.
+- `PointerButton { state: InputState }`: Set button state to `Pressed` or `Released`.
+- `Key { key, state: InputState }`: Send key press or release events.
+- `PressKey { key }`: Queue an atomic key press followed immediately by release.
+- `Text { text }`: Inject a text string.
 
 Example serialized request:
 
 ```json
-{\n  "op": "ui_tree",\n  "max_elements": 64,\n  "max_depth": 16\n}
+{
+  "op": "click",
+  "name": "Login"
+}
 ```
 
-The helper `validate_request(&request)` currently checks **text payload length** and **non-empty screenshot paths**. It does not inspect every variant's runtime preconditions, validate allowed key names, or enforce the overall encoded request size. Those checks belong to the receiving endpoint.
+### Protocol constants and limits
 
-## Payload and screenshot limits
+The crate defines explicit upper bounds for all incoming and outgoing frames:
 
-The crate declares explicit upper bounds to help transport implementations reject oversized requests and payloads:
+- `MAX_REQUEST_BYTES`: 16 KiB (16,384 bytes) for encoded request payloads.
+- `MAX_TEXT_BYTES`: 4 KiB (4,096 bytes) for text injection strings.
+- `MAX_RESPONSE_BYTES`: 64 KiB (65,536 bytes) for diagnostic responses.
+- `MAX_SCREENSHOT_PIXELS`: 2,073,600 pixels (for example 1920×1080 resolution).
+- `MAX_SCREENSHOT_BYTES`: 8,294,400 bytes (RGBA8888, 4 bytes per pixel).
+- `DEFAULT_UI_TREE_ELEMENTS`: 64 elements maximum by default.
+- `DEFAULT_UI_TREE_DEPTH`: 16 levels maximum depth by default.
 
-- `MAX_REQUEST_BYTES`: **16 KiB** for the encoded request.
-- `MAX_TEXT_BYTES`: **4 KiB** for injected text.
-- `MAX_RESPONSE_BYTES`: **64 KiB** for normal diagnostic responses.
-- `MAX_SCREENSHOT_PIXELS`: **2,073,600 pixels**.
-- `MAX_SCREENSHOT_BYTES`: **8,294,400 bytes** for RGBA8888 data.
+### Frame validation
 
-`ScreenshotMetadata` records `width: u16`, `height: u16`, `format` (currently only `Rgba8888`) and `payload_bytes`. `validate_screenshot_metadata` rejects zero dimensions, integer overflow, mismatched byte lengths and screenshots exceeding the pixel/byte cap.
+Validation functions reject malformed or oversized payloads before execution:
 
-```rust
-use debug_protocol::{
-    validate_request, validate_screenshot_metadata, Request,
-    ScreenshotMetadata, ScreenshotPixelFormat,
-};
+- <HostReference crate="debug_protocol" kind="fn" symbol="validate_request" />:
+  Ensures injected text does not exceed `MAX_TEXT_BYTES`. Ensures screenshot
+  paths are non-empty. For `Click` requests, verifies that at least one selector
+  field is present, and rejects any selector string that is empty or exceeds 512
+  bytes.
+- <HostReference
+    crate="debug_protocol"
+    kind="fn"
+    symbol="validate_screenshot_metadata"
+  />
+  : Takes a
+  <HostReference
+    crate="debug_protocol"
+    kind="struct"
+    symbol="ScreenshotMetadata"
+  />
+  record. Ensures width and height are non-zero, verifies that `payload_bytes`
+  exactly equals `width * height * 4`, and checks that the size does not exceed
+  `MAX_SCREENSHOT_BYTES`.
 
-let request = Request::Text { text: "hello".into() };
-validate_request(&request)?;
+Failures return <HostReference crate="debug_protocol" kind="enum" symbol="ProtocolError" />. The `code()` method produces stable string error identifiers (such as `invalid_selector`, `text_too_large`, `empty_screenshot_path`, and `invalid_screenshot_frame`).
 
-let frame = ScreenshotMetadata {
-    width: 320,
-    height: 240,
-    format: ScreenshotPixelFormat::Rgba8888,
-    payload_bytes: 320 * 240 * 4,
-};
-validate_screenshot_metadata(frame)?;
+The following diagram shows a typical request and response exchange between an automation client and the graphics device:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as "Test runner / CLI"
+    participant Device as "Window screen device"
+    participant Proto as "debug_protocol"
+    participant UI as "Graphics / LVGL"
+
+    Client->>Device: JSON request (op: "click", name: "Login")
+    Device->>Proto: validate_request(&request)
+    Proto-->>Device: Ok(())
+    Device->>UI: hit_test_and_click("Login")
+    UI-->>Device: click executed
+    Device-->>Client: JSON response (status: "ok")
 ```
 
-Both validations return `ProtocolError`; its `code()` function produces stable-looking snake-case identifiers such as `request_too_large`, `invalid_json`, `text_too_large` and `invalid_screenshot_frame`. A protocol client should treat these as error codes rather than parsing display messages.
+The client transmits a serialized JSON request. The receiving device runs `validate_request` to check bounds and selectors. Once validated, the device forwards the command to the graphics subsystem, executes the UI interaction, and sends a JSON response back to the client.
 
-## Ownership and trust boundaries
+## Design choices and trade-offs
 
-Requests contain owned `String` values for paths, key names and text, while screenshots are described by metadata and transferred by the surrounding debug transport. The library itself performs no file access, display capture or pointer injection. The [Graphics subsystem](/explanation/architecture/subsystems/graphics) provides the actual input and screen APIs.
+- Sans-I/O architecture: Protocol validation and message structures are decoupled from underlying transport sockets, pipes, and serial connections.
+- Strict resource bounds: Explicit limits on buffer sizes and screenshot dimensions guard against denial-of-service and memory exhaustion on memory-constrained devices.
+- JSON wire format: Facilitates inspection, debugging, and tooling integration from external scripts without requiring custom binary decoders.
 
-A caller must still authenticate and authorize diagnostics access, bound the incoming JSON before deserialization, validate file paths, enforce active-display coordinate limits and constrain the work performed by a single UI-tree request. The bounds defined here are **not a security boundary unless the endpoint enforces them**.
+## Limits
 
-## Source and API references
+- Screenshots currently support only `ScreenshotPixelFormat::Rgba8888`.
+- Transports must enforce `MAX_REQUEST_BYTES` and `MAX_RESPONSE_BYTES` during read and write loops; the protocol crate only validates structured fields.
 
-- <HostReference crate="debug_protocol" /> - shared request types.
-- <CodeReference path="libraries/debug_protocol/src/lib.rs" /> - limits,
-  validation and request schema.
-- [Graphics](/explanation/architecture/subsystems/graphics) - actual UI tree, screenshot and injection.
-- [Executable architecture](/explanation/architecture/executables/) - consumers that assemble runtime capabilities.
+## API reference
+
+- <HostReference crate="debug_protocol" />: package documentation and root
+  types.
+- <HostReference crate="debug_protocol" kind="enum" symbol="Request" />: request
+  enum covering all supported operations.
+- <HostReference
+    crate="debug_protocol"
+    kind="struct"
+    symbol="ScreenshotMetadata"
+  />
+  : metadata describing screenshot frame dimensions and format.
+- <HostReference crate="debug_protocol" kind="fn" symbol="validate_request" />:
+  checks request payload bounds and selector validity.
+- <HostReference
+    crate="debug_protocol"
+    kind="fn"
+    symbol="validate_screenshot_metadata"
+  />
+  : validates screenshot payload size and dimensions.
+- <HostReference crate="debug_protocol" kind="enum" symbol="ProtocolError" />:
+  error types and stable string codes.
+
+## Related
+
+- [Graphics](/explanation/architecture/subsystems/graphics/): Graphical subsystem and LVGL object hierarchy.
+- [Testing](/explanation/architecture/libraries/testing/): In-memory integration test harness.

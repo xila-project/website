@@ -1,100 +1,127 @@
 ---
 title: "Testing"
 docType: explanation
-description: "The testing crate assembles a host integration runtime so tests can run against near-real Core wiring."
+description: "In-memory test environment, mock hardware devices, and integration test helpers."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
 
-The `testing` crate assembles a host integration runtime so tests can run against near-real Core wiring.
+The `testing` crate provides minimal `std` test infrastructure for Xila unit and integration tests without requiring platform drivers or physical hardware. It lives in the Core repository under `libraries/testing/` and is published as the `xila-testing` package.
 
-## Role
+## Context
 
-- Provides one high-level initializer that wires task/users/time, storage, optional graphics, optional networking, and standard streams.
-- Reduces per-test boilerplate by mounting known-good baseline devices and hierarchy.
+Testing operating system components such as the virtual file system, task manager, and executables on host developer machines requires real OS abstractions (time, randomness, storage, console streams, and cryptography) without binding to physical target peripherals or desktop window managers. The `testing` crate provides mock devices and a complete in-memory environment bootstrap that runs tests quickly and deterministically in CI pipelines.
 
-## Boundaries
+## How it works
 
-- In scope: integration-runtime bootstrap for tests.
-- Out of scope: unit-test micro scaffolding and production startup orchestration.
+### Test harness devices
 
-## Internal structure
+The crate provides lightweight, deterministic character devices:
 
-- `lib.rs` exposes `initialize(graphics_enabled, network_enabled) -> executable::Standard<'static>`; the result carries an `ExecutableContext` with the assembled managers.
-- Setup logic is sequential and explicit: logging, managers, VFS root, device mounts, optional subsystems, seed user/account.
+- <HostReference crate="testing" kind="struct" symbol="TimeDevice" />: Mock
+  clock implementing `DirectCharacterDevice`. Responds to `GET_SYSTEM_TIME`
+  control commands and reads microsecond timestamps from host system time.
+- <HostReference crate="testing" kind="struct" symbol="RandomDevice" />: Entropy
+  source implementing `DirectCharacterDevice`. Fills byte buffers using the host
+  `getrandom` crate.
+- <HostReference crate="testing" kind="enum" symbol="ConsoleDevice" />:
+  Implements `DirectCharacterDevice` with `Input`, `Output`, and `Error`
+  variants, routing standard I/O through host standard input, output, and error
+  streams.
+- <HostReference crate="testing" kind="struct" symbol="HashDevice" />:
+  Cryptographic hash device implementing `DirectCharacterDevice`. Handles the
+  `SET_ALGORITHM` control command (supporting SHA-256 and SHA-512 via the `sha2`
+  crate), streams input data into the internal hash state, and outputs the
+  digest upon read.
+- <HostReference crate="testing" kind="struct" symbol="Logger" />: Simple logger
+  implementing the `log::Log` trait.
+- <HostReference crate="testing" kind="struct" symbol="MemoryManager" />:
+  In-memory heap manager backed by `std::alloc::System`.
+- <HostReference crate="testing" kind="struct" symbol="HeadlessScreenDevice" />:
+  800×600 pixel in-memory frame buffer (enabled by the `graphics` Cargo feature)
+  implementing graphics device operations without creating host desktop windows.
 
-## Runtime interaction
+### In-memory environment bootstrap
 
-1. Uses the task test-harness manager and constructs users/time managers; registers the logger.
-2. Optionally starts graphics manager and host window runner tasks.
-3. Creates memory-backed LittleFS and initializes VFS + default hierarchy.
-4. Mounts standard devices (`/devices/random`, `/devices/hasher`, stdio, time, null).
-5. Optionally mounts/configures a tuntap network interface and applies IP/routes/DNS.
-6. Seeds administrator group/user and environment variables (`Paths`, `Host`).
-7. Builds an `ExecutableContext` and returns opened `Standard` streams carrying those references for test/executable launch.
-
-## Dependency model
-
-- Depends on broad Core surface: file_system, little_fs, authentication, executable, network, graphics, task/users/time/log, plus host drivers.
-
-## Failure semantics
-
-- Initialization is intentionally strict and uses `unwrap`/`expect` in many places to fail fast in test setup.
-- Optional branches still fail the initializer if enabled and setup cannot complete.
-
-## Extension points
-
-- Additional device mounts can be added to the bootstrap sequence for new integration domains.
-- Feature toggles can extend the initializer signature if more optional subsystems are needed.
-
-## Contract vs implementation
-
-- **Contract**: one async initializer returning ready-to-use `Standard` for executing test binaries/workflows.
-- **Current implementation**: host-first initialization with memory-backed LittleFS, optional window/tuntap integration, and seeded administrator account.
-
-## Limitations and trade-offs
-
-- Fast-fail setup simplifies test diagnosis but is less granular than layered setup APIs.
-- Integration realism increases coverage while making initialization heavier than unit-test stubs.
-
-## Entry point and required environment
-
-`testing::initialize(graphics_enabled, network_enabled).await` returns `executable::Standard<'static>` carrying a populated `ExecutableContext`. It is an **integration test fixture**: it leaks boxed runtime managers into `'static` storage, installs the global logger and invokes the Task test-harness manager. Consequently it is not intended to construct multiple independent production OS instances in one process.
+With the `environment` Cargo feature enabled, the <HostReference crate="testing" kind="fn" symbol="initialize" /> function sets up a complete in-memory Xila instance:
 
 ```rust
-let mut standard = testing::initialize(false, false).await;
-let task = standard.context.task_manager.get_current_task_identifier().await;
-let vfs = standard.context.virtual_file_system;
-assert!(vfs.get_statistics(&"/devices/null").await.is_ok());
+pub async fn initialize(
+    graphics_enabled: bool,
+    network_enabled: bool,
+) -> Standard<'static>
 ```
 
-This is an integration-harness example. A suitable test executor/spawner, global allocator and host driver environment must already be configured; the initializer does not install all of them in an otherwise empty process.
+The bootstrap procedure executes sequentially:
 
-## Fixture composition and feature-dependent behavior
+1. Initializes logging with `Logger`.
+2. Creates task manager, users manager, and time manager instances.
+3. If `graphics_enabled` is true, constructs a `HeadlessScreenDevice` (800×600) and spawns the background graphics loop task.
+4. Formats an in-memory LittleFS file system on a `MemoryDevice::<512>::new_static(1024 * 512)` (512 KiB block device with 256-byte blocks) and initializes the virtual file system.
+5. Populates the default directory hierarchy via `create_default_hierarchy`.
+6. Mounts mock character devices into the VFS:
+   - `/devices/random/source` (`RandomDevice`)
+   - `/devices/standard_io/input` (`ConsoleDevice::Input`)
+   - `/devices/standard_io/output` (`ConsoleDevice::Output`)
+   - `/devices/standard_io/error` (`ConsoleDevice::Error`)
+   - `/devices/time/clock` (`TimeDevice`)
+   - `/devices/standard_io/null` (`drivers_core::NullDevice`)
+   - `/devices/compute/hasher` (`HashDevice`)
+7. If `network_enabled` is true, initializes the network manager without physical network interfaces or active HTTP clients.
+8. Seeds the default `administrator` group and user (identifier 1000) with an empty password.
+9. Sets default environment variables `Paths` = `/` and `Host` = `xila`.
+10. Opens and returns `Standard<'static>` streams bound to `/devices/standard_io/*`.
 
-The fixture creates a **512 KiB in-memory block device** with `MemoryDevice::<512>::new_static`, formats LittleFS with a cache size of 256 bytes, mounts it as the VFS root and creates the default hierarchy. It exposes random/time/hash/null/console/CPU-information devices. The seeded administrator has group and user ID 1000 and is created with an **empty password**; this is test-only behavior, not a production default.
+### Host file injection
 
-- When graphics is enabled, it starts an 800 × 600 native window, creates the Graphics manager and spawns both LVGL and screen runner tasks.
-- When networking is enabled, it uses the platform TUN/TAP driver, configures a tunnel interface and mounts HTTP/HTTPS client devices. This requires host networking support and permissions.
-- The returned Standard streams expose the same live devices and managers to launched executables.
+The <HostReference crate="testing" kind="fn" symbol="load_file" /> helper copies a file from the host filesystem into the virtual file system, truncating any existing file at the destination path.
 
-The function signature accepts `graphics_enabled` even when the crate's `graphics` Cargo feature is disabled; check the configured feature set before assuming graphics types and setup exist. The fixture intentionally uses `unwrap`/`expect` on setup failures so tests fail immediately rather than returning a recoverable configuration error.
+The following diagram shows the in-memory test environment initialized by `initialize`:
 
-## Isolation and cleanup limitations
+```mermaid
+flowchart TD
+    Init["testing::initialize"] --> VFS["Virtual file system\n(Memory-backed LittleFS)"]
+    Init --> Devices["Test devices mounted under /devices/"]
+    Devices --> Random["/devices/random/source\n(RandomDevice)"]
+    Devices --> Time["/devices/time/clock\n(TimeDevice)"]
+    Devices --> Hasher["/devices/compute/hasher\n(HashDevice)"]
+    Devices --> Stdio["/devices/standard_io/*\n(ConsoleDevice)"]
+    Init --> Seed["Seeded accounts\n(/system/accounts/*)"]
+    Init --> StdStreams["Standard<'static> streams"]
+```
 
-Managers and devices are leaked for lifetime convenience. Global logger state and the Task test harness can affect later tests in the same process. Prefer **separate test processes** for scenarios that mutate global runtime state, and use narrower mocks (`GpioMock`, a memory device, etc.) for small deterministic unit tests.
+The initializer formats an in-memory LittleFS instance, constructs standard directory structures, mounts mock hardware devices under `/devices/`, provisions the initial administrator account under `/system/accounts/`, and opens standard streams for caller execution.
 
-### Source and API references
+## Design choices and trade-offs
 
-- <CodeReference path="libraries/testing/src/lib.rs" /> - precise bootstrap
-  order and mounted endpoints.
-- <CodeReference path="libraries/testing/Cargo.toml" /> - `xila-testing` package
-  and its optional `environment` and `graphics` features.
-- [File system](/explanation/architecture/libraries/file_system) - test block device and backend interfaces.
-- [Executable](/explanation/architecture/libraries/executable) - returned Standard context.
+- Pure in-memory execution: LittleFS runs in memory and the display buffer is an offscreen bitmap, ensuring tests execute quickly and without modifying host files or opening host windows.
+- Deterministic CI tests: Decouples core testing from platform audio hardware, Wi-Fi adapters, or display servers.
+- Fast-fail assertions: `initialize` uses explicit assertions and unwraps to report misconfigurations immediately during test bootstrap.
 
-## References
+## Limits
 
-- <CodeReference path="libraries/testing" />
-- [Executable crate](/explanation/architecture/libraries/executable)
-- [Architecture](/explanation/architecture/)
+- Requires `std` and is intended exclusively for host tests, not embedded deployment targets.
+- `network_enabled` initializes a network manager without physical network interfaces or active HTTP socket clients; network driver tests belong to platform integration tests.
+
+## API reference
+
+- <HostReference crate="testing" />: package documentation and root exports.
+- <HostReference crate="testing" kind="fn" symbol="initialize" />: bootstraps
+  the complete in-memory test environment.
+- <HostReference crate="testing" kind="fn" symbol="load_file" />: copies a host
+  file into the in-memory virtual file system.
+- <HostReference crate="testing" kind="struct" symbol="TimeDevice" />: mock
+  clock character device.
+- <HostReference crate="testing" kind="struct" symbol="RandomDevice" />: mock
+  entropy character device.
+- <HostReference crate="testing" kind="struct" symbol="HashDevice" />: mock
+  cryptographic hash character device.
+- <HostReference crate="testing" kind="struct" symbol="HeadlessScreenDevice" />:
+  off-screen 800×600 framebuffer screen device.
+
+## Related
+
+- [Executable](/explanation/architecture/libraries/executable/): Program execution and standard stream handling.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/): File system and device hierarchy.
+- [Authentication](/explanation/architecture/libraries/authentication/): User account seeding and persistence.
