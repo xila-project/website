@@ -29,11 +29,11 @@ The flash block device backs LittleFS at the root. USB standard input passes thr
 
 The example mounts GPIO character devices `/devices/gpio/d0` through `/devices/gpio/d13`, `/devices/gpio/a0` through `/devices/gpio/a7`, and `led_red`, `led_green` and `led_blue` under `/devices/gpio/`. D13 starts low, which turns its LED off. The RGB LEDs are active low and start high, also off.
 
-The USB CDC serial console receives bytes and sends output. The shared line editor echoes input, accepts backspace or delete, and uses Ctrl-U to erase a line. Ctrl-C discards the line and supplies an empty line; Ctrl-D on an empty line reports end of input. Tab becomes a space. CR or LF commits a line with a newline; an LF immediately following CR is consumed. Escape sequences are consumed. A full input line rings the terminal bell.
+The USB CDC serial console receives bytes and sends output. Input goes through the shared terminal line editor, which echoes characters, handles line editing and control keys, and commits a line on CR or LF. For its exact behavior, see [Shared](/explanation/architecture/drivers/shared/).
 
 ## Design choices and trade-offs
 
-The terminal editor uses fixed-capacity buffers. Its completed-line queue must have room for the line and newline before it commits the line. The example formats the flash file system when mounting it fails.
+The example formats the flash file system when mounting it fails.
 
 ## API reference
 
