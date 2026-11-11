@@ -1,23 +1,30 @@
 ---
-title: "[Interface or fact set]"
+title: "Noun phrase naming the interface"
 docType: reference
-description: "Replace with the exact interface or fact set covered by this page."
+description: "One sentence, under 160 characters, naming the exact interface or facts covered."
 ---
 
-<!-- Define scope, applicable package/platform/revision, and the authoritative source. -->
+<!-- Intro, 1–2 sentences: what the page covers and its source of truth (repository, crate, CodeReference to the file, Rustdoc entry point). Describe; do not instruct. -->
 
-## [Options, commands, fields, or features]
+## Group of items
 
-<!-- Use consistent entries. Include name, meaning, units/type, default, required state, and relevant constraints. -->
+<!-- One ## section per group, ordered like the product. Use the same entry format for every item. Standard tables:
+Commands:          | Command | Arguments | Description |
+mise tasks:        | Task | Repository | Description |
+Cargo features:    | Feature | Default | Effect |
+Control commands:  | Command | Input | Output | Description |
+Devices and paths: | Path | Kind | Driver | Description |
+Crates:            | Crate | Package | Description |
+Link item names to Rustdoc with HostReference or GuestReference instead of copying signatures. -->
 
-## Results and errors
+## Limits
 
-<!-- Describe return/output conventions, error meanings, and unsupported operations where relevant. -->
+<!-- Optional. Exact limits and unsupported cases, each traced to code. -->
 
-## Constraints and compatibility
+## Errors
 
-<!-- Record exact limits and capability/version requirements. Avoid procedural walkthroughs and speculative guarantees. -->
+<!-- Optional. Error names exactly as in code, with their meaning. -->
 
-## Related documentation
+## Related
 
-<!-- Link to procedures and explanations. Keep exhaustive facts authoritative on this page. -->
+<!-- Links to how-to guides and explanations. -->

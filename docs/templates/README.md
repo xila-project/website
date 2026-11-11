@@ -9,9 +9,20 @@ These are locally authored Xila templates informed by [The Good Docs Project](ht
 | “What are the exact options or limits?” | [Reference](./reference.md)     | `src/content/docs/reference/`   |
 | “Why does this work this way?”          | [Explanation](./explanation.md) | `src/content/docs/explanation/` |
 
-Copy the selected file into the appropriate source directory, choose a descriptive filename, and replace every writing prompt. Delete optional sections that do not help the reader. Keep templates outside `src/` so drafts and placeholders never appear in the site or search results.
+Copy the selected file into the appropriate source directory, choose a descriptive filename, and replace every writing prompt. Each template fixes the section order and headings for its page type: keep the headings as written, use `###` sub-headings inside a section when needed, and delete only the sections marked optional. Keep templates outside `src/` so drafts and placeholders never appear in the site or search results.
 
-Follow [AGENTS.md](../../AGENTS.md) for accuracy, style, navigation, and validation. The public [documentation contribution guide](../../src/how-to/write-documentation.md) explains the workflow.
+## Page conventions
+
+- **Frontmatter:** `title`, `docType` and `description`, in that order. The description is one sentence under 160 characters. Do not repeat the title as a `#` heading.
+- **Headings:** sentence case, no code, links or numbers. Task headings start with a verb; concept headings are noun phrases.
+- **Intro:** the first sentence states what the page is about in plain words.
+- **Asides:** `:::note`, `:::tip`, `:::caution` and `:::danger`, at most two per page, never holding prerequisites or steps. Put `:::caution` or `:::danger` next to the destructive action.
+- **Code blocks:** always set a language (`sh` for the host shell, `text` for Xila's terminal and for output). Introduce each block with a sentence that names the working directory and context. No prompt characters.
+- **Links:** root-relative internal links with a trailing slash; descriptive link text. Link Rust items with `HostReference` or `GuestReference`, source files with `CodeReference` and third-party crates with `DocsRsReference`.
+- **Diagrams:** fenced `mermaid` blocks without styling directives, one idea each, introduced by a sentence and described again in prose.
+- **Last section:** `## Related` (tutorials end with `## Next steps`).
+
+Follow [AGENTS.md](../../AGENTS.md) for accuracy, style, navigation, and validation. The public [documentation contribution guide](../../src/content/docs/how-to/write-documentation.mdx) explains the workflow.
 
 ## Editorial review
 

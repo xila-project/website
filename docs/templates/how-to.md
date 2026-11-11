@@ -1,27 +1,27 @@
 ---
-title: "[Perform a specific task]"
+title: "Imperative phrase naming the goal"
 docType: how-to
-description: "Replace with the specific task and completion condition."
+description: "One sentence, under 160 characters, naming the task and its result."
 ---
 
-<!-- State the reader's goal and the circumstances in which this procedure applies. -->
+<!-- Intro: "This guide shows how to ...". At most one more sentence saying when to use it. -->
 
 ## Before you begin
 
-<!-- State the environment, existing state, access, and required tools. Put relevant data-loss consequences here. -->
+<!-- Bullet list: environment, existing state, tools and access. State data-loss consequences here and next to the destructive step. -->
 
-## Procedure
+## Steps
 
-<!-- Give ordered, imperative steps with directory/environment context. Include necessary variations, but link to other tasks. -->
+<!-- Numbered list, one action per step. State where each command runs. Optional steps start with "Optional:". Use ### verb-phrase sub-headings for long procedures. -->
 
-## Verify completion
+## Verify the result
 
-<!-- Describe the success check and the final state the reader should observe. -->
+<!-- The exact output, file or behavior that confirms success. -->
 
 ## Troubleshooting
 
-<!-- Optional: pair actual symptoms with concrete recovery actions. Remove if no useful recovery is documented. -->
+<!-- Optional. Table | Symptom | Cause | Fix | with real, concrete cases only. Remove when there is nothing concrete. -->
 
-## Related documentation
+## Related
 
-<!-- Link to authoritative options/reference and conceptual explanation rather than duplicating them. -->
+<!-- Links to the authoritative reference and to explanations. -->
