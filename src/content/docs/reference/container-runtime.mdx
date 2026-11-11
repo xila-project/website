@@ -6,7 +6,7 @@ description: Exact shell and guest commands, image defaults, persistence, mounts
 
 import CodeReference from "@/components/CodeReference.astro";
 
-The `xila-runtime` binary runs a Xila **command-line shell** or a VFS executable without a graphical desktop. It can be built as a native binary or used in a Linux/amd64 OCI image. This is **not** the development image that contains Rust and build tools.
+The headless runtime runs a Xila shell or a virtual file system (VFS) executable. Its interfaces are defined in <CodeReference repo="platforms" path="examples/native/src/bin/xila-runtime.rs" /> and <CodeReference repo="platforms" path="Dockerfile.runtime" />.
 
 ## Image and executable
 
@@ -15,6 +15,8 @@ Platforms' [runtime workflow](https://github.com/xila-project/platforms/actions/
 The image runs as UID/GID **10001**, retains its mutable disk in `/var/lib/xila`, and carries an immutable reference image at `/usr/share/xila/base.img`. Its entrypoint is `/usr/bin/xila-runtime`, and its default command is **`shell --network=none`**. The container currently supports **linux/amd64**, not embedded hardware.
 
 ## Command syntax
+
+The executable accepts the following syntax:
 
 ```text
 xila-runtime shell [OPTIONS]
@@ -44,7 +46,7 @@ Host directories must first be mounted into Docker and then separately exposed t
 
 A writable volume at `/var/lib/xila` retains the LittleFS disk across container runs. An existing disk is **never overwritten** by a newer seed. SIGINT/SIGTERM attempts to flush/unmount before exiting; abrupt termination may lose recent writes. The image is non-root and supports a read-only container root filesystem with writable state and a temporary `/tmp`.
 
-This runner does not provide a graphical desktop, host sockets, an enabled Xila network stack, hardware acceleration, embedded-board support, or sandbox guarantees beyond Docker's own isolation. Guest compatibility remains limited to the WASI API subset Xila implements.
+This runner does not initialize a graphics or network manager. The graphical headless driver and its debug transport are separate from this executable. Guest compatibility remains limited to the WASI API subset Xila implements.
 
 ## Related
 
