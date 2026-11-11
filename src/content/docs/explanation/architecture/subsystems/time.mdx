@@ -23,7 +23,7 @@ The following diagram shows the dual-clock architecture of the time subsystem.
 
 ```mermaid
 flowchart LR
-    Embassy["embassy_time::Instant<br/>(1 MHz hardware counter)"] --> Mono["EmbassyClock (MonotonicClock)"]
+    Embassy["embassy_time::Instant"] --> Mono["EmbassyClock (MonotonicClock)"]
     Mono --> Uptime["time::Manager::monotonic_now()"]
     Mono --> UTC["realtime_now() (UTC Timestamp)"]
     RTC["RealtimeSource (TimeDevice, RTC, NTP)"] -->|set_realtime / synchronize| UTC
@@ -38,7 +38,7 @@ The <HostReference crate="time" kind="struct" symbol="Manager" /> coordinates tw
 
 ### Monotonic clock and Embassy time
 
-The default monotonic source is `EmbassyClock`, which reads hardware tick counters from Embassy's time driver. On native desktop targets, this reads system timers; on microcontrollers, it connects to hardware timer peripherals running at 1 MHz (`TICK_HZ = 1_000_000`).
+The default monotonic source is `EmbassyClock`, which reads hardware tick counters from Embassy's time driver. Each platform supplies the Embassy time driver. No Xila crate selects an Embassy `tick-hz` feature, so ticks use Embassy's default rate (`TICK_HZ`, 1 MHz).
 
 Monotonic readings never decrease during a boot session. The subsystem uses this timebase for:
 

@@ -27,7 +27,7 @@ Dependencies follow a strict unidirectional hierarchy:
 
 ### Repository layering
 
-The following diagram shows the dependency relationships among Xila repositories.
+The following diagram shows the dependency relationships among Xila repositories. Each arrow points from a repository to a repository it depends on; `registry` holds no code and has no arrow.
 
 ```mermaid
 flowchart TD
@@ -42,12 +42,11 @@ flowchart TD
     Plat --> Core
     Plat --> PM
     Plat --> Apps
-    Reg -.->|package metadata| PM
 ```
 
 Each repository owns a distinct responsibility in the ecosystem:
 
-- **[Core](https://github.com/xila-project/core)** provides portable operating system subsystems, reusable data structures, and the top-level `xila` façade crate. Core never depends on other Xila repositories.
+- **[Core](https://github.com/xila-project/core)** provides portable operating system subsystems, reusable data structures, and the top-level `xila` façade crate. The crates of the Core workspace depend on no other Xila repository.
 - **[package_manager](https://github.com/xila-project/package_manager)** is a leaf repository providing package creation, manifest validation, cryptographic signing, and verification. It has no dependencies on any other Xila repository.
 - **[Applications](https://github.com/xila-project/applications)** contains official system executables, shells, user-space utilities, and the WebAssembly (Wasm) host interpreter. Applications depends on Core and package manager.
 - **[Platforms](https://github.com/xila-project/platforms)** contains target drivers, filesystem seed generation tools, and target entry points that assemble full system images. Platforms depends on Core, package manager, and Applications.
