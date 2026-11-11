@@ -1,63 +1,56 @@
 ---
 title: "Firmware update"
 docType: explanation
-description: Experimental firmware update transactions, the privileged VFS device and the native NOR simulator in Platforms.
+description: "How firmware update transactions stage, verify and activate an image."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-Core #532 adds the **experimental** `xila-firmware-update` library, and Platforms provides an end-to-end native NOR-flash simulator for it. This is the prototype portion of [Core #526](https://github.com/xila-project/core/issues/526), **not** an ESP32-S3 OTA implementation or production secure bootloader.
+The Core `firmware_update` library manages a firmware update transaction through a platform backend. Its device adapter exposes the transaction through the virtual file system (VFS).
 
-Since Core #585 and Platforms #59, Core holds only the platform-independent contracts: `FirmwareBackend`, the error and capability types, and the VFS `device` adapter. The simulator and its NOR model live in Platforms, which also removed Core's dependency on the shared `verification` crate.
+## Context
 
-## Transaction model
+<HostReference crate="firmware_update" kind="struct" symbol="Update" /> owns a
+<HostReference crate="firmware_update" kind="trait" symbol="FirmwareBackend" />.
+The backend defines image format, trust, staging geometry and persistent boot
+state. The transaction tracks the current stream in memory.
 
-The `no_std` core defines an allocator-independent `Update<B>` transaction owner around a platform `FirmwareBackend`. The backend owns image format, verification trust, staging geometry and boot state. The intended lifecycle is:
+## How it works
 
-1. Begin a transaction for an exact declared image length and backend-specific metadata.
-2. Stream bytes to durable staging, handling short writes and failures explicitly.
-3. Finish and verify the stored image, receiving a backend-owned proof bound to that staging generation.
-4. Activate only the verified generation, then attempt a trial boot.
-5. Confirm the running image or recover the previous confirmed image. Aborting never activates new firmware.
+The following diagram shows successful transaction transitions and failure recovery.
 
-The native simulator models NOR erase sectors, 1→0 programming, torn writes, two image slots and redundant boot records. It consumes the **pinned shared verification dependency** from [package_manager](https://github.com/xila-project/package_manager/tree/main/crates/verification), reusing SHA-256 and **strict ordinary Ed25519** from [Verification](/explanation/architecture/libraries/verification) and uses a **simulator-specific signed manifest**, distinct from XPK or ESP/MCUboot formats.
-
-## Device contract
-
-The optional VFS façade is mounted at `/devices/system/firmware`. It uses Xila's Unix-like character-device operations instead of exposing flash offsets or slots directly. The root-owned mount uses mode `0600`, allows **one exclusive opening** (including read-only status openings), and rejects duplicated descriptors.
-
-The fixed-byte ABI v1 uses command family `F`: capability/status queries and the write-directed `BEGIN`, `FINISH`, `ACTIVATE`, `ABORT` and `CONFIRM` controls. A `write` streams image bytes after `BEGIN`. Headers carry explicit version/reserved bytes and each operation validates lengths and state. VFS **read-only handles cannot issue write-directed controls**, including through WASI forwarding. Closing a handle never activates firmware.
-
-Capabilities describe guarantees separately: **authenticated update**, **functional revert**, **verified boot**, and **hardware root**. The simulator implements only the first two; its mutable security floor is **not hardware-enforced anti-rollback**.
-
-## Native simulator and validation
-
-Platforms' `xila-firmware-native` package (`tools/firmware_sim`) provides the `xila-firmware-sim` command, a process-restart test harness, persistent raw-file backing and deterministic fault injection. Tests exercise corrupted signatures, stale proofs, failed operations, torn writes and trial/confirm/revert recovery across restarts. From a Platforms checkout:
-
-```sh
-mise run firmware:test
-cargo run --bin xila-firmware-sim -- --help
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Receiving: begin
+    Receiving --> Verified: finish
+    Verified --> PendingBoot: activate
+    Receiving --> Failed: transaction failure
+    Verified --> Failed: transaction failure
+    Idle --> Failed: backend begin failure
+    Failed --> Idle: abort succeeds
+    Receiving --> Idle: abort succeeds
+    Verified --> Idle: abort succeeds
+    PendingBoot --> Idle: abort succeeds
 ```
 
-See the simulator README in Platforms for complete arguments, the flash layout and signed-test-image recipes. In Core, `libraries/firmware_update/tests/device.rs` tests the VFS adapter against a minimal in-test fake backend. These results are **not hardware qualification**.
+A successful begin declares the image length. Writes stream data to the backend; finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when successful. Confirmation of the running image is a separate backend operation allowed in `Idle`.
 
-## Hardware and security limits
+The optional device adapter exposes `/devices/system/firmware`. Its control commands manage the transaction, while writes supply image bytes. See <CodeReference path="libraries/firmware_update/src/device.rs" /> for the device contract.
 
-ESP32-S3 secure boot uses the platform's provisioned trust and bootloader verification, not the simulator's Ed25519 format. Any future adapter must use platform OTA APIs, partitions, recovery state and key policy. MCUboot-based Nordic boards have different trailer, signature and swap constraints. Power-loss, brownout, secure-key provisioning, real flash wear and target-specific RAM/stack/flash costs all remain to be validated.
+## Design choices and trade-offs
 
-No production boot protection, signing-key management, update transport or application-package enforcement is shipped by this prototype. The separate #402, #491 and #495 work items own package manifests, installation trust and executable enforcement.
+The backend owns verification and boot policy. The transaction retains a proof between finish and activation, and backend failures can put it in `Failed`. Closing a device does not activate an image.
 
-## References
+## API reference
 
-- <HostReference crate="firmware_update" /> - transaction API Rustdoc.
-- <CodeReference path="libraries/firmware_update/README.md" /> - platform audit.
-- <CodeReference path="libraries/firmware_update/src/lib.rs" /> - transaction
-  and capability contracts.
-- <CodeReference path="libraries/firmware_update/src/device.rs" /> - VFS device
-  command ABI.
-- Native reference backend, in Platforms:
-  <CodeReference repo="platforms" path="tools/firmware_sim/src/simulator.rs" />.
-- Simulator flash layout and reproducible procedure, in Platforms:
-  <CodeReference repo="platforms" path="tools/firmware_sim/README.md" />.
-- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system) - namespace and access rules.
+- <HostReference crate="firmware_update" /> — update contracts.
+- <HostReference crate="firmware_update" kind="enum" symbol="State" /> —
+  transaction states.
+- <CodeReference path="libraries/firmware_update/src/device.rs" /> — device
+  adapter.
+
+## Related
+
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)
