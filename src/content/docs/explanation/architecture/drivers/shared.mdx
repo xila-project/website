@@ -1,31 +1,46 @@
 ---
-title: "Shared driver crate"
+title: "Shared"
 docType: explanation
-description: "The drivers_shared crate provides reusable device implementations that are used across multiple platforms."
+description: "Reusable devices and terminal line editing shared by Platforms runtimes."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The `drivers_shared` crate provides reusable device implementations that are used across multiple platforms.
+The Platforms `drivers_shared` crate provides devices shared by multiple runtimes.
 
-Today this includes utility devices such as random and hashing devices that can be mounted into the virtual file system and reused by modules like authentication.
+## Context
 
-## Dependencies
+The native and browser examples combine these devices with platform-specific implementations.
 
-- [File system](/explanation/architecture/libraries/file_system)
-- [Log](/explanation/architecture/subsystems/log)
-- [Shared](/explanation/architecture/libraries/shared)
-- [Device](/explanation/architecture/libraries/device)
+## How it works
 
-## References
+Both examples mount random and hashing devices at `/devices/random/source` and `/devices/compute/hasher`. The native example also mounts shared HTTP and HTTPS devices at `/devices/network/http_client` and `/devices/network/https_client`. With the neural-network feature, both mount a loader at `/devices/nn/cpu`.
 
-- <HostReference repo="platforms" crate="drivers_shared" /> - generated Rust API
-  documentation.
+### Terminal input
 
-- <CodeReference repo="platforms" path="drivers/shared" />
+The terminal line editor echoes accepted input. Backspace or Delete removes the last UTF-8 character; Ctrl-U erases the line. Ctrl-C discards the line, echoes `^C` and a newline, and queues an empty line. Ctrl-D reports end of input on an empty line and is ignored on a nonempty line. Tab inserts one space; other control bytes are ignored. Escape sequences are consumed.
 
-## See also
+CR or LF commits the line with a newline and echoes CRLF. An LF immediately following CR is consumed. If the completed queue lacks room for the line and newline, the editor retains the line and rings the bell. It also rings the bell when input cannot fit.
 
-- [Drivers](/explanation/architecture/drivers)
-- [Authentication](/explanation/architecture/libraries/authentication)
+## Design choices and trade-offs
+
+The editor uses fixed-capacity line and completed-input buffers. A multibyte character that cannot fit is discarded. Random availability and network and neural-network devices depend on target or feature gates.
+
+## API reference
+
+- <HostReference repo="platforms" crate="drivers_shared" />: Shared driver
+  source.
+- <CodeReference
+    repo="platforms"
+    path="drivers/shared/src/devices/terminal/logic.rs"
+  />
+  : Terminal line editor.
+- <CodeReference repo="platforms" path="examples/native/src/main.rs" />: Native
+  device mounts.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)
+- [Nordic](/explanation/architecture/drivers/nordic/)
+- [Neural network](/explanation/architecture/libraries/neural_network/)
