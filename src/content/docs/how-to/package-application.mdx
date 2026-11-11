@@ -4,11 +4,13 @@ docType: how-to
 description: "Build, sign and verify a Xila application package."
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
+
 This guide shows how to create a signed package with the desktop `xila-package` tool.
 
 ## Before you begin
 
-- Install the [package manager tool](https://github.com/xila-project/package_manager/tree/main/crates/builder) and prepare a compiled WebAssembly (Wasm) guest application.
+- Install the <CodeReference repo="package_manager" path="crates/builder">package manager tool</CodeReference> and prepare a compiled WebAssembly (Wasm) guest application.
 - Have a developer signing key: a raw 32-byte Ed25519 seed and its public key. Keep the seed outside the source directory.
 
 ## Steps

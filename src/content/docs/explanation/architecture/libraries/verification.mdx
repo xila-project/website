@@ -4,6 +4,8 @@ docType: explanation
 description: "Understand the shared SHA-256 and Ed25519 verification library."
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
+
 The package manager's `xila-package-verification` library supplies `no_std` SHA-256 and Ed25519 primitives for checking content and signatures.
 
 ## Context
@@ -20,9 +22,21 @@ The library supports incremental hashing and `no_std` consumers. Cryptographic v
 
 ## API reference
 
-- [Hash verification](https://github.com/xila-project/package_manager/blob/main/crates/verification/src/hash.rs) — incremental SHA-256 and length checks.
-- [Signature verification](https://github.com/xila-project/package_manager/blob/main/crates/verification/src/signature.rs) — public keys and strict Ed25519 verification.
-- [Streaming package reader](https://github.com/xila-project/package_manager/blob/main/crates/reader/src/stream.rs) — package verification consumer.
+- <CodeReference repo="package_manager" path="crates/verification/src/hash.rs">
+    Hash verification
+  </CodeReference>
+  — incremental SHA-256 and length checks.
+- <CodeReference
+    repo="package_manager"
+    path="crates/verification/src/signature.rs"
+  >
+    Signature verification
+  </CodeReference>
+  — public keys and strict Ed25519 verification.
+- <CodeReference repo="package_manager" path="crates/reader/src/stream.rs">
+    Streaming package reader
+  </CodeReference>
+  — package verification consumer.
 
 ## Related
 

@@ -4,7 +4,9 @@ docType: reference
 description: "Look up the Xila package archive, manifest, signatures and limits."
 ---
 
-The experimental package format describes the `.xpk` archive and its signed inventory. The source of truth is the [manifest implementation](https://github.com/xila-project/package_manager/blob/main/crates/manifest/src/lib.rs) and its [JSON schema](https://github.com/xila-project/package_manager/blob/main/schemas/package-manifest.schema.json).
+import CodeReference from "@/components/CodeReference.astro";
+
+The experimental package format describes the `.xpk` archive and its signed inventory. The source of truth is the <CodeReference repo="package_manager" path="crates/manifest/src/lib.rs">manifest implementation</CodeReference> and its <CodeReference repo="package_manager" path="schemas/package-manifest.schema.json">JSON schema</CodeReference>.
 
 ## Archive
 
@@ -27,7 +29,7 @@ A bundle-local entrypoint and nonempty icon must name inventory files. A system 
 
 ## Signature
 
-The developer signs the exact stored manifest bytes with Ed25519. The signed message is the ASCII domain `XILA-PACKAGE-MANIFEST-V1`, one zero byte, the manifest byte length as a little-endian 32-bit integer, and the manifest bytes. SHA-256 digests cover the payload bytes. See the [bundle implementation](https://github.com/xila-project/package_manager/blob/main/crates/bundle/src/lib.rs) and [streaming reader](https://github.com/xila-project/package_manager/blob/main/crates/reader/src/stream.rs).
+The developer signs the exact stored manifest bytes with Ed25519. The signed message is the ASCII domain `XILA-PACKAGE-MANIFEST-V1`, one zero byte, the manifest byte length as a little-endian 32-bit integer, and the manifest bytes. SHA-256 digests cover the payload bytes. See the <CodeReference repo="package_manager" path="crates/bundle/src/lib.rs">bundle implementation</CodeReference> and <CodeReference repo="package_manager" path="crates/reader/src/stream.rs">streaming reader</CodeReference>.
 
 ## Limits
 

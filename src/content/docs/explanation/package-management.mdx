@@ -4,6 +4,8 @@ docType: explanation
 description: "Understand how Xila packages are published and verified before installation."
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
+
 Package management connects signed application files to registry metadata and installation. The [package manager repository](https://github.com/xila-project/package_manager) owns the formats and tools; Applications owns the on-device installer.
 
 ## Context
@@ -50,9 +52,21 @@ The installer stages files before moving the verified bundle into place. It does
 
 ## API reference
 
-- [Repository installation](https://github.com/xila-project/applications/blob/main/executables/package/src/repository.rs) — metadata and archive checks.
-- [Local installation](https://github.com/xila-project/applications/blob/main/executables/package/src/install.rs) — staging and verification.
-- [Trust metadata](https://github.com/xila-project/package_manager/blob/main/crates/manifest/src/trust.rs) — root and index formats.
+- <CodeReference
+    repo="applications"
+    path="executables/package/src/repository.rs"
+  >
+    Repository installation
+  </CodeReference>
+  — metadata and archive checks.
+- <CodeReference repo="applications" path="executables/package/src/install.rs">
+    Local installation
+  </CodeReference>
+  — staging and verification.
+- <CodeReference repo="package_manager" path="crates/manifest/src/trust.rs">
+    Trust metadata
+  </CodeReference>
+  — root and index formats.
 
 ## Related
 

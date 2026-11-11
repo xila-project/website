@@ -4,12 +4,14 @@ docType: how-to
 description: "Submit a signed package version to the Xila registry."
 ---
 
+import CodeReference from "@/components/CodeReference.astro";
+
 This guide shows how to submit a released package to the registry.
 
 ## Before you begin
 
 - Build a signed package and retain its developer public key. See [Package an application](/how-to/package-application/).
-- Publish the `.xpk` at an HTTPS release URL and install the [desktop tool](https://github.com/xila-project/package_manager/tree/main/crates/builder).
+- Publish the `.xpk` at an HTTPS release URL and install the <CodeReference repo="package_manager" path="crates/builder">desktop tool</CodeReference>.
 - Obtain a checkout of the [registry repository](https://github.com/xila-project/registry) and access to open a pull request.
 
 ## Steps
@@ -20,7 +22,7 @@ This guide shows how to submit a released package to the registry.
    xila-package registry entry ./Weather.xpk ./public.key community https://example.org/Weather.xpk packages/community/weather/1.0.0.json
    ```
 
-2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. Its namespaces must authorize the package identifier. Follow the [developer-key schema](https://github.com/xila-project/package_manager/blob/main/schemas/developer-key.schema.json).
+2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. Its namespaces must authorize the package identifier. Follow the <CodeReference repo="package_manager" path="schemas/developer-key.schema.json">developer-key schema</CodeReference>.
 3. In a host shell in the registry repository root, validate the checkout:
 
    ```sh
