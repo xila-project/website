@@ -1,124 +1,101 @@
 ---
-title: "WASM (executable)"
+title: "Wasm"
 docType: explanation
-description: "The WASM executable loads guest programs from Xila's VFS and runs them using Wasmi 2 with cooperative, resumable execution."
+description: "How Xila loads and executes WebAssembly guest applications using Wasmi and cooperative scheduling."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
+import DocsRsReference from "@/components/DocsRsReference.astro";
 
-The WASM executable loads guest programs from Xila's VFS and runs them using Wasmi 2. Both the native and browser examples mount it at `/applications/executables/wasm`.
+The Wasm executable loads WebAssembly (Wasm) guest applications from Xila's virtual file system (VFS) and executes them using the <DocsRsReference crate="wasmi" /> interpreter. The `xila-wasm` crate in the Applications repository provides both the host runtime program and the guest API helpers.
 
-## Role and feature selection
+## Context
 
-The package serves two sides of the boundary: a host interpreter integrated with Xila's executable services, and helpers compiled into guest applications. The host role also applies when Xila runs in a browser. Optional graphics connects the interpreter to the context's graphics capability.
+Xila applications run as sandboxed WebAssembly modules rather than native machine code. This architecture isolates application memory from the kernel, provides a uniform binary format across host CPU architectures, and enables applications to run identically on microcontroller development boards, desktop native builds, and browser platforms.
 
-The [runtime reference](/reference/wasm-runtime#cargo-features) defines the exact Cargo feature sets and defaults.
+The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" />, <HostReference crate="task" kind="struct" symbol="Manager" />, and <HostReference crate="graphics" kind="struct" symbol="Manager" />) and implements <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> to integrate into Xila's process lifecycle.
 
-## Launching a guest
+## How it works
 
-The launcher reads a guest from the VFS and invokes its typed, no-argument `_start: () -> ()` export. Installation and shortcut discovery are separate from execution. Path handling belongs to the caller and the VFS; the loader does not implement the old `Current_directory` resolution step.
+### System call pathway
 
-Follow [Run a guest](/how-to/run-guest) for the procedure and [command syntax](/reference/wasm-runtime#command-syntax) for its options and required exports.
+The following diagram shows how a guest call reaches a device driver or display hardware.
 
-## Startup and lifecycle
-
-1. Parse the guest path, `--stack-size`, and `--instruction-limit`, separating optional guest arguments after `--`.
-2. Read bytes through the context-provided VFS and current task identifier.
-3. Create a fresh Wasmi engine, module, linker, and store; there is no globally cached runtime.
-4. Eagerly translate module functions before execution so fuel exhaustion cannot suspend lazy callee translation.
-5. Bind standard streams, task environment, and the root directory preopen to the per-execution WASI context.
-6. Register WASI and optional graphics imports, instantiate, and call `_start` resumably.
-7. Yield on fuel exhaustion or supported suspension calls; report exit/trap errors and release VM-owned graphics objects.
-
-## Runtime integration points
-
-- `ExecutableTrait`, `ExecutableContext`, and `Standard::context` for launch capabilities.
-- VFS `get_statistics` and `File::read_from_path` for module loading.
-- Wasmi `Engine`, `Module`, `Linker`, and `Store<GlobalStore>` for guest execution.
-- Local WASI descriptor tables for stdio and paths; guest imports do not use the removed `abi_context` crate.
-- Optional checked graphics adapters, including Xila-specific pointer/canvas helpers, use explicit per-VM graphics state rather than guest pointers to host objects.
-
-## Failure semantics and limits
-
-- Argument, file-kind, compilation, instantiation, missing-export, and execution failures are reported on stderr and return a nonzero executable result.
-- WASI `proc_exit(0)` succeeds; nonzero exit codes become runtime errors.
-- Wasmi 2 meters input Wasm operators. Fuel is replenished after cooperative yielding, so its quantum controls scheduling rather than a total instruction budget and is not a stable wall-time slice.
-- WASI coverage is partial; `poll_oneoff` supports clocks, not file-descriptor readiness. Start-section suspension is unsupported.
-- Graphical guests need bindings compatible with the host's LVGL revision/configuration and supported call subset.
-
-The native and browser examples now start from pre-seeded LittleFS images containing bundled WASI guests such as Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor. New images contain matching `/applications/bundles/<id>/` directories with `shortcut.json` and guest binaries; existing persistent images are preserved without automatic upgrades. The browser persists its selected live disk in OPFS. See [Browser tutorial](/tutorials/browser) for the build flow, [Browser storage](/explanation/browser-storage) for persistence, and [the headless container runtime](/reference/container-runtime) for running WASI without graphics or networking.
-
-Exact option defaults and constraints live in the [runtime reference](/reference/wasm-runtime#execution-limits).
-
-## Runner command and guest entrypoint contract
-
-The native `WasmExecutable` implements `ExecutableTrait` and normally runs as the mounted `/applications/executables/wasm` program. Its arguments are parsed by `getargs`:
-
-```text
-/applications/executables/wasm /applications/bundles/xila.calculator/executables/calculator.wasm
-/applications/executables/wasm --instruction-limit 50000 /applications/bundles/xila.clock/executables/clock.wasm
-/applications/executables/wasm /applications/bundles/xila.calculator/executables/calculator.wasm -- first-argument --guest-option
+```mermaid
+flowchart LR
+    Guest["Guest application (wasm32-wasip1)"] --> Import["Host import (WASI or graphics)"]
+    Import --> HostRuntime["Host runtime (xila-wasm)"]
+    HostRuntime --> Subsystem["VFS or graphics subsystem"]
+    Subsystem --> Driver["Device driver or display hardware"]
 ```
 
-The runner invokes only `_start: () -> ()`. A literal `--` separates runner options from guest arguments, which become WASI `argv` after the guest's path. The `@bundle/` prefix is expanded by the graphical Shell when launching a shortcut, **not** by the Wasm runner itself. `--help`/`--version` exit successfully; parsing errors return nonzero status.
+The guest application executes within sandboxed WebAssembly linear memory and invokes an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O, or through `xila_graphics_call` for graphical operations. The host runtime verifies memory bounds, checks task capabilities, and forwards requests to Core subsystems. The subsystems then dispatch typed control commands or pixel operations to underlying device drivers.
 
-`--instruction-limit` defaults to **100,000** and must be a nonzero `u32`. It is a **cooperative instruction quantum**, not a total instruction budget or an execution timeout. `--stack-size` defaults to 4096 but is currently a **legacy parsed option with no effect**: the code explicitly discards its value and Wasmi manages stack allocation.
+### Module initialization and lifecycle
 
-## Per-execution ownership and WASI descriptors
+When launched from the shell or desktop, the host runner completes the following lifecycle:
 
-Each invocation creates a new Wasmi engine/module/linker/store; there is no shared module cache. The engine enables fuel consumption and **eager** translation, avoiding suspended execution during lazy callee compilation. The store embeds `GlobalStore` with a dedicated `WasiContext`, optional `GraphicsState`, the caller's `ExecutableContext`, and pending suspension state.
+1. Path resolution: The runner reads the module bytecode from the VFS into memory using <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />.
+2. Directory provisioning: If the path belongs to an application bundle, the runner ensures configuration, data, and cache directories exist for the calling user, configuring `XILA_APPLICATION_*` environment variables.
+3. Engine instantiation: A fresh Wasmi engine and store are allocated for each execution. There is no globally cached interpreter state.
+4. Eager translation: Function bytecode is translated eagerly before execution begins, ensuring that fuel exhaustion cannot interrupt lazy compilation.
+5. WASI environment setup: Standard streams (`stdin`, `stdout`, `stderr`) are mapped to descriptors `0`, `1`, and `2`. If available, the root directory (`/`) is preopened as descriptor `3`.
+6. Import registration and execution: WASI and graphics imports are linked, and the runner invokes the exported entry point `_start: () -> ()`.
+7. Teardown: On exit or trap, the runtime cleans up allocated resources and frees all VM-owned graphics objects.
 
-The guest receives `fd 0/1/2` from duplicated `Standard` streams. If opening the VFS root directory succeeds, it is preopened as `fd 3` with name `/`, and the next allocated descriptor is 4; otherwise the preopen is absent. Descriptor IDs increase monotonically and are not reused by `WasiContext` until a new execution.
+### Cooperative fuel slicing
 
-The host registers a subset of WASI Preview 1: process/exit, environment/args, file/directory/path I/O, time, random, scheduling and clock-only `poll_oneoff`. This is **not** a complete POSIX or WASI implementation: arbitrary FD readiness, start-section yielding and unrestricted native graphics pointers remain unsupported.
+Xila operates on an asynchronous cooperative multitasking model. To prevent a guest module from monopolizing CPU execution, the host configures Wasmi fuel metering:
 
-## Cooperative suspension, time and exit values
+- Each execution slice consumes fuel up to `--instruction-limit` (defaulting to 100,000 instructions).
+- When fuel is exhausted, Wasmi suspends execution.
+- The host runtime yields control to Xila's task scheduler, allowing other system tasks and display updates to run.
+- When the task resumes, fuel is replenished and execution continues.
 
-`execution::run` resumes a typed Wasmi call. On `OutOfFuel`, it yields to the Task scheduler, replenishes fuel to at least the amount needed by a single bulk operation, then resumes. Supported host suspension includes a yield import and clock-poll events; a pending clock poll sleeps in chunks capped at **50 ms** to check for shutdown and deadlines.
+### Host and guest architectural boundary
 
-The monotonic WASI clock is sourced from `embassy_time::Instant`, **not** by subtracting Xila's adjustable signed UTC clock. This prevents wall-clock corrections from shifting monotonic poll deadlines. The system's UTC clock is adjustable and can be unsynchronized; invalid realtime returns a WASI clock error without aborting monotonic polling. The monotonic source is the same Embassy epoch used by the executor and is independent of wall-clock corrections.
+Xila maintains a strict separation between guest code and the host environment:
 
-`proc_exit(0)` succeeds; positive guest exit statuses propagate, clamped to **1–255** at the external executable boundary. Module loading/validation, missing exports, instantiation and traps produce runtime errors. VM-local graphics state is reclaimed on teardown, including trap paths.
+- Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API.
+- The browser runtime compiles Xila's host kernel and drivers to `wasm32-unknown-unknown`. In this mode, the browser runs the Xila host, which in turn executes `wasm32-wasip1` guest applications within Wasmi.
 
-## Build modes and integration testing
+## Design choices and trade-offs
 
-Cargo features distinguish `host` (Wasmi), `guest` (guest-side imports), optional `graphics`, `memory_32`/`memory_64`, and `c_bindings`/`default_guest`. The host runs on both native targets and inside the browser's **host** environment; being in the browser does not make host Wasmi code a guest.
+- Eager compilation: Translating all functions at module load time increases startup latency slightly, but eliminates the risk of compilation failures during time-critical event processing or when fuel is nearly exhausted.
+- Isolated engine per execution: Creating a distinct Wasmi engine and store per guest run prevents state leakage between executions and ensures that memory corruption or crashes in one application cannot affect another.
+- Monotonic descriptor tables: Descriptors within a guest execution are allocated monotonically, avoiding use-after-free bugs from reused descriptor numbers.
 
-Graphics calls are versioned with the LVGL configuration used to generate the bindings. Guest applications and reference disks must be rebuilt with matching host-side bindings after ABI changes.
+## Limits
 
-### Source references
+- Scheduling quantum: Execution slices are metered by instruction count, not wall-clock time; CPU-intensive instructions may vary in duration.
+- Polling support: The `poll_oneoff` WASI implementation supports clock timer subscriptions, but does not support arbitrary file descriptor readiness events.
+- Single root preopen: Guests receive descriptor `3` preopened to `/`; path operations resolving outside `/` are rejected with `Notcapable`.
 
+## API reference
+
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Interface implemented by the host runner.
+- <HostReference
+    crate="virtual_file_system"
+    kind="struct"
+    symbol="VirtualFileSystem"
+  />
+  : File system manager used to load guest modules.
+- <GuestReference
+    repo="applications"
+    crate="wasm"
+    kind="fn"
+    symbol="fd_control"
+  />
+  : Guest descriptor control function.
 - <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />
-  (options, modules and descriptor setup).
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/host/execution.rs"
-  />
-  (resumable calls, fuel and clock polling).
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/host/wasi/context.rs"
-  />
-  (descriptor table and ownership).
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/host/wasi/register.rs"
-  />
-  (implemented WASI imports).
-- <CodeReference repo="applications" path="executables/wasm/Cargo.toml" /> -
-  host/guest/graphics feature gates.
-- [Graphics bindings](/explanation/architecture/executables/bindings) - checked guest UI boundary.
+  : Host executable entry point and argument parsing.
 
-## References
+## Related
 
-- <HostReference repo="applications" crate="wasm" /> - host-side interpreter and
-  integration APIs.
-- <GuestReference repo="applications" crate="wasm" /> - guest-facing WebAssembly
-  helper APIs.
-
-- <CodeReference repo="applications" path="executables/wasm" />
-- [Graphics bindings](/reference/graphics-bindings)
-- [Bindings](/explanation/architecture/executables/bindings)
-- [Executable runtime crate](/explanation/architecture/libraries/executable)
+- [Build a guest application](/how-to/build-guest/)
+- [Run a guest application](/how-to/run-guest/)
+- [Wasm runtime](/reference/wasm-runtime/)
+- [Bindings](/explanation/architecture/executables/bindings/)

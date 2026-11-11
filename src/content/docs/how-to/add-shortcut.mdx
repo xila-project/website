@@ -1,83 +1,83 @@
 ---
-title: "Add a launcher shortcut to a bundle"
+title: "Add a launcher shortcut"
 docType: how-to
-description: Add a bundle-local shortcut.json so the Xila graphical Shell can discover and launch an application.
+description: "Create a shortcut descriptor so the graphical shell discovers and launches an application bundle."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 
-Use a `shortcut.json` descriptor to make an installed application visible in Xila's graphical Shell. The Shell reads launcher presentation data; it does not install applications or interpret package manifests.
+This guide shows how to add a `shortcut.json` launcher descriptor to an application bundle so Xila's graphical shell discovers and launches the application.
 
 ## Before you begin
 
-- Have a `wasm32-wasip1` executable built for Xila and a bundle source directory containing it. See [Build a guest](/how-to/build-guest).
-- Have an installed bundle directory writable through your packaging/deployment workflow. The Shell must be able to read its descriptor under Xila's normal filesystem permissions.
-- Use the [strict shortcut JSON Schema](https://github.com/xila-project/applications/blob/main/schemas/shell-shortcut.schema.json) to validate the descriptor before packaging.
+- Have a compiled `wasm32-wasip1` guest binary, as described in [Build a guest application](/how-to/build-guest/).
+- Have an application bundle directory structure prepared for installation under `/applications/bundles/<identifier>/`.
 
-## 1. Place the descriptor next to the bundle payload
+## Steps
 
-A published application bundle has one directory directly beneath `/applications/bundles/`. Put the descriptor at the **root of that directory**, next to the executable payload:
+### Create the shortcut descriptor
 
-```text
-/applications/bundles/xila.calculator/
-  shortcut.json
-  executables/
-    calculator.wasm
-```
+1. In the root of the bundle directory, create a file named `shortcut.json`.
+2. Populate `shortcut.json` with the required fields:
 
-For the official Calculator guest, the source descriptor is <CodeReference repo="applications" path="executables/calculator/shortcut.json" />. Include `shortcut.json` in the files inventoried by the package builder; a signed package's manifest covers the descriptor's SHA-256 like other payload files.
+   ```json
+   {
+     "$schema": "https://raw.githubusercontent.com/xila-project/applications/main/schemas/shell-shortcut.schema.json",
+     "name": "Calculator",
+     "command": "/applications/executables/wasm",
+     "arguments": ["@bundle/executables/calculator.wasm"],
+     "terminal": false,
+     "icon_string": "Ca",
+     "icon_color": [158, 158, 158]
+   }
+   ```
 
-## 2. Describe the launcher
+   All six launcher properties are required:
 
-Create `shortcut.json` with the following contents, matching the [Applications schema](https://raw.githubusercontent.com/xila-project/applications/main/schemas/shell-shortcut.schema.json):
+   | Property      | Format                      | Description                                                      |
+   | ------------- | --------------------------- | ---------------------------------------------------------------- |
+   | `name`        | String, 1–128 characters    | Display name shown in the application drawer                     |
+   | `command`     | String, 1–256 characters    | Path to the executable; `@bundle/` prefix is supported           |
+   | `arguments`   | Array of up to 24 strings   | Command arguments; `@bundle/` elements are expanded by the shell |
+   | `terminal`    | Boolean                     | Declares whether the application runs in a terminal              |
+   | `icon_string` | String, 1–8 characters      | Monogram text rendered inside the icon                           |
+   | `icon_color`  | Array of 3 integers (0–255) | RGB color array for the icon background                          |
 
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/xila-project/applications/main/schemas/shell-shortcut.schema.json",
-  "name": "Calculator",
-  "command": "/applications/executables/wasm",
-  "arguments": ["@bundle/executables/calculator.wasm"],
-  "terminal": false,
-  "icon_string": "Ca",
-  "icon_color": [158, 158, 158]
-}
-```
+### Install the bundle structure
 
-The schema rejects unknown properties. All six launcher fields are required; `$schema` is optional:
+1. Place the executable inside the bundle directory, matching the path specified in `arguments`:
+   ```text
+   /applications/bundles/xila.calculator/
+     shortcut.json
+     executables/
+       calculator.wasm
+   ```
+2. Copy or mount the bundle directory into `/applications/bundles/` in Xila's virtual file system (VFS).
 
-| Field         | Constraint                                                                 |
-| ------------- | -------------------------------------------------------------------------- |
-| `name`        | Non-empty display string, at most 128 characters                           |
-| `command`     | Non-empty executable path, at most 256 characters; `@bundle/` is supported |
-| `arguments`   | Array of at most 24 strings, each at most 256 characters                   |
-| `terminal`    | Boolean display metadata                                                   |
-| `icon_string` | Icon text, at most 8 characters                                            |
-| `icon_color`  | Exactly three RGB integers, each between 0 and 255                         |
+## Verify the result
 
-The Shell resolves any `command` or `arguments` element starting with `@bundle/` relative to the directory holding `shortcut.json`. For example, the Calculator argument becomes `/applications/bundles/xila.calculator/executables/calculator.wasm`. It rejects empty relative paths, empty path components, `.` and `..` components, and backslashes. Other strings are passed through unchanged.
+1. In Xila, open the graphical shell's application drawer.
+2. Confirm that an icon displaying your `icon_string` and `icon_color` appears with the application `name`.
+3. Select the icon to launch the application.
 
-**The `@bundle/` syntax belongs to Shell shortcut resolution, not to the Wasm command-line runner.** The Wasm runner itself invokes only the guest's `_start: () -> ()` export.
+## Troubleshooting
 
-## 3. Make the bundle available and check discovery
+| Symptom                                | Cause                                                  | Fix                                                                           |
+| -------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Shortcut does not appear in the drawer | Missing required properties or invalid JSON syntax     | Verify that all six fields are present and conform to the schema              |
+| Application fails to launch            | Path in `arguments` does not exist inside the bundle   | Ensure paths with `@bundle/` point to files within the bundle directory       |
+| File path rejected by the shell        | The path contains `..`, empty segments, or backslashes | Use clean relative paths under `@bundle/` without parent directory navigation |
 
-Deploy the completed bundle directory to `/applications/bundles/<id>/` through your packaging workflow. Open (or reopen) the graphical Shell's application drawer: it rescans bundle shortcuts **each time the drawer opens**, without a startup scan or background daemon. Select the Calculator launcher and check that its interface opens. Incomplete or invalid descriptors are skipped.
+## Related
 
-Only one active directory per bundle identifier is scanned at this level. Dot-prefixed staging directories are ignored. Native/system shortcuts seeded by Platforms also remain readable from `/configuration/shared/applications/shortcuts/*.json`.
-
-A shortcut is **not** a publisher signature, a permission grant, or proof that the executable is trustworthy. Signing and verification belong to the package manager. The VFS enforces POSIX-style UID/GID/mode permissions: they isolate users/groups, **not separate applications running as the same UID**.
-
-## Related documentation
-
-- [Build a guest application](/how-to/build-guest)
-- [Run a guest](/how-to/run-guest)
-- [WASM runtime options](/reference/wasm-runtime)
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/desk.rs"
-  />
-  (lazy bundle scanning).
+- [Build a guest application](/how-to/build-guest/)
+- [Run a guest application](/how-to/run-guest/)
+- [Wasm runtime](/reference/wasm-runtime/)
 - <CodeReference
     repo="applications"
     path="executables/shell/graphical/src/shortcut.rs"
   />
-  (fields and path validation).
+- <CodeReference
+    repo="applications"
+    path="schemas/shell-shortcut.schema.json"
+  />

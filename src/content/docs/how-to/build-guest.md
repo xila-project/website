@@ -1,46 +1,88 @@
 ---
 title: "Build a guest application"
 docType: how-to
-description: Compile a wasm32-wasip1 guest from Applications and use the relocated xila-wasm guest API.
+description: "Compile a WebAssembly guest application for Xila using the wasm32-wasip1 target and xila-wasm crate."
 ---
 
-Official guest code and the `xila-wasm` guest API now live in [Applications](https://github.com/xila-project/applications). Compile application binaries for **`wasm32-wasip1`**; `wasm32-unknown-unknown` is the **Platforms browser host**, not the guest target.
+This guide shows how to compile a WebAssembly (Wasm) guest application targeting `wasm32-wasip1` for execution in Xila.
 
-## Build an existing bundled application
+## Before you begin
 
-From the `applications` checkout, after installing [mise](https://mise.jdx.dev/):
+- Install Rust with the `wasm32-wasip1` target: run `rustup target add wasm32-wasip1`.
+- Install [mise](https://mise.jdx.dev/) if you build existing applications in the Applications repository.
+- Have a guest application project ready, such as the [Wasm application template](https://github.com/xila-project/wasm_application_template).
+
+## Steps
+
+### Build an existing application in the Applications repository
+
+1. In the Applications repository root, trust the local mise configuration:
+   ```sh
+   mise trust
+   ```
+2. Build all bundled guest applications:
+   ```sh
+   mise run build:applications
+   ```
+   To build a single guest such as Calculator, run:
+   ```sh
+   cargo build --target wasm32-wasip1 --profile release-wasm -p xila-calculator
+   ```
+
+### Configure and build a standalone guest application
+
+1. In your project Cargo manifest (`Cargo.toml`), add `xila-wasm` with default features disabled and guest features enabled:
+   ```toml
+   [target.'cfg(target_arch = "wasm32")'.dependencies]
+   wasm = { package = "xila-wasm", git = "https://github.com/xila-project/applications", default-features = false, features = ["default_guest"] }
+   ```
+2. Configure Cargo to target `wasm32-wasip1` in `.cargo/config.toml`:
+   ```toml
+   [build]
+   target = "wasm32-wasip1"
+   ```
+3. Optional: Configure release optimizations in `Cargo.toml`:
+   ```toml
+   [profile.release]
+   opt-level = "s"
+   lto = true
+   strip = true
+   ```
+4. In your project root, compile the release binary:
+   ```sh
+   cargo build --release
+   ```
+
+## Verify the result
+
+Check that the compiled Wasm binary exists in the target directory:
+
+- For bundled applications, check `target/wasm32-wasip1/release-wasm/calculator.wasm`.
+- For standalone applications, check `target/wasm32-wasip1/release/<binary-name>.wasm`.
+
+In the Applications repository root, verify the binary format using the host shell:
 
 ```sh
-mise trust
-mise run build:applications
+file target/wasm32-wasip1/release-wasm/calculator.wasm
 ```
 
-This compiles Calculator, Clock, Weather, Pixel Painter, Text Editor and Synth with `release-wasm`. For one application:
+The output is similar to:
 
-```sh
-mise exec -- cargo build --locked -p xila-calculator \
-  --target wasm32-wasip1 --profile release-wasm
+```text
+target/wasm32-wasip1/release-wasm/calculator.wasm: WebAssembly (wasm) binary module version 0x1 (MVP)
 ```
 
-The artifact is `target/wasm32-wasip1/release-wasm/calculator.wasm` relative to Applications.
+## Troubleshooting
 
-## Depend on guest graphics bindings
+| Symptom                                   | Cause                                                  | Fix                                                           |
+| ----------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------- |
+| Missing target `wasm32-wasip1`            | The Rust toolchain lacks the WASI target               | Run `rustup target add wasm32-wasip1`                         |
+| Host dependencies pulled into compilation | Default features were not disabled on `xila-wasm`      | Set `default-features = false` on `xila-wasm` in `Cargo.toml` |
+| Missing `_start` export when running      | The crate was compiled as a library or lacks `fn main` | Add a binary target (`src/main.rs`) with `fn main`            |
 
-In an external guest project's Cargo manifest, specify the **renamed package** and the new Git repository:
+## Related
 
-```toml
-[dependencies]
-wasm = { package = "xila-wasm", git = "https://github.com/xila-project/applications", rev = "1bedb918668b8b9606d8b61bb04c2f0931615b4f", default-features = false, features = ["guest", "graphics", "memory_32"] }
-```
-
-This example pins the Applications main revision reviewed when this page was written; select matching versions of Core/Applications/Platforms for your runtime. For local development, a relative `path` dependency on `../applications/executables/wasm` is also possible.
-
-`default_guest` additionally enables generated C wrappers and `xila_graphics.h`. Standard WASI guests can use the supported WASI imports without importing Xila graphics. Native LVGL/Wasmi APIs are **not** exposed simply by enabling the guest feature.
-
-Command guests export `_start: () -> ()`. Launcher discovery is **not** performed by the guest: include a `shortcut.json` in the root of its installed bundle, with `command` and `arguments` pointing to its executable (using `@bundle/` for bundle-local paths). Follow [Add a launcher shortcut](/how-to/add-shortcut) and the [graphics bindings](/reference/graphics-bindings) for compatibility limitations.
-
-## Run or package it
-
-Platforms assembles the native/browser runtime and creates seeded images from prebuilt application bundles (optionally supplied using `XILA_BUNDLES_DIR`), including each bundle's `shortcut.json`. Follow [Run Xila natively](/tutorials/native), [the browser tutorial](/tutorials/browser), or [run a guest](/how-to/run-guest).
-
-The separate [host package builder](/how-to/package-application) can bundle the file into an experimental `.xpk`, **not** install or authorize it.
+- [Run a guest application](/how-to/run-guest/)
+- [Add a launcher shortcut](/how-to/add-shortcut/)
+- [Guest API](/reference/guest/)
+- [Wasm runtime](/reference/wasm-runtime/)
