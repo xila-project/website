@@ -1,50 +1,39 @@
 ---
-title: "Submit a package to the registry"
+title: "Submit a package"
 docType: how-to
-description: Publish a released, signed package version to the Xila package registry.
+description: "Submit a signed package version to the Xila registry."
 ---
 
-The [`xila-project/registry`](https://github.com/xila-project/registry) repository is Xila's package registry. It holds **metadata only**: one JSON **registry entry** per released version, and the developer keys allowed to publish. Archives stay where you release them. The registry is served as static files at [registry.xila.dev](https://registry.xila.dev/), for example [`packages/xila/clock/0.1.0.json`](https://registry.xila.dev/packages/xila/clock/0.1.0.json).
+This guide shows how to submit a released package to the registry.
 
-## 1. Release a signed archive
+## Before you begin
 
-Build and sign the `.xpk` with the [native package builder](/how-to/package-application), or the reusable packaging workflow, and attach it to an immutable release of your project, for example on GitHub Releases. Never replace the bytes of a published version: release a new version instead.
+- Build a signed package and retain its developer public key. See [Package an application](/how-to/package-application/).
+- Publish the `.xpk` at an HTTPS release URL and install the [desktop tool](https://github.com/xila-project/package_manager/tree/main/crates/builder).
+- Obtain a checkout of the [registry repository](https://github.com/xila-project/registry) and access to open a pull request.
 
-To create a developer key:
+## Steps
 
-```sh
-xila-package key generate signing/private.seed signing/public.key
-base64 -w0 signing/public.key   # value of public_key in your key file
-```
+1. In a host shell in the registry repository root, generate the entry using your package, public key, publisher ID and release URL:
 
-Keep the seed private. In CI, provide it as a secret (`base64 -w0 signing/private.seed | gh secret set …`).
+   ```sh
+   xila-package registry entry ./Weather.xpk ./public.key community https://example.org/Weather.xpk packages/community/weather/1.0.0.json
+   ```
 
-## 2. Generate the registry entry
+2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. Its namespaces must authorize the package identifier. Follow the [developer-key schema](https://github.com/xila-project/package_manager/blob/main/schemas/developer-key.schema.json).
+3. In a host shell in the registry repository root, validate the checkout:
 
-Entries are **generated from the archive, never written by hand**:
+   ```sh
+   bash tools/validate.sh
+   ```
 
-```sh
-xila-package registry entry app.xpk signing/public.key <publisher-id> \
-  https://github.com/<owner>/<repo>/releases/download/<tag>/app.xpk \
-  packages/<namespace>/<name>/<version>.json
-```
+4. Open a pull request adding the entry and, if needed, the developer key. Published version entries cannot be modified or deleted; submit a new version instead.
 
-The command verifies the archive's signature, records its URL, SHA-256 and size, and copies the identity, compatibility, capabilities, display name and metadata from the signed manifest. An entry lives at `packages/<identifier, dots as />/<version>.json`; for `community.weather` 1.0.0, that is `packages/community/weather/1.0.0.json`.
+## Verify the result
 
-The first time you publish, also add `keys/developers/<publisher-id>.json` with your `id`, `author`, `algorithm` (`ed25519`), `public_key` and the `namespaces` you publish (the first label of your identifiers, `community` for `community.weather`). The `xila` namespace is reserved for official applications.
+Validation checks entry placement, publisher authorization and downloaded package signatures, hashes and metadata. The pull request runs registry validation as well.
 
-## 3. Validate locally
+## Related
 
-```sh
-bash tools/validate.sh origin/main
-```
-
-The script installs `xila-package` at the registry's pinned revision and runs `xila-package registry check --archives`. It checks that every key and entry is valid and canonical, that each entry sits at its own path, that its publisher may publish its namespace, and that each downloaded archive matches its entry's size, SHA-256, signature and copied fields. It also refuses changes to already published entries. It needs `cargo`, `curl` and `jq`.
-
-## 4. Open a pull request
-
-CI runs the same script with read-only permissions; a maintainer reviews provenance, content and the publisher's identity. After merge, the entry is published at `registry.xila.dev`. Publication never builds or executes your code.
-
-## Current limitations
-
-Entries are not yet signed by the **repository key**, and there is no signed index with an expiry, so devices cannot yet authenticate the registry itself, only the developer signature on each archive. Installing from the registry on a device is not available yet. See [the package-management architecture](/explanation/package-management) and the [registry architecture](https://github.com/xila-project/registry/blob/main/docs/architecture.md).
+- [Package management](/explanation/package-management/)
+- [Experimental package format](/reference/package-format/)

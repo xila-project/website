@@ -1,0 +1,50 @@
+---
+title: "Package"
+docType: explanation
+description: "Understand the on-device package installer and its trust checks."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The Applications repository's `package` executable installs packages into Xila's virtual file system (VFS). It accepts local packages and packages from configured repositories.
+
+## Context
+
+The executable connects repository metadata and package verification to VFS storage. Its desktop counterpart, `xila-package`, builds and signs packages.
+
+## How it works
+
+Repository installation authenticates signed metadata using the configured root key, then checks the developer key, package signature and payload hashes. Local installation uses `/configuration/system/packages/trusted.pub`, or a key supplied with `--public-key`. The `--allow-untrusted` option bypasses publisher authentication for a local package while retaining integrity checks.
+
+The installer reads 512-byte TAR blocks, writes to a quarantine directory and moves the verified bundle to `/applications/bundles/<identifier>/`. `package list` lists installed bundles. Repository commands add, list and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
+
+## Design choices and trade-offs
+
+Streaming avoids holding a complete package in memory. Staging keeps a failed verification from being promoted as an installed bundle. A local key override does not add that key to system trust.
+
+## Limits
+
+System-wide installation requires a root task. The installer does not provide upgrade, uninstall or a durable power-loss recovery journal. It does not verify a signature at launch. Repository index expiry is not checked without a trustworthy clock.
+
+## API reference
+
+- <CodeReference repo="applications" path="executables/package/src/cli.rs">
+    Command parser
+  </CodeReference>
+  — commands and options.
+- <CodeReference repo="applications" path="executables/package/src/install.rs">
+    Installer
+  </CodeReference>
+  — local package staging.
+- <CodeReference
+    repo="applications"
+    path="executables/package/src/repository.rs"
+  >
+    Repository client
+  </CodeReference>
+  — authenticated metadata and downloads.
+
+## Related
+
+- [Package management](/explanation/package-management/)
+- [Experimental package format](/reference/package-format/)

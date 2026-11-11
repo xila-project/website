@@ -1,82 +1,43 @@
 ---
-title: "Create a development package"
+title: "Package an application"
 docType: how-to
-description: Build a development-only Xila archive with the shared native xila-package builder.
+description: "Build, sign and verify a Xila application package."
 ---
 
-Use [`Xila-Project/package_manager`](https://github.com/xila-project/package_manager)'s native `xila-package` executable to produce an **experimental development `.xpk` archive**.
+This guide shows how to create a signed package with the desktop `xila-package` tool.
 
-:::caution[Experimental]
-This workflow packages files for inspection; it does **not** install applications in Xila or make a package trustworthy for execution.
-:::
+## Before you begin
 
-## Prerequisites
+- Install the [package manager tool](https://github.com/xila-project/package_manager/tree/main/crates/builder) and prepare a compiled WebAssembly (Wasm) guest application.
+- Have a developer signing key: a raw 32-byte Ed25519 seed and its public key. Keep the seed outside the source directory.
 
-Use a native development host with Git, Rust and [mise](https://mise.jdx.dev/) 2026.9.2 or newer. You need an already-built application payload, such as a `wasm32-wasip1` guest from [Build a guest](/how-to/build-guest).
+## Steps
 
-```sh
-git clone https://github.com/xila-project/package_manager.git
-cd package_manager
-mise trust
-mise install
-mise run check
-mise run test
-```
+1. In a host shell in your working directory, initialize a source folder:
 
-The repository pins Rust 1.99.0, integrates mr-boxington and runs its Cargo tasks through mise. Its host builder is in Cargo package `xila-package-builder`, but the compiled executable is named **`xila-package`**. Cargo crate names are prefixed with `xila-package-`; filesystem folder names are simply `crates/manifest`, `crates/reader` and so on.
+   ```sh
+   xila-package bundle init ./weather community.weather 1.0.0 wasm32-wasip1 1 --entrypoint executables/weather.wasm --display-name Weather --icon resources/icon.png
+   ```
 
-## 1. Stage the application files
+2. Place the compiled guest at `weather/executables/weather.wasm` and its icon at `weather/resources/icon.png`. Review `weather/xila-package.json`.
+3. In the same host shell, build and sign the bundle:
 
-From the `package_manager` repository root, prepare a folder containing **only installable payload files**, with no symlinks or special files:
+   ```sh
+   xila-package bundle build ./weather ./Weather.app --signing-key ./signing/private.seed
+   ```
 
-```sh
-mkdir -p app/bin
-cp /path/to/calculator.wasm app/bin/calculator.wasm
-```
+4. In the same host shell, verify the bundle and make the package:
 
-The manifest file must live **outside** the source directory. The builder recursively scans files, rejects links/special entries, computes SHA-256 with a fixed 8 KiB input buffer and sorts paths deterministically.
+   ```sh
+   xila-package bundle verify ./Weather.app --public-key ./signing/public.key
+   xila-package bundle archive ./Weather.app ./Weather.xpk
+   ```
 
-## 2. Generate or refresh the manifest
+## Verify the result
 
-```sh
-mise exec -- cargo run --locked -p xila-package-builder -- \
-  manifest generate ./app ./manifest.json xila.calculator 1.0.0 wasm32-wasip1 1
-```
+The commands succeed and `Weather.xpk` exists. Verification with the trusted public key checks the signed manifest and inventory.
 
-The arguments after `manifest generate` are, in order: source directory, output JSON manifest, dotted package identifier, version, target triple and minimum Xila ABI version. Check the generated JSON and the requested capability list before sharing it. The current format has no finalized permission policy.
+## Related
 
-When payload bytes change, refresh their sizes and hashes while preserving package identity fields:
-
-```sh
-mise exec -- cargo run --locked -p xila-package-builder -- \
-  manifest update ./app ./manifest.json
-```
-
-## 3. Build and inspect the archive
-
-```sh
-mise exec -- cargo run --locked -p xila-package-builder -- \
-  pack ./app ./manifest.json ./calculator.xpk
-```
-
-The packager rejects files that differ from the manifest, creates a temporary archive, and checks it again through the separate TAR reader before renaming it to the output. This creates an **unsigned package**. No Xila command currently installs it.
-
-The host builder reads payload files into memory and reads the completed TAR again for validation. **Do not run this algorithm inside an MCU installer.** The shared `xila-package-reader` also requires the entire archive as a slice.
-
-An optional final argument to `pack` accepts a **raw 64-byte Ed25519 signature** supplied by a separate signing system. There is presently **no official signer/trust provisioning workflow**, so this guide deliberately does not treat supplying a signature as publishing a trusted release. See [provisional signed bytes](/reference/package-format#exact-provisional-signing-statement) before experimenting.
-
-## 4. Run the repository quality checks
-
-```sh
-mise run format:check
-mise run check
-mise run clippy
-mise run test
-mise run coverage:lcov
-```
-
-`mise run coverage:lcov` requires the pinned `cargo-llvm-cov` and `llvm-tools-preview`; it writes an LCOV report for Codecov. The workspace has GitHub Actions checks, Dependabot and **Git-only** release-plz versioning. Crates are **not published to crates.io** (`publish = false`). GitHub releases may carry `xila-package` binaries for Linux/macOS/Windows once a corresponding release is created; the presence of a workflow does not guarantee one exists.
-
-## Next steps
-
-To propose **metadata** for an externally hosted development package, read [Submit a package declaration](/how-to/submit-package). Do not imply the preview makes it installable or authenticated. For the complete current format and limits, read [Package format](/reference/package-format).
+- [Experimental package format](/reference/package-format/)
+- [Submit a package](/how-to/submit-package/)
