@@ -1,90 +1,100 @@
 ---
-title: "File manager (executable)"
+title: "File manager"
 docType: explanation
-description: "The file manager executable provides a graphical VFS browser with directory navigation controls."
+description: "Graphical virtual file system browser with directory navigation controls."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The file manager executable provides a graphical VFS browser with directory navigation controls.
+The File manager executable (<HostReference repo="applications" crate="file_manager" />) provides a graphical directory browser for Xila. It allows users to inspect the hierarchy of the virtual file system (VFS), traverse directories, and navigate to arbitrary paths using a dedicated toolbar and interactive file list.
 
-## Role
+## Context
 
-- Presents VFS directory contents in a graphical list view.
-- Handles path navigation (home/up/go/refresh) and directory item traversal.
-- Uses a native launcher shortcut seeded by Platforms; the executable does not register one.
+While developers and administrators frequently navigate the file system using the command-line shell, users in graphical desktop environments benefit from visual exploration of storage volumes, user directories, and system paths.
 
-## Startup and lifecycle
+File manager satisfies this role:
 
-1. Platforms seeds the native launcher descriptor at `/configuration/shared/applications/shortcuts/file_manager.json`; the executable constructor does not write a shortcut.
-2. Runtime path creates window, toolbar, path text area, and file list widgets.
-3. Loads current directory entries, sorts directories-first, and renders list buttons.
-4. Processes click/close events in loop until window close.
+- It provides an interactive graphical interface backed directly by the VFS.
+- It displays files, directories, character devices, and block devices with visual type distinctions.
+- It supports standard navigation actions including parent directory traversal, home directory shortcuts, and direct path entry.
+- It integrates seamlessly with the graphical desktop through a launcher shortcut seeded by Platforms.
 
-## Runtime integration points
+## How it works
 
-- Graphics/LVGL for window/list/event handling.
-- `virtual_file_system::Directory` for directory iteration.
-- Task manager for current task identifier during VFS operations.
+### Interface layout and components
 
-## Data and control flow / VFS touchpoints
+The following diagram illustrates the component hierarchy of the File manager window.
 
-- Core VFS touchpoint: `Directory::open(..., current_path)` + iterative `read()`.
-- Navigation updates `current_path`, then refreshes UI from VFS.
-- File entries are transformed into in-memory `FileItem` records before rendering.
+```mermaid
+flowchart TD
+    Window["FileManager window (OwnedWindow)"] --> Toolbar["Navigation toolbar"]
+    Window --> Status["Status line label"]
+    Window --> List["Scrollable file list"]
 
-## Concurrency and event-loop model
+    Toolbar --> Up["Up button (LV_SYMBOL_UP)"]
+    Toolbar --> Home["Home button (LV_SYMBOL_HOME)"]
+    Toolbar --> Refresh["Refresh button (LV_SYMBOL_REFRESH)"]
+    Toolbar --> PathInput["Path input (lv_textarea)"]
+    Toolbar --> Go["Go button (LV_SYMBOL_RIGHT)"]
 
-- The top-level event loop **does not poll every 50 ms**. `FileManager::handle_events()` drains events under the graphics lock, registers the window's waker with `task::suspend`, and wakes when the window signals new activity.
-- Event handlers run asynchronously and mutate local state; there are no separately spawned application worker tasks. Graphics and VFS remain independently scheduled.
+    List --> Dirs["Directory entries (LV_SYMBOL_DIRECTORY)"]
+    List --> Files["File entries (LV_SYMBOL_FILE)"]
+```
 
-## Failure semantics
+When started, File manager creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Fm" (Cyan hue) and arranges its contents using a vertical flex layout:
 
-- UI creation failures return typed `Error` and abort startup.
-- During event handling, directory-read and invalid-path errors are **logged and the event loop continues**, rather than automatically ending the executable.
-- Invalid path text input logs error and retains current path.
+1. **Toolbar**: A horizontal bar containing navigation controls:
+   - **Up button** (`LV_SYMBOL_UP`): Navigates to the parent directory of the current path. Disabled at the file system root (`/`).
+   - **Home button** (`LV_SYMBOL_HOME`): Navigates directly to the user's home directory, resolved from the `HOME` environment variable or constructed as `/home/<username>`.
+   - **Refresh button** (`LV_SYMBOL_REFRESH`): Re-reads and re-renders the current directory contents from the VFS.
+   - **Path field** (`lv_textarea`): Displays the current path as text and accepts manual keyboard input. Pressing Enter navigates to the entered path.
+   - **Go button** (`LV_SYMBOL_RIGHT`): Confirms and navigates to the path entered in the path field.
+2. **Status line**: A dedicated label positioned beneath the toolbar that surfaces error diagnostics, such as failed directory reads or invalid target paths.
+3. **File list**: A scrollable vertical container listing all entries contained in the active directory.
 
-## Contract vs implementation
+### Directory reading and traversal
 
-- **Contract**: graphical executable that reflects directory state and reacts to navigation events.
-- **Current implementation**: LVGL list-based browser with direct directory-only navigation and no file-open dispatch path.
+When navigating to a new path:
 
-## Operational limitations
+1. File manager checks that the path is absolute or joins it against the current path using <HostReference crate="file_system" kind="struct" symbol="PathOwned" />.
+2. It opens the directory through the VFS using <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />.
+3. It iterates over directory entries, collecting file names, entry kinds (file, directory, device, pipe, or link), and file sizes.
+4. It sorts the entries deterministically: directories appear first, followed by other entries, sorted alphabetically in a case-insensitive order.
+5. It clears existing widget buttons and creates new list buttons styled according to entry kind:
+   - Directories display the `LV_SYMBOL_DIRECTORY` prefix. Clicking a directory button navigates into that directory.
+   - Regular files and other nodes display the `LV_SYMBOL_FILE` prefix.
 
-- Operations are currently browse-oriented; edit/copy/move/delete workflows are not implemented in top-level flow.
-- Path input accepts raw text and relies on `PathOwned` validation.
+### Desktop integration
 
-## Exact API, input handling and ownership
+File manager does not register its own shortcut file at runtime. Instead, Platforms seeds its launcher shortcut at `/configuration/shared/applications/shortcuts/file_manager.json` (<CodeReference repo="platforms" path="tools/fs_image/shortcuts/file_manager.json" />), allowing the graphical shell to discover and present it in the launcher drawer.
 
-`FileManagerExecutable::new(vfs, task)` constructs the executable without filesystem side effects. The native [Platforms shortcut descriptor](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/file_manager.json) is seeded at `/configuration/shared/applications/shortcuts/file_manager.json` and discovered by the graphical Shell when the app drawer opens. Launch uses the shared `ExecutableTrait` contract and a `'static ExecutableContext`; it creates an `OwnedWindow` with a toolbar, path text area and LVGL list.
+## Design choices and trade-offs
 
-`FileManager::new(context).await` begins at `PathOwned::root()` (`/`). `load_directory` opens the current directory with the current task identifier, iterates VFS entries, skips `.` and `..`, and sorts **directories first**, with names in ascending lexicographic order in each group. A `FileItem` contains name, kind and size. Navigation is handled through Home, Up, Refresh, Go and directory-item clicks.
+- **Directories-first sorting**: Presenting subdirectories ahead of regular files ensures consistent, predictable navigation across both small and large storage trees.
+- **Edge-to-edge layout**: Removing outer padding from the window, toolbar, and list maximizes visible entries on constrained embedded displays.
+- **Direct VFS queries**: The manager reads directory entries directly without maintaining a persistent file cache, ensuring that modifications made concurrently by background tasks are immediately visible upon refresh.
 
-`handle_events().await -> bool` returns false after a close/delete event on the owning window; while waiting, it registers a **window waker**, avoiding a busy-polling UI loop. The event handler logs recoverable errors rather than terminating the process.
+## Limits
 
-The application navigates directories and displays file metadata; it does **not** currently open arbitrary documents in another program or expose copy/move/delete commands. LVGL object pointers are owned by the current window and must only be manipulated under the Graphics lock.
+- **Read-only navigation**: File manager browses and inspects directories; it does not currently create, rename, move, or delete files or directories from the user interface.
+- **No file opening or execution**: Clicking regular files does not launch associated viewer applications or execute binaries; file launching is handled through the shell or launcher drawer.
 
-### Source and API references
+## API reference
 
-- <CodeReference
-    repo="applications"
-    path="executables/file_manager/src/lib.rs"
-  />
-  (side-effect-free constructor and executable launch).
-- <CodeReference
-    repo="platforms"
-    path="tools/fs_image/shortcuts/file_manager.json"
-  />
-  (native launcher descriptor).
-- <CodeReference
-    repo="applications"
-    path="executables/file_manager/src/file_manager.rs"
-  />
-  (navigation, sorting, event wake-up and UI).
-- <HostReference repo="applications" crate="file_manager" /> - native Rust API.
+- <HostReference repo="applications" crate="file_manager" />: File manager
+  crate.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Core host executable contract.
+- <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />
+  : VFS directory reading interface.
+- <HostReference crate="file_system" kind="struct" symbol="PathOwned" />:
+  Managed heap-allocated path.
+- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
+  window surface.
 
-## References
+## Related
 
-- <CodeReference repo="applications" path="executables/file_manager" />
-- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)
+- [Command-line shell](/explanation/architecture/executables/command_line_shell/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)
+- [Executables](/explanation/architecture/executables/)

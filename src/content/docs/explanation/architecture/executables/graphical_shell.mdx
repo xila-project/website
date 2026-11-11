@@ -1,108 +1,120 @@
 ---
-title: "Graphical shell (executable)"
+title: "Graphical shell"
 docType: explanation
-description: "The graphical shell executable is the session shell that transitions from login to desktop views."
+description: "Graphical session shell managing user login, desktop layout, the application drawer, and shortcut execution."
 ---
 
+import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The graphical shell executable is the session shell that transitions from login to desktop views.
+The graphical shell executable (<HostReference repo="applications" crate="graphical_shell" />) manages the interactive desktop session in Xila. It oversees user authentication, global screen layout and status indicators, dynamic shortcut discovery from application bundles, and graphical application launching.
 
-## Role
+## Context
 
-- Owns login UI, session activation, and desktop/home shell composition.
-- Sets task-level session environment (`User`) after successful login.
+Interactive embedded systems and graphical workstations need a cohesive session supervisor to transition from a secure login screen to a multitasking desktop. This environment must integrate system-level status indicators with application launchers without requiring applications to hardcode desktop dependencies.
 
-## Startup and lifecycle
+The graphical shell fulfills this role:
 
-1. Parses startup args (`--show-keyboard`).
-2. Builds `Shell` with `Layout` and `Login` components.
-3. Runs loop: layout tick -> login event handling -> post-login desk/home activation.
-4. Continues desk event handling until shell loop terminates.
+- It provides a centralized login interface backed by the Core authentication subsystem.
+- It displays a persistent top status bar reporting system time and network connectivity.
+- It organizes running windows within a bottom application dock and window menu.
+- It scans both system-wide shortcut directories and installed application bundles to populate an on-screen application drawer.
+- It executes selected applications through the Core executable runtime.
 
-## Runtime integration points
+## How it works
 
-- `ExecutableTrait` for launcher integration.
-- Context-provided users manager to map the logged user ID to a user name.
-- Context-provided task manager to publish the session user into the task environment.
-- Graphics manager/LVGL wrappers for UI object/event handling.
+### Session lifecycle and login transition
 
-## Data and control flow / VFS touchpoints
+When Xila boots into a graphical environment, the runtime launches the graphical shell executable. Startup follows a clear sequence:
 
-- Input: CLI flags and UI events.
-- Primary control flow is event-driven within one shell loop.
-- VFS touchpoints occur indirectly through components such as desktop shortcuts (implemented in submodules), not in top-level loop itself.
+1. **Argument parsing**: The shell checks for optional CLI flags, such as `--show-keyboard`, which mounts an on-screen virtual keyboard for touch-only devices.
+2. **Layout creation**: Initializes the root display layout, allocating the top status bar and reserving space for active windows.
+3. **Login view**: Displays a centered login card with username and password input fields. When the user submits credentials, the shell calls into <HostReference crate="authentication" /> to verify the password.
+4. **Session initialization**: Upon successful authentication:
+   - Sets the active user on the shell task via <HostReference crate="task" kind="struct" symbol="Manager" /> and updates the `User` environment variable.
+   - Restores user-specific theme and palette preferences from `/users/<username>/configuration/graphics/appearance.json`.
+   - Destroys the login view and activates the desktop (`Desk`) and home (`Home`) views.
 
-## Concurrency and event-loop model
+### Desktop layout and status bar
 
-- Single periodic loop with `task::sleep(Duration::from_millis(50))` cadence.
-- No internal multi-task fan-out in main loop; concurrency is delegated to underlying graphics/task systems.
+The shell layout maintains persistent interface elements around the primary window workspace:
 
-## Failure semantics
+- **Top status bar**: Displays a digital clock formatted via `DateTimeFormatter` (`%H:%M`), an active network interface indicator, and an optional battery level icon.
+- **Application dock**: Sits along the bottom edge of the screen, featuring a main launcher button and icons representing each currently open window.
+- **Window management menu**: Clicking a window's dock icon brings that window to the foreground, while secondary actions permit minimizing, maximizing, or closing the window.
 
-- Argument parse failures are printed to stderr and return non-zero.
-- Environment-variable update failures propagate via `Error::FailedToSetEnvironmentVariable`.
-- Desk/Home creation and session environment failures propagate as executable errors. **Layout and Login constructors are currently unwrapped in `Shell::new` and can panic** during initialization.
+### Shortcut discovery and launcher integration
 
-## Contract vs implementation
+The following diagram illustrates how the graphical shell discovers shortcuts and launches applications.
 
-- **Contract**: graphical shell executable starts a login-driven user session loop.
-- **Current implementation**: explicit login-first flow that instantiates desk/home only after authentication and publishes `User` env variable.
+```mermaid
+flowchart TD
+    subgraph Storage["File system storage"]
+        Static["/configuration/shared/applications/shortcuts/*.json"]
+        Bundles["/applications/bundles/*/shortcut.json"]
+    end
+    subgraph Discovery["Graphical shell discovery"]
+        Scan["Scan directories on drawer open"]
+        Deserialize["Parse JSON descriptor"]
+        Resolve["Resolve @bundle/ path references"]
+    end
+    subgraph UI["Application drawer"]
+        Icons["Render shortcut icons and labels"]
+        Click["User click event"]
+    end
+    subgraph Execution["Runtime execution"]
+        Exec["executable::execute"]
+        Spawn["Spawn native or Wasm task"]
+    end
 
-## Operational limitations
+    Static --> Scan
+    Bundles --> Scan
+    Scan --> Deserialize
+    Deserialize --> Resolve
+    Resolve --> Icons
+    Icons --> Click
+    Click --> Exec
+    Exec --> Spawn
+```
 
-- Loop cadence is fixed (50 ms sleep), which trades responsiveness for predictable CPU usage.
-- Login updates the **current task's user identity**, its `HOME` directory and `User` environment variable. Inheritance to child tasks follows the Task manager, not a global session registry.
+When the user opens the application drawer by clicking the main dock button, the desktop scans the filesystem to populate the launcher:
 
-## Authentication and session ownership
+1. **Static shortcuts**: Reads pre-seeded native shortcuts in `/configuration/shared/applications/shortcuts/`, such as Terminal, Settings, and File Manager.
+2. **Bundle shortcuts**: Scans the `/applications/bundles` directory. For every subdirectory that does not begin with a period (skipping staging directories such as `.incoming-1`), it reads `shortcut.json`.
+3. **Bundle path resolution**: When reading bundle shortcuts, the parser resolves any argument or command starting with the `@bundle/` prefix. It replaces the prefix with the canonical path of the containing bundle (for example, `@bundle/executables/app.wasm` becomes `/applications/bundles/com.example.app/executables/app.wasm`).
+4. **Drawer rendering**: Populates the drawer grid with the application's icon string and configured color palette.
+5. **Launch dispatch**: When an icon is clicked, the shell calls <HostReference crate="executable" kind="fn" symbol="execute" />, which starts the target executable with its configured arguments.
 
-`ShellExecutable` implements the native `ExecutableTrait` interface. `GraphicalShellArguments` is parsed with `getargs`, including `--show-keyboard` (`-k`). `--help` and `--version` print to stdout and exit successfully; invalid options report a nonzero status.
+For instructions on formatting shortcut descriptors and adding new applications, see [Add a launcher shortcut](/how-to/add-shortcut/).
 
-The login widget verifies username/password with `authentication::authenticate_user`. Upon success it:
+## Design choices and trade-offs
 
-1. Uses `VirtualFileSystem::ensure_user_home(task, user)` to create or locate the private home directory.
-2. Sets the Task environment's `HOME` and changes the current task's user ID.
-3. Restores appearance through `graphics::appearance::restore_appearance`.
-4. Resolves the username and stores it as the task's `User` environment variable.
-5. Constructs the Desktop (`Desk`) and Home-button overlay (`Home`) before dropping the login UI.
+- **Fresh directory scan on drawer opening**: Scanning bundles when the drawer opens ensures newly installed packages appear immediately without requiring a shell reload or background filesystem watcher.
+- **Lightweight shortcut descriptors**: Reading lightweight `shortcut.json` files decoupled from package archive manifests avoids parsing cryptographic package metadata during UI layout.
+- **Per-user appearance restoration**: Applying appearance preferences immediately after login allows each user to retain custom themes and color palettes across sessions.
 
-`Desk` reads native shortcuts from `/configuration/shared/applications/shortcuts/*.json` and discovers installed bundles at `/applications/bundles/<id>/shortcut.json` when the app drawer opens (not at startup). It reads only shortcut JSON, never package manifests. Bundle-local `@bundle/` command and argument paths are resolved relative to the shortcut's parent directory, rejecting traversal. The launcher uses the executable runtime; its dock reflects live windows and supports window-management actions. A shortcut is presentation data, not an authorization grant or a verified package signature. See [Add a launcher shortcut](/how-to/add-shortcut). The desktop and Home bar hold LVGL object pointers and register C callbacks; Graphics locking and window ownership are required for safe lifecycle transitions.
+## Limits
 
-## Scheduling and failure boundaries
+- **Single active desktop session**: The graphical shell supports one active logged-in graphical user session at a time; concurrent multi-seat desktop sessions are not supported.
+- **No shortcut customization in UI**: Users cannot reorder or group application drawer icons directly in the graphical interface.
 
-The outer session loop sleeps **50 ms** between handling layout, login and desktop events. Most work is event-driven within that loop; the shell itself does not implement a preemptive UI scheduler. Layout/Login construction currently uses `unwrap`; distinguish that panic path from the typed errors returned by subsequent Desk/Home construction.
+## API reference
 
-Login is not an external authorization service: account persistence and password verification belong to Authentication, task identity to Task/Users, and file permissions to VFS.
+- <HostReference repo="applications" crate="graphical_shell" />: Graphical shell
+  crate.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Core host executable contract.
+- <HostReference crate="executable" kind="fn" symbol="execute" />: Executable
+  launch function.
+- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
+  graphics window container.
+- <HostReference crate="authentication" />: Authentication subsystem interface.
+- <HostReference crate="task" kind="struct" symbol="Manager" />: Task management
+  service for environment variables and task user identity.
 
-### Source and API references
+## Related
 
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/lib.rs"
-  />
-  (CLI, session transition and cadence).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/login.rs"
-  />
-  (authentication, HOME and task identity).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/desk.rs"
-  />
-  (lazy shortcut discovery, dock and window handling).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/shortcut.rs"
-  />
-  (descriptor fields and bundle-path validation).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/graphical/src/home.rs"
-  />
-  (Home gesture and overlay).
-
-## References
-
-- <CodeReference repo="applications" path="executables/shell/graphical" />
-- [Executable runtime crate](/explanation/architecture/libraries/executable)
+- [Add a launcher shortcut](/how-to/add-shortcut/)
+- [Settings](/explanation/architecture/executables/settings/)
+- [Terminal](/explanation/architecture/executables/terminal/)
+- [Executables](/explanation/architecture/executables/)
