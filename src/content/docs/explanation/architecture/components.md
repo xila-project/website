@@ -1,26 +1,120 @@
 ---
 title: "Component map"
 docType: explanation
-description: Find the runtime owner, reusable contract, driver or executable responsible for a Xila capability.
+description: "Locate runtime owners, libraries, drivers, and executables across the Xila workspace."
 ---
 
-The Xila codebase separates four **roles** across Core, Applications and Platforms: [subsystems](/explanation/architecture/subsystems/), [libraries](/explanation/architecture/libraries/), [drivers](/explanation/architecture/drivers/) and [executables](/explanation/architecture/executables/). All are Rust crates; a Rust module is a language construct, not a separate architectural category.
+The Xila workspace organizes code into four primary architectural roles across its repositories: subsystems, libraries, drivers, and executables. Every component is an individual Rust crate with distinct ownership and lifecycle semantics.
 
-## Where does a component belong?
+## Context
 
-- **Subsystem:** owns or coordinates an installed runtime capability with a lifecycle in the assembled Xila instance. The [VFS](/explanation/architecture/subsystems/virtual_file_system) owns the mounted namespace; [graphics](/explanation/architecture/subsystems/graphics) coordinates LVGL and input state.
-- **Library:** defines reusable contracts, helpers or implementations that do not need a separate installation/lifecycle. [File system](/explanation/architecture/libraries/file_system) defines storage contracts; [LittleFS](/explanation/architecture/libraries/little_fs) implements them.
-- **Driver:** adapts a generic capability to a particular platform, as in the [browser driver](/explanation/architecture/drivers/wasm) or [native driver](/explanation/architecture/drivers/native).
-- **Executable:** consumes the assembled services as a program, launcher or guest runtime. The [WASM executable](/explanation/architecture/executables/wasm) owns [Wasmi execution within WASM](/explanation/architecture/executables/wasm) and [guest/host bindings](/explanation/architecture/executables/bindings).
+Understanding the boundaries of each crate helps developers identify where functionality belongs and prevents accidental coupling. Core provides portable subsystem and library crates, Applications owns official executables, and Platforms implements target-specific drivers and final runtime assembly.
 
-Core retains portable subsystem and library crates, Applications owns official executables and Wasmi, and Platforms owns the concrete drivers and final runtime assembly. See the [repository architecture](/explanation/architecture/) for those boundaries.
+## How it works
 
-Internal mutable state alone is not evidence of a subsystem: the key is **runtime ownership and assembly**. Some reusable executable helpers depend on subsystem interfaces without themselves becoming runtime services.
+The following sections catalogue all active crates and examples in the Xila workspace.
 
-## Follow a request
+### Core subsystems
 
-A file request starts in an [executable](/explanation/architecture/executables/), reaches the [VFS](/explanation/architecture/subsystems/virtual_file_system), uses [file-system contracts](/explanation/architecture/libraries/file_system), then dispatches to a mounted [LittleFS](/explanation/architecture/libraries/little_fs) instance or device driver.
+Subsystems own runtime state and background lifecycles for installed system capabilities.
 
-A WebAssembly guest uses the [WASM runtime and bindings](/explanation/architecture/executables/wasm) owned by the WASM executable. Those adapters pass operations to the same task/VFS/time/graphics subsystem managers used by native executables.
+| Crate                                                                            | Package                    | Description                                                                |
+| -------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| [graphics](/explanation/architecture/subsystems/graphics/)                       | `xila-graphics`            | LVGL display integration, input event dispatch, and window management.     |
+| [log](/explanation/architecture/subsystems/log/)                                 | `xila-log`                 | Severity-filtered logging facade and backend logger adapter.               |
+| [memory](/explanation/architecture/subsystems/memory/)                           | `xila-memory`              | Capability-based memory allocation and Rust global allocator integration.  |
+| [network](/explanation/architecture/subsystems/network/)                         | `xila-network`             | TCP/IP network interfaces, smoltcp stacks, and socket endpoints.           |
+| [task](/explanation/architecture/subsystems/task/)                               | `xila-task`                | Cooperative task execution, Embassy spawner management, and task identity. |
+| [time](/explanation/architecture/subsystems/time/)                               | `xila-time`                | Monotonic elapsed clocks and adjustable UTC calendar clocks.               |
+| [users](/explanation/architecture/subsystems/users/)                             | `xila-users`               | In-memory user and group identifier registry.                              |
+| [virtual_file_system](/explanation/architecture/subsystems/virtual_file_system/) | `xila-virtual-file-system` | Unified hierarchical namespace, device nodes, and path authorization.      |
 
-See the [architecture overview](/explanation/architecture/) for lifecycle, dependency and process-global integration details.
+### Core libraries
+
+Libraries define reusable data structures, serialization formats, and subsystem protocols without independent runtime lifecycles.
+
+| Crate                                                                             | Package                 | Description                                                                   |
+| --------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| [abi_declarations](/explanation/architecture/libraries/abi/)                      | `xila-abi-declarations` | Host-guest Application Binary Interface (ABI) function and type declarations. |
+| [abi_definitions](/explanation/architecture/libraries/abi/)                       | `xila-abi-definitions`  | Host runtime implementations of guest ABI calls.                              |
+| [audio](/explanation/architecture/libraries/audio/)                               | `xila-audio`            | Audio stream types, buffer management, and playback devices.                  |
+| [authentication](/explanation/architecture/libraries/authentication/)             | `xila-authentication`   | User credential hashing, account persistence, and authorization helpers.      |
+| [bootsplash](/explanation/architecture/libraries/bootsplash/)                     | `xila-bootsplash`       | Animated graphical startup screen.                                            |
+| [debug_protocol](/explanation/architecture/libraries/debug_protocol/)             | `xila-debug-protocol`   | Serialized debug commands and remote procedure calls.                         |
+| [device](/explanation/architecture/libraries/device/)                             | `xila-device`           | Common device traits and typed control command definitions.                   |
+| [executable](/explanation/architecture/libraries/executable/)                     | `xila-executable`       | Standard execution contexts and static binary mounting macros.                |
+| [file_system](/explanation/architecture/libraries/file_system/)                   | `xila-file-system`      | Core filesystem traits, path types, and device interfaces.                    |
+| [firmware_update](/explanation/architecture/libraries/firmware_update/)           | `xila-firmware-update`  | Over-the-air and disk-based firmware upgrade interfaces.                      |
+| [http](/explanation/architecture/libraries/http/)                                 | `xila_http`             | Client HTTP and HTTPS request handling over network devices.                  |
+| [internationalization](/explanation/architecture/libraries/internationalization/) | `embedded-i18n`         | Compile-time localized string management.                                     |
+| [little_fs](/explanation/architecture/libraries/little_fs/)                       | `xila-little-fs`        | LittleFS integration conforming to Xila filesystem traits.                    |
+| [neural_network](/explanation/architecture/libraries/neural_network/)             | `xila-neural-network`   | Machine learning model loading and inference interfaces.                      |
+| [peripherals](/explanation/architecture/libraries/peripherals/)                   | `xila-peripherals`      | Hardware peripheral definitions including GPIO, I2C, and SPI.                 |
+| [shared](/explanation/architecture/libraries/shared/)                             | `xila-shared`           | Shared utilities, memory buffers, and collection helpers.                     |
+| [synchronization](/explanation/architecture/libraries/synchronization/)           | `xila-synchronization`  | Critical-section-backed mutexes, locks, and signals.                          |
+| [testing](/explanation/architecture/libraries/testing/)                           | `xila-testing`          | Unit test harnesses and mock device implementations.                          |
+
+### Drivers
+
+Drivers implement platform-specific hardware controllers fulfilling device interface contracts.
+
+| Crate                                                             | Package                  | Description                                                                     |
+| ----------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| [drivers_core](/explanation/architecture/drivers/core/)           | `xila-drivers-core`      | Portable minimal device implementations including null devices.                 |
+| [drivers_espressif](/explanation/architecture/drivers/espressif/) | `xila-drivers-espressif` | ESP32-family microcontroller hardware drivers.                                  |
+| [drivers_headless](/explanation/architecture/drivers/headless/)   | `xila-drivers-headless`  | Memory-buffered screen and input drivers for automated testing.                 |
+| [drivers_native](/explanation/architecture/drivers/native/)       | `xila-drivers-native`    | Desktop display window, keyboard, and mouse drivers.                            |
+| [drivers_nordic](/explanation/architecture/drivers/nordic/)       | `xila-drivers-nordic`    | Nordic nRF-series microcontroller hardware drivers.                             |
+| [drivers_shared](/explanation/architecture/drivers/shared/)       | `xila-drivers-shared`    | Cross-platform software drivers including random number generators and hashing. |
+| [drivers_std](/explanation/architecture/drivers/std/)             | `xila-drivers-std`       | Standard library adapters for host files, console I/O, and TUN/TAP networking.  |
+| [drivers_wasm](/explanation/architecture/drivers/wasm/)           | `xila-drivers-wasm`      | WebAssembly browser canvas and JavaScript input event adapters.                 |
+
+### Applications executables
+
+Executables provide user-facing interactive tools, shells, and runtime environments.
+
+| Crate                                                                           | Package                    | Description                                                           |
+| ------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------- |
+| [activity](/explanation/architecture/executables/activity/)                     | `xila-activity`            | Task manager and system activity monitoring utility.                  |
+| [calculator](/explanation/architecture/executables/calculator/)                 | `xila-calculator`          | Graphical arithmetic calculation utility.                             |
+| [clock](/explanation/architecture/executables/clock/)                           | `xila-clock`               | Graphical clock, timer, and alarm application.                        |
+| [command_line_shell](/explanation/architecture/executables/command_line_shell/) | `xila-command-line-shell`  | Interactive command-line shell environment.                           |
+| [debug](/explanation/architecture/executables/debug/)                           | `xila-debug-application`   | Remote runtime debugging and UI inspection application.               |
+| [digits](/explanation/architecture/executables/digits/)                         | `xila-digits`              | Numerical puzzle and touch demonstration application.                 |
+| [file_manager](/explanation/architecture/executables/file_manager/)             | `xila-file-manager`        | Graphical directory navigation and file inspection utility.           |
+| [graphical_shell](/explanation/architecture/executables/graphical_shell/)       | `xila-graphical-shell`     | Desktop environment managing status bars, app launchers, and windows. |
+| [package](/explanation/architecture/executables/package/)                       | `xila-package-application` | On-device package installer and package management utility.           |
+| [pixel_painter](/explanation/architecture/executables/pixel_painter/)           | `xila-pixel-painter`       | Graphical drawing and pixel manipulation tool.                        |
+| [settings](/explanation/architecture/executables/settings/)                     | `xila-settings`            | System configuration utility for time, display, and networks.         |
+| [synth](/explanation/architecture/executables/synth/)                           | `xila-synth`               | Synthesizer utility demonstrating audio playback.                     |
+| [terminal](/explanation/architecture/executables/terminal/)                     | `xila-terminal`            | Graphical terminal emulator hosting the command-line shell.           |
+| [text_editor](/explanation/architecture/executables/text_editor/)               | `xila-text-editor`         | Graphical text viewing and editing application.                       |
+| [wasm](/explanation/architecture/executables/wasm/)                             | `xila-wasm`                | WebAssembly host interpreter executing sandboxed guest binaries.      |
+| [weather](/explanation/architecture/executables/weather/)                       | `xila-weather`             | Networked weather reporting utility.                                  |
+
+### Platforms examples
+
+Examples assemble drivers, subsystems, and executables into runnable target binaries.
+
+| Crate                                   | Package                    | Description                                                          |
+| --------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| [native](/tutorials/native/)            | `xila-native-example`      | Native Linux, macOS, and Windows runtime target.                     |
+| [wasm](/tutorials/browser/)             | `xila-wasm-example`        | Browser runtime target running in WebAssembly.                       |
+| [nano_33_ble](/how-to/run-nano-33-ble/) | `xila-nano-33-ble-example` | Embedded microcontroller runtime target for the Arduino Nano 33 BLE. |
+
+## Design choices and trade-offs
+
+- **Crate-level modularity**: each capability is maintained as an isolated crate, allowing platforms to omit unused components to reduce binary size.
+- **Clear ownership boundaries**: stateful runtime services are strictly segregated from stateless utility libraries, ensuring that dependencies remain predictable.
+
+## API reference
+
+- <HostReference crate="xila" /> - the root façade crate re-exporting Core crates.
+
+## Related
+
+- [Architecture overview](/explanation/architecture/) - repository layering and dependency graph.
+- [Subsystems](/explanation/architecture/subsystems/) - kernel services and runtime managers.
+- [Libraries](/explanation/architecture/libraries/) - reusable contracts and data formats.
+- [Drivers](/explanation/architecture/drivers/) - platform device drivers.
+- [Executables](/explanation/architecture/executables/) - system applications and shells.

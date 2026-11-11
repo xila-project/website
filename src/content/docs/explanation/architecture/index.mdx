@@ -1,76 +1,118 @@
 ---
-title: "Architecture"
+title: "Architecture overview"
 docType: explanation
-description: Map portable Core services, Applications executables and Platforms drivers across three repositories.
+description: "Understand repository layering, crate roles, and runtime assembly across Core, Applications, and Platforms."
 ---
 
-import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
 
-Xila is assembled from **three independently versioned Rust workspaces**, plus separate shared [package tooling](/explanation/package-management). Their distinction is by **repository ownership and dependency direction**, not whether a crate happens to be an application or uses `no_std`.
+Xila is structured across independent repositories that separate portable kernel services, user-space applications, platform drivers, and packaging tools. This separation enforces clear dependency directions and keeps core operating system logic independent of hardware targets.
 
-## Repository ownership
+## Context
+
+Embedded operating systems often tangle driver implementations, kernel primitives, and user applications together. This tight coupling makes testing difficult and prevents running system services across different hardware targets.
+
+Xila addresses this challenge by isolating portable abstractions from platform runtimes. The same operating system services compile and run on bare-metal microcontrollers, native desktop environments, and web browsers without modifying kernel logic.
+
+Dependencies follow a strict unidirectional hierarchy:
+
+- `core` is consumed by `applications` and `platforms`.
+- `package_manager` is a leaf repository consumed by `applications` and `platforms`.
+- `applications` is consumed by `platforms`.
+- `platforms` integrates all repositories to produce bootable target binaries.
+- `registry` contains signed package release metadata and holds no code dependencies.
+
+## How it works
+
+### Repository layering
+
+The following diagram shows the dependency relationships among Xila repositories.
 
 ```mermaid
 flowchart TD
-    P[Platforms: native/browser runtime, drivers, images] --> C[Core: portable OS services and libraries]
-    P --> A[Applications: guest and native programs, Wasmi]
-    A --> C
-    A -.->|integration test harness, development only| P
-    C --> R[package_manager: portable package tooling]
+    Core["Core<br/>(subsystems and libraries)"]
+    PM["package_manager<br/>(leaf packaging logic)"]
+    Apps["Applications<br/>(executables, guest API)"]
+    Plat["Platforms<br/>(drivers, target assembly)"]
+    Reg["registry<br/>(metadata catalog)"]
+
+    Apps --> Core
+    Apps --> PM
+    Plat --> Core
+    Plat --> PM
+    Plat --> Apps
+    Reg -.->|package metadata| PM
 ```
 
-- **[Core](https://github.com/xila-project/core)** contains reusable subsystem managers (Task, VFS, Graphics, Time, Network, Users, Memory, Log), general device/filesystem/ABI libraries, and its `xila` API façade under <CodeReference path="core/src/lib.rs" />.
-- **[Applications](https://github.com/xila-project/applications)** contains the Wasmi host interpreter, guest API and six bundled WASI apps, plus graphical shell, CLI shell, Settings, file manager, Terminal and other native executables.
-- **[Platforms](https://github.com/xila-project/platforms)** contains target drivers, the integration/testing harness, the Linux/OCI and browser final binaries, filesystem seed builders and the actual browser-demo CI.
-- **[package_manager](https://github.com/xila-project/package_manager)** and **[registry](https://github.com/xila-project/registry)** own separate experimental package tooling and publication metadata, not installed runtime services.
+Each repository owns a distinct responsibility in the ecosystem:
 
-Production dependency direction is **Platforms → Applications → Core**, with Platforms also directly depending on Core. Development-only test harness imports may reverse these edges; no circular production runtime ownership is intended. Git dependencies are pinned and local code overrides need explicit Cargo configuration.
+- **[Core](https://github.com/xila-project/core)** provides portable operating system subsystems, reusable data structures, and the top-level `xila` façade crate. Core never depends on other Xila repositories.
+- **[package_manager](https://github.com/xila-project/package_manager)** is a leaf repository providing package creation, manifest validation, cryptographic signing, and verification. It has no dependencies on any other Xila repository.
+- **[Applications](https://github.com/xila-project/applications)** contains official system executables, shells, user-space utilities, and the WebAssembly (Wasm) host interpreter. Applications depends on Core and package manager.
+- **[Platforms](https://github.com/xila-project/platforms)** contains target drivers, filesystem seed generation tools, and target entry points that assemble full system images. Platforms depends on Core, package manager, and Applications.
+- **[registry](https://github.com/xila-project/registry)** is a standalone metadata repository that records signed package versions and developer keys.
 
-## Runtime assembly
+### Crate layering
 
-A final Platforms binary chooses the target drivers and composes Core managers with Applications executables. This is where the Xila runtime is initialized, capabilities are passed to launch contexts, and the VFS namespace and default programs are mounted; the portable Core crates themselves do not provide a runnable browser/desktop example.
+The following diagram illustrates how crates are layered from hardware drivers up to user-facing executables.
 
-## Portable architecture roles
+```mermaid
+flowchart TD
+    Exec["Executables<br/>(shells, tools, Wasm runner)"]
+    Subsys["Subsystems<br/>(VFS, task, graphics, network)"]
+    Libs["Libraries<br/>(file_system, authentication, synchronization)"]
+    Dev["Devices<br/>(device traits, control commands)"]
+    Drivers["Drivers<br/>(screen, console, storage, Wi-Fi)"]
 
-Core's [subsystems](/explanation/architecture/subsystems/) own runtime capabilities and lifecycle. [Libraries](/explanation/architecture/libraries/) expose contracts, protocols and reusable implementations. [Drivers](/explanation/architecture/drivers/) mostly live in Platforms except Core's minimal `drivers/core` implementations. [Executables](/explanation/architecture/executables/) live in Applications.
+    Exec --> Subsys
+    Subsys --> Libs
+    Subsys --> Dev
+    Dev --> Libs
+    Drivers --> Dev
+    Drivers --> Libs
+```
 
-A final **Platforms** runtime builds the required managers, drivers and executable contexts for its target and mounts the VFS devices and applications. See <CodeReference repo="platforms" path="examples/native/src/main.rs" /> and <CodeReference repo="platforms" path="examples/wasm/src/main.rs" /> for the actual composition.
+Crates belong to one of five architectural roles:
 
-The global allocator, logger and C/LVGL callbacks can still require process-global registration; portable manager APIs themselves need not be singletons.
+1. **Subsystems**: own runtime state and background lifecycles for core services such as task scheduling, graphics rendering, and path resolution.
+2. **Libraries**: provide stateless contracts, data formats, cryptographic utilities, and synchronization primitives.
+3. **Devices**: define unified interface traits and typed control commands for hardware and virtual devices.
+4. **Drivers**: implement concrete hardware or host adapters fulfilling device trait contracts.
+5. **Executables**: programs launched by the system that interact with services through runtime contexts.
 
-## Docs and demonstrations
+### Runtime assembly
 
-The website's [`.github/workflows/deploy.yml`](https://github.com/xila-project/website/blob/main/.github/workflows/deploy.yml) builds and embeds both Core's [Host API Rustdoc](/reference/host) (`/rustdoc/host/`) and Applications' `wasm32-wasip1` [Guest API Rustdoc](/reference/guest) (`/rustdoc/guest/`). Core's <CodeReference path=".github/workflows/pages.yml" /> also publishes standalone host Rustdoc at `documentation.xila.dev`.
+Platforms integrates Core subsystems with concrete drivers and Applications executables to create runnable binaries. During boot, the target entry point executes the following initialization steps:
 
-Platforms' <CodeReference repo="platforms" path=".github/workflows/demo.yml" /> publishes [the browser demo](https://platforms.xila.dev/) including localized routes under `/demonstrations/wasm/<locale>/`. For runtime details see [development environments](/explanation/development-environments).
+1. Initializes the target memory allocator and installs the global logger.
+2. Instantiates the task manager and registers the Embassy executor spawner.
+3. Constructs the users manager and initializes the time manager with a hardware time source.
+4. Mounts the root file system and initializes the virtual file system (VFS).
+5. Populates the default directory hierarchy and mounts device nodes under `/devices/`.
+6. Mounts static executables into `/applications/executables/`.
+7. Seeds initial user accounts through the authentication library.
+8. Launches the initial user interface shell.
 
-## Find a component
+## Design choices and trade-offs
 
-<CardGrid>
-  <LinkCard
-    title="Component map"
-    href="/explanation/architecture/components/"
-    description="Responsibilities of each role."
-  />
-  <LinkCard
-    title="Subsystems"
-    href="/explanation/architecture/subsystems/"
-    description="Core service managers."
-  />
-  <LinkCard
-    title="Libraries"
-    href="/explanation/architecture/libraries/"
-    description="Portable contracts."
-  />
-  <LinkCard
-    title="Drivers"
-    href="/explanation/architecture/drivers/"
-    description="Core minimal drivers and Platforms-specific drivers."
-  />
-  <LinkCard
-    title="Executables"
-    href="/explanation/architecture/executables/"
-    description="Official Applications and Wasmi."
-  />
-</CardGrid>
+- **Strict dependency directions**: circular dependencies between repositories or crate layers are forbidden, ensuring predictable builds and modular components.
+- **Portable kernel core**: Core does not link against platform SDKs or standard operating system libraries, enabling unit testing on native hosts without hardware dependencies.
+- **Explicit manager lifecycle**: subsystem managers are constructed explicitly and passed to execution contexts, avoiding hidden global state except where required by C libraries or runtime allocators.
+
+## API reference
+
+- <HostReference crate="xila" /> - the root façade crate re-exporting Core
+  subsystems and libraries.
+- <CodeReference path="core/src/lib.rs" /> - façade module definitions and
+  feature re-exports.
+- <CodeReference repo="platforms" path="examples/native/src/main.rs" /> - native
+  desktop target initialization and assembly.
+
+## Related
+
+- [Component map](/explanation/architecture/components/) - complete inventory of crates and packages.
+- [Subsystems](/explanation/architecture/subsystems/) - kernel-managed runtime services.
+- [Libraries](/explanation/architecture/libraries/) - reusable system libraries and contracts.
+- [Drivers](/explanation/architecture/drivers/) - platform hardware and simulation drivers.
+- [Executables](/explanation/architecture/executables/) - built-in system applications and launchers.
