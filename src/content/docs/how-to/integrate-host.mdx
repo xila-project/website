@@ -1,57 +1,50 @@
 ---
-title: "Integrate Xila into a host application"
+title: "Integrate Xila into a host"
 docType: how-to
-description: Assemble a host Xila runtime with explicit managers, drivers, and executable capabilities.
+description: "Compose Core managers and platform drivers in a host runtime."
 ---
 
-import { Steps } from "@astrojs/starlight/components";
-
 import CodeReference from "@/components/CodeReference.astro";
+import HostReference from "@/components/HostReference.astro";
 
-Use the native example's assembly to connect Xila services and executables to your host application.
+This guide shows how to compose a host runtime using the native example as a reference.
 
 ## Before you begin
 
-Complete the [native tutorial](/tutorials/native) or establish a working [development environment](/how-to/setup-development). Read the [runtime assembly overview](/explanation/architecture/#runtime-assembly) and identify your display, time, storage, and executor drivers.
+- Set up the [development environment](/how-to/setup-development/) and inspect the <CodeReference repo="platforms" path="examples/native/src/main.rs">native example</CodeReference>.
+- Choose drivers for your host and the Core `xila` features your runtime needs. The <CodeReference path="core/Cargo.toml">facade manifest</CodeReference> enables `network` and `abi_definitions` by default; graphics and other capabilities are feature gated.
 
-The procedure is an integration outline; <CodeReference repo="platforms" path="examples/native/src/main.rs" /> provides the complete executable example.
+## Steps
 
-## Add the dependencies
+1. Create a task manager and initialize logging, users and time using host drivers. The native example provides a static <HostReference crate="task" kind="struct" symbol="Manager" /> and a time device.
+2. If using graphics, initialize graphics with a screen and input devices and start its loop as a task.
+3. Prepare and mount storage, then initialize the virtual file system with the task, users and time managers. Initialize the ABI context with the virtual file system and time manager.
+4. Mount the devices and initialize the network manager and application context required by your host. Follow the native example for authentication and executable registration.
 
-In your application's Cargo manifest:
+The following diagram shows the order in the native example.
 
-```toml
-[dependencies]
-xila = { git = "https://github.com/Xila-Project/Core.git", features = ["graphics_rendering_xrgb8888"] }
+```mermaid
+sequenceDiagram
+    participant Host
+    participant Managers
+    participant Graphics
+    participant Storage
+    participant VFS
+    participant Network
+    Host->>Managers: Initialize log, users, time
+    Host->>Graphics: Initialize if graphical
+    Host->>Storage: Prepare and mount disk
+    Host->>VFS: Initialize and set ABI context
+    Host->>VFS: Mount devices
+    Host->>Network: Initialize manager
 ```
 
-This enables Core's default services and the optional XRGB8888 graphics rendering path. Select features appropriate to your actual display. The package has no `host` feature.
+The host initializes managers before optional graphics, then mounts storage and initializes the virtual file system (VFS). It mounts devices and initializes networking afterward.
 
-Add platform drivers separately, such as `drivers_std` and `drivers_native`; they are not re-exported through `xila::drivers`.
+## Verify the result
 
-## Assemble the runtime
+Build and run your host with the drivers and features you selected. The native example logs `Virtual file system initialized.` after VFS initialization.
 
-<Steps>
+## Related
 
-1. Construct a task manager and connect it to your executor bootstrap, following the example's `#[task::run(...)]` manager argument.
-2. Register the allocator/logger and construct users/time managers with their platform drivers.
-3. Initialize graphics with the time manager and screen/input devices. Register the FFI manager for callbacks that cannot carry Rust references.
-4. Construct VFS from task/users/time managers and a root filesystem; create the default hierarchy and mount devices. Register the separate C ABI runtime context if your runtime uses it.
-5. Initialize optional networking with its task/VFS/time/random dependencies.
-6. Build an `ExecutableContext`, mount executables with it, and open `Standard` streams carrying the same context.
-7. Launch with `executable::execute(context, path, args, standard, spawner)` and join the returned task when needed.
-
-</Steps>
-
-Keep manager storage alive for its consumers. The examples use static storage and leaked boxes for required `'static` references; plan ownership and RAM costs for your target.
-
-## Verify completion
-
-Build for your actual host target, start the runtime, and launch a mounted executable. Check that it uses the same context/VFS that created its streams. For graphical integration, exercise input and window closing in the supported native session.
-
-## Related documentation
-
-- [Executable context](/explanation/architecture/libraries/executable)
-- [VFS](/explanation/architecture/subsystems/virtual_file_system)
-- [C ABI context](/explanation/architecture/libraries/abi)
-- [Development environments and targets](/explanation/development-environments)
+- [Development commands](/reference/development-commands/)
