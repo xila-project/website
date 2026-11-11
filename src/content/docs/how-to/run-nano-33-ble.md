@@ -19,7 +19,7 @@ Flashing writes only to the firmware flash region (`0x10000`–`0x80000`) and pr
 
 ## Steps
 
-### Understand the memory layout
+### Check the memory layout
 
 The board partitions the 1 MiB internal flash and 256 KiB RAM into fixed regions:
 
@@ -76,21 +76,17 @@ picocom /dev/ttyACM0
 
 Because the connection uses native USB CDC-ACM emulation, the host baud rate setting does not affect transmission speed.
 
-2. On first startup, the firmware detects an unformatted flash region, formats the LittleFS file system, and seeds default accounts. The terminal displays:
+2. On first startup, the firmware detects an unformatted flash region, formats the LittleFS file system, and seeds default accounts. The log shows the board banner and a file system line; the heap numbers depend on the build:
 
 ```text
 Xila on Arduino Nano 33 BLE
-File system ready (formatted: true); heap: 184320 bytes used, 77824 free
+File system ready (formatted: true); heap: <used> bytes used, <free> free
 ```
 
 3. When prompted for login, enter `administrator`.
 4. Press `Enter` when prompted for a password (the initial password is blank).
 
-The command-line shell starts:
-
-```text
-/ #
-```
+The command-line shell starts and shows a prompt in the form `user@host:directory$`, for example `administrator@<host>:/$`.
 
 ### Control GPIO pins
 
@@ -137,37 +133,29 @@ The following diagram shows the bootloader entry, crash detection, and recovery 
 
 ```mermaid
 flowchart TD
-    PowerOn["Power on or hardware reset"] --> CheckDoubleTap{"Double-tap reset button?"}
-    CheckDoubleTap -->|Yes| Bootloader["Arduino bootloader\n(USB 2341:005a)"]
-    CheckDoubleTap -->|No| CheckGpregret{"GPREGRET == 0xB0?"}
-    CheckGpregret -->|Yes| Bootloader
-    CheckGpregret -->|No| FirmwareStart["Xila firmware entry\n(0x10000)"]
-
-    FirmwareStart --> ReadCrash{"Previous crash record?"}
-    ReadCrash -->|Present| LogCrash["Log panic message via USB console"]
-    ReadCrash -->|None| InitFS["Mount LittleFS & initialize subsystems"]
-    LogCrash --> InitFS
-
-    InitFS --> CheckCrashes{"Consecutive crashes >= 3?"}
-    CheckCrashes -->|Yes| ResetBootloader["Set GPREGRET=0xB0\nReset into bootloader"]
-    CheckCrashes -->|No| Shell["Start command-line shell"]
-
-    Shell --> MarkStable["mark_stable(): clear crash counter"]
-
-    HostTouch["Host 1200-baud touch\n(stty -F /dev/ttyACM0 1200 hupcl)"] --> ResetBootloader
+    Reset["Power on or reset"] --> Boot{"Bootloader requested?"}
+    Boot -->|"double-tap or GPREGRET 0xB0"| Bootloader["Arduino bootloader"]
+    Boot -->|No| Firmware["Xila firmware"]
+    Firmware --> Log["Log previous crash message"]
+    Log --> Start["Mount file system and start shell"]
+    Start --> Stable["mark_stable clears crash count"]
+    Firmware -->|panic or fault| Crash["crash stores message"]
+    Crash -->|"count below 3"| Reset
+    Crash -->|"third crash in a row"| Bootloader
+    Touch["Host 1200-baud touch"] --> Bootloader
 ```
 
 The recovery mechanisms operate as follows:
 
 - **1200-baud touch:** Host flashing scripts open the serial port at 1200 baud and close it. The USB console driver detects this request, sets `0xB0` in the `NRF_POWER->GPREGRET` register, and triggers a system reset into the Arduino bootloader.
-- **Double-tap reset:** Pressing the physical reset button twice within 500 milliseconds instructs the hardware bootloader to remain active.
+- **Double-tap reset:** Pressing the physical reset button twice enters the Arduino bootloader, whatever the firmware state.
 - **Panic preservation:** When a panic or hard fault occurs, `board::crash()` writes up to 248 bytes of the error message into the uninitialized RAM crash record and increments `GPREGRET2`. The subsequent boot reads and logs this message through the USB console.
-- **Three-panic bootloader latch:** If three consecutive crashes occur before the system reaches `mark_stable()`, the firmware resets into the bootloader to prevent an unrecoverable restart loop.
+- **Three-panic bootloader latch:** `board::crash()` counts crashes in `GPREGRET2`. On the third crash in a row before the firmware reaches `mark_stable()`, it resets into the bootloader instead of restarting the firmware.
 - **Bring-up timeout:** When built with `--features bring-up`, hardware timer `TIMER1` counts down 60 seconds. If no host terminal opens the serial port within this period, the board automatically resets into the bootloader.
 
 ## Verify the result
 
-1. In the serial terminal, verify that the shell prompt `/ #` appears after logging in.
+1. In the serial terminal, verify that the shell prompt (`user@host:directory$`) appears after logging in.
 2. Run `echo 1 > /devices/gpio/d13` and observe that the yellow onboard LED lights up.
 3. Run `echo 0 > /devices/gpio/d13` and observe that the yellow LED turns off.
 
@@ -176,7 +164,7 @@ The recovery mechanisms operate as follows:
 | Symptom                                      | Cause                                     | Fix                                                                                                                                     |
 | -------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Serial device `/dev/ttyACM0` does not appear | Firmware halted or USB disconnected       | Double-tap the physical reset button to force the Arduino bootloader mode (`2341:005a` in `lsusb`).                                     |
-| Flashing fails with missing objcopy          | ARM binary utilities not installed        | Install `cargo-binutils` via `cargo install cargo-binutils && rustup component add llvm-tools`, or install system LLVM.                 |
+| Flashing fails with missing objcopy          | ARM binary utilities not installed        | Install `cargo-binutils` (for `rust-objcopy`) or LLVM, as the error message from `flash.sh` says.                                       |
 | Board continuously resets                    | Panic loop during startup                 | Connect a serial terminal to read the panic message logged on boot. After three consecutive crashes, the board halts in the bootloader. |
 | LittleFS fails to mount                      | Flash corruption in the storage partition | Erase the storage partition (`0x80000`–`0x100000`) through the bootloader or reflash with a full chip erase.                            |
 

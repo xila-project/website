@@ -1,25 +1,17 @@
 ---
 title: "Run Calculator in the browser"
 docType: tutorial
-description: "Launch the browser runtime at platforms.xila.dev or build guest applications locally to evaluate an expression in Calculator."
+description: "Open the hosted browser runtime at platforms.xila.dev, log in and evaluate an expression in Calculator."
 ---
 
 import DemoLanguages from "@/components/DemoLanguages.astro";
-import CodeReference from "@/components/CodeReference.astro";
 
-In this tutorial, you run Xila in a web browser using the hosted demonstration or a local build. At the end, you have an active Xila desktop in your browser running the Calculator guest application.
+In this tutorial, you run Xila in a web browser using the hosted demonstration at platforms.xila.dev. At the end, you have an active Xila desktop in your browser running the Calculator guest application.
 
 ## Before you begin
 
 - A modern web browser supporting Origin Private File System (OPFS) and Web Locks (such as Chromium, Chrome, or Firefox).
-- For the hosted demonstration: an internet connection to access `https://platforms.xila.dev/`.
-- For local builds: an x86_64 Linux development system with [Git](https://git-scm.com/), [mise](https://mise.jdx.dev/), Node.js, and npm.
-- For local builds, clone the [Applications repository](https://github.com/xila-project/applications) and [Platforms repository](https://github.com/xila-project/platforms) side by side:
-
-```sh
-git clone https://github.com/xila-project/applications.git
-git clone https://github.com/xila-project/platforms.git
-```
+- An internet connection to reach `https://platforms.xila.dev/`.
 
 ## Open the hosted demonstration
 
@@ -32,64 +24,15 @@ The browser page loads the Xila runtime canvas and displays the login screen.
 ## Log in and launch Calculator
 
 1. On the login screen, enter `administrator` in the user name field and leave the password blank.
-2. Click the login button. The login screen closes, and the Xila desktop appears with the dock.
-3. Click the Xila icon on the dock to open the application drawer.
+2. Click **Login**. The login screen closes, and the Xila desktop appears with the dock.
+3. Click the button with a 3 × 3 grid of squares on the dock to open the application drawer.
 4. Click the **Calculator** icon. The Calculator application opens in a window on the canvas.
 5. Click `1`, `+`, `2`, and `=`. The Calculator display updates to show `3`.
 6. Click the close button in the top-right corner of the Calculator window. The window closes cleanly.
 
-## Build and serve locally
-
-To build and serve the browser runtime locally:
-
-1. In the terminal, navigate to the Applications repository root and compile the guest applications:
-
-```sh
-cd applications
-mise trust
-mise run build:applications
-cd ..
-```
-
-The terminal compiles the seven guest applications for the `wasm32-wasip1` target. The `.wasm` binaries appear in `target/wasm32-wasip1/release-wasm/`.
-
-2. Navigate to the Platforms repository root, install dependencies, and create the browser disk image:
-
-```sh
-cd platforms
-mise trust
-mise bootstrap packages apply --manager apt
-npm ci
-export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
-mise run image:browser
-```
-
-The `xila-fs-image` tool creates the reference LittleFS image at `target/seed/browser/seed.img`.
-
-3. Copy the reference image to the path expected by the browser build:
-
-```sh
-mkdir -p target/seed/wasm
-cp target/seed/browser/seed.img target/seed/wasm/seed.img
-```
-
-4. Build the browser demonstration and start a local HTTP server:
-
-```sh
-MISE_ENV=ci mise run pages:demo
-python3 -m http.server 8080 --directory examples/wasm/dist
-```
-
-The terminal reports that the HTTP server is listening on port 8080.
-
-5. In your web browser, navigate to `http://localhost:8080`.
-
 ## Check your result
 
 The browser canvas displays the Xila desktop. Calculator opens, responds to clicks, and evaluates arithmetic expressions. Changes are persisted to the selected OPFS disk.
-
-To stop the local HTTP server, press `Ctrl+C` in the terminal.
 
 ## Next steps
 

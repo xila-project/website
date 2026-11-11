@@ -93,24 +93,20 @@ The compiled `wasm32-wasip1` binaries are placed in `target/wasm32-wasip1/releas
 
 ### Generate reference disk images
 
-1. In the Platforms repository root, point to the guest application binaries and generate the native reference image:
+1. In the Platforms repository root, generate the native reference image from the released, signed packages pinned in `tools/fs_image/profiles/bundles.lock.json`:
 
 ```sh
-cd ../platforms
-export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
 mise run image:native
 ```
 
-The LittleFS disk image is written to `target/seed/native/seed.img`.
+The LittleFS disk image is written to `target/seed/native/seed.img`. For the browser runtime, run `mise run image:browser` instead; it writes `target/seed/browser/seed.img`.
 
-2. To generate a browser reference image instead:
+2. Optional: To seed the guests you built locally instead, bundle them into a new directory and pass it through `XILA_BUNDLES_DIR`. The output directory must not exist yet:
 
 ```sh
-mise run image:browser
+tools/bundle_applications.sh ../applications ../applications/target/wasm32-wasip1/release-wasm target/local-bundles
+XILA_BUNDLES_DIR=target/local-bundles mise run image:native
 ```
-
-The browser LittleFS image is written to `target/seed/browser/seed.img`.
 
 ### Configure local cross-repository overrides
 

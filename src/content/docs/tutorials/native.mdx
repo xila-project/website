@@ -1,89 +1,57 @@
 ---
 title: "Run Xila natively"
 docType: tutorial
-description: "Build official guest applications, generate a disk image, and run the native Xila desktop on Linux."
+description: "Create a reference disk image and run the native Xila desktop on Linux."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
-
-In this tutorial, you build the official WebAssembly (Wasm) guest applications, create a reference disk image, and start the native runtime on desktop Linux. At the end, you have an interactive Xila desktop running on your display.
+In this tutorial, you create a reference disk image with the released WebAssembly (Wasm) applications and start the native runtime on desktop Linux. At the end, you have an interactive Xila desktop running on your display.
 
 ## Before you begin
 
-- An x86_64 Linux operating system (such as Debian or Ubuntu) with an active Wayland or X11 session.
-- [Git](https://git-scm.com/) installed to clone repositories.
-- [mise](https://mise.jdx.dev/) installed to manage toolchains.
-- [Node.js](https://nodejs.org/) and npm installed for font conversion tools.
-- Clone the [Applications repository](https://github.com/xila-project/applications) and [Platforms repository](https://github.com/xila-project/platforms) side by side:
+- An x86_64 Linux system with an active Wayland or X11 session. The package step uses `apt`, so a Debian-based distribution such as Debian or Ubuntu is the simplest choice.
+- [Git](https://git-scm.com/), to clone the Platforms repository.
+- [mise](https://mise.jdx.dev/), which installs the Rust toolchain and other tools each task needs.
+- [Node.js](https://nodejs.org/) and npm, for the font converter used by the graphics build.
+- A network connection: the disk image step downloads the released application packages.
 
-```sh
-git clone https://github.com/xila-project/applications.git
-git clone https://github.com/xila-project/platforms.git
-```
+## Prepare the Platforms repository
 
-## Build the guest applications
+1. Clone the [Platforms repository](https://github.com/xila-project/platforms) and enter it:
 
-1. In the terminal, navigate to the Applications repository root:
+   ```sh
+   git clone https://github.com/xila-project/platforms.git
+   cd platforms
+   ```
 
-```sh
-cd applications
-```
+2. Trust the repository's mise configuration:
 
-2. Trust the mise configuration:
+   ```sh
+   mise trust
+   ```
 
-```sh
-mise trust
-```
+3. Install the native host packages (for example ALSA, Wayland and X11 development files):
 
-3. Build the seven WebAssembly guest applications:
+   ```sh
+   mise bootstrap packages apply --manager apt
+   ```
 
-```sh
-mise run build:applications
-```
+4. Install the locked npm dependencies for the font converter:
 
-The terminal prints compilation output for the guest applications (`xila-calculator`, `xila-clock`, `xila-weather`, `xila-pixel-painter`, `xila-text-editor`, `xila-synth`, and `xila-digits`). The compiled `.wasm` binaries appear in `target/wasm32-wasip1/release-wasm/`.
+   ```sh
+   npm ci
+   ```
 
-4. Return to the parent directory:
-
-```sh
-cd ..
-```
+   npm prints a summary of the installed packages.
 
 ## Create a reference disk image
 
-1. Navigate to the Platforms repository root:
+1. In the Platforms repository root, create the seed image:
 
-```sh
-cd platforms
-```
+   ```sh
+   mise run image:native
+   ```
 
-2. Trust the mise configuration:
-
-```sh
-mise trust
-```
-
-3. Install required host packages:
-
-```sh
-mise bootstrap packages apply --manager apt
-```
-
-4. Install npm dependencies for font conversion:
-
-```sh
-npm ci
-```
-
-5. Point the build environment to the compiled guest applications and generate the disk image:
-
-```sh
-export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
-mise run image:native
-```
-
-The terminal runs the `xila-fs-image` tool. It generates a 16 MiB LittleFS reference disk image at `target/seed/native/seed.img`.
+   The task downloads the released, signed application packages pinned in `tools/fs_image/profiles/bundles.lock.json`, then runs the `xila-fs-image` tool. When it finishes, the 16 MiB LittleFS image is at `target/seed/native/seed.img`.
 
 ## Start the native runtime
 
@@ -93,13 +61,13 @@ The terminal runs the `xila-fs-image` tool. It generates a 16 MiB LittleFS refer
 cargo run -p xila-native-example --bin native_example -- --gui --no-network --seed-image target/seed/native/seed.img
 ```
 
-A window opens displaying the Xila graphical interface and login screen.
+Cargo builds the runtime, then a window opens with the Xila login screen. On first start, the runtime imports the seed into a new live disk at `./drive.img`.
 
 ## Log in and launch Calculator
 
 1. In the user name field on the login screen, enter `administrator`. Leave the password field empty.
-2. Click the login button. The login screen closes, and the desktop loads with the dock and status bar.
-3. Click the Xila icon on the dock to open the application drawer.
+2. Click **Login**. The login screen closes, and the desktop loads with the dock and status bar.
+3. Click the button with a 3 × 3 grid of squares on the dock to open the application drawer.
 4. Click the **Calculator** icon. A window opens with the Calculator interface.
 5. Click `1`, `+`, `2`, and `=`. The display updates to show `3`.
 6. Click the close button in the top-right corner of the Calculator window. The window closes, returning to the empty desktop.
@@ -108,7 +76,7 @@ A window opens displaying the Xila graphical interface and login screen.
 
 The Xila desktop is running, Calculator launched and evaluated an expression, and the application closed cleanly. The terminal outputs log messages reporting task and device status.
 
-To stop the native runtime, close the application window or press `Ctrl+C` in the terminal. The live disk state is saved to `./drive.img` in your current working directory.
+To stop the native runtime, close the window or press `Ctrl+C` in the terminal. Your changes stay in `./drive.img`. The next start reuses that disk and ignores the seed; to start from a clean installation, pass another path with `--disk-path`.
 
 ## Next steps
 
