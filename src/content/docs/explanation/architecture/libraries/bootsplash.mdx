@@ -55,15 +55,15 @@ The following diagram shows the animation state transitions from startup initial
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Intro: Bootsplash::new
+    [*] --> Intro: new
     state Intro {
-        [*] --> SquareFade: Center square fades in (240 ms)
-        SquareFade --> ArmsSlide: Arms slide inward clockwise (600 ms)
+        [*] --> SquareFade: square fades in, 240 ms
+        SquareFade --> ArmsSlide: arms slide in, staggered
     }
-    Intro --> FirstCycle: intro_completed
-    FirstCycle --> LoopingRipple: first_cycle_completed
-    LoopingRipple --> LoopingRipple: Clockwise arm pulses (1600 ms period)
-    LoopingRipple --> [*]: Bootsplash::stop
+    Intro --> FirstCycle: intro completed, 900 ms
+    FirstCycle --> Ripple: first cycle completed
+    Ripple --> Ripple: arm pulse, 1600 ms period
+    Ripple --> [*]: stop
 ```
 
 `Bootsplash::new` begins the intro phase, fading the central square before sliding each arm inward clockwise. Once complete, it enters a continuous loop where each arm pulses outward in turn. When the desktop shell or graphical user interface is ready, calling `Bootsplash::stop` deletes the active animations and dismisses the bootsplash.
