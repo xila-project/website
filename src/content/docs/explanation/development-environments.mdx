@@ -1,39 +1,122 @@
 ---
 title: "Development environments and targets"
 docType: explanation
-description: Understand the independent Core, Applications and Platforms development and runtime targets.
+description: "Understand the target architectures, repository boundaries, and toolchains across Core, Applications, and Platforms."
 ---
 
+import HostReference from "@/components/HostReference.astro";
+import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The three Xila workspaces have different responsibilities and independent Cargo/mise setups. The portable libraries are developed in **Core**; **Applications** builds Wasmi and WASI app logic; **Platforms** supplies platform-specific drivers, the final native/browser assembly and images.
+Xila spans multiple compilation targets and development environments across three primary repositories. Core provides portable operating system logic, Applications implements guest applications and user-facing executables, and Platforms produces concrete runtimes for desktop, browser, and microcontroller targets.
 
-## Workspace and tool boundaries
+## Context
 
-- **Core**: portable Task, VFS, Time, Graphics, Network, ABI and shared libraries; host Rustdoc deployment. Source: <CodeReference path="mise.toml" />.
-- **Applications**: WASI guest applications, guest bindings, the host Wasmi runtime, shells and other native executables; application localization and development package workflows. Source: <CodeReference repo="applications" path="mise.toml" />.
-- **Platforms**: display/audio/network platform drivers, example runtimes, OPFS, LittleFS reference image generation, container image and browser demonstration publishing. Source: <CodeReference repo="platforms" path="mise.toml" />.
+Operating systems for embedded and portable devices face conflicting architectural requirements. Desktop workstations require rapid iteration, graphical debugging, and host testing. Web browsers require sandboxed WebAssembly execution and web storage integration. Microcontrollers require bare-metal real-time execution with constrained RAM and flash budgets.
 
-Mise selects pinned Rust/Node/tool versions on demand. mr-boxington compilation caching and CI tool bootstrap remain repository-specific. All repositories pin external Git dependencies; local adjacent checkouts require an explicit Cargo patch or their pinned versions will still be selected.
+Xila addresses these demands by decoupling portable operating system subsystems from concrete platform drivers and guest applications.
 
-## Three execution targets
+## How it works
 
-| Target                     | What it runs                                                    | Owned by                                          |
-| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------- |
-| `x86_64-unknown-linux-gnu` | Native Xila runtime and host tests                              | Platforms (with Core + Applications dependencies) |
-| `wasm32-wasip1`            | WASI guest apps interpreted by Wasmi inside Xila                | Applications                                      |
-| `wasm32-unknown-unknown`   | Browser-hosted Xila final binary using OPFS and browser drivers | Platforms                                         |
+### Repository responsibilities
 
-The `xila-wasm` crate lives in Applications and owns **both** Wasmi host integration and guest-facing bindings. Core contains neither a standalone guest interpreter nor the browser example.
+The codebase is organized into three primary repositories:
 
-## Distribution and runtime isolation
+- **Core** (`github.com/xila-project/core`): Architecture-independent operating system subsystems and libraries. Owns the virtual file system (VFS), task management, memory allocation abstractions, authentication, graphics primitives, and device interfaces.
+- **Applications** (`github.com/xila-project/applications`): User applications (such as Calculator, Clock, Weather, Pixel Painter, Text Editor, Synth, and Digits), system shells (graphical shell, command-line shell, terminal), and WebAssembly guest runtime bindings (`xila-wasm`).
+- **Platforms** (`github.com/xila-project/platforms`): Concrete platform targets, platform drivers, reference disk image generation (`xila-fs-image`), and runtime binaries for desktop, browser, and microcontroller environments.
 
-The Linux/amd64 headless OCI runtime is assembled/published by Platforms, separate from the mise development environment. Its host filesystem mounts and permissions remain part of the runtime policy; Docker's isolation is not proof of MCU security.
+Supporting repositories include `package_manager` for application packaging and `registry` for signed package publication metadata.
 
-The website publishes both the [Host API Rustdoc](/reference/host/) (for Core workspace crates) and the [Guest API Rustdoc](/reference/guest/) (for Applications' `wasm32-wasip1` `xila-wasm` guest bindings), while Core's standalone Pages workflow (<CodeReference path=".github/workflows/pages.yml" />) publishes host Rustdoc at [documentation.xila.dev](https://documentation.xila.dev/) and the browser demo and localized builds live at [platforms.xila.dev](https://platforms.xila.dev/).
+### Execution targets
 
-## Validation limits
+Xila compiles to four distinct Rust target triples:
 
-Compilation and CI only cover selected target/feature combinations. In particular, the Espressif code retained in Platforms needs a board-specific toolchain, power/flash/RAM measurement and validation. A successful Linux/browser integration check alone is **not** proof of a working ESP32-S3 port.
+| Target                     | Purpose                                 | Execution model                                           | Built by                           |
+| -------------------------- | --------------------------------------- | --------------------------------------------------------- | ---------------------------------- |
+| `x86_64-unknown-linux-gnu` | Native desktop runtime and host testing | Native machine code running on host Linux                 | Platforms (`examples/native`)      |
+| `wasm32-wasip1`            | Sandboxed guest applications            | WebAssembly bytecode interpreted by Wasmi inside Xila     | Applications (`executables/*`)     |
+| `wasm32-unknown-unknown`   | Browser runtime                         | WebAssembly bytecode executed directly by the web browser | Platforms (`examples/wasm`)        |
+| `thumbv7em-none-eabihf`    | Embedded microcontroller firmware       | Bare-metal ARM Cortex-M4F machine code                    | Platforms (`examples/nano_33_ble`) |
 
-Continue with [Development setup](/how-to/setup-development), [Development commands](/reference/development-commands) and the [native](/tutorials/native) or [browser](/tutorials/browser) tutorial.
+### Build and runtime flow
+
+The following diagram shows which repository builds which runtime for which target architecture.
+
+```mermaid
+flowchart LR
+    subgraph Repositories
+        C["Core\n(portable OS)"]
+        A["Applications\n(guests & shells)"]
+        P["Platforms\n(runtimes & drivers)"]
+    end
+
+    subgraph Targets
+        T_HOST["x86_64-unknown-linux-gnu"]
+        T_GUEST["wasm32-wasip1"]
+        T_WASM["wasm32-unknown-unknown"]
+        T_ARM["thumbv7em-none-eabihf"]
+    end
+
+    subgraph Artifacts
+        OUT_NATIVE["Native desktop runtime\n(native_example)"]
+        OUT_GUESTS["Guest binaries\n(*.wasm)"]
+        OUT_BROWSER["Browser runtime\n(xila-wasm-example)"]
+        OUT_NANO["Microcontroller firmware\n(nano_33_ble_example)"]
+    end
+
+    C --> P
+    A -->|compiles to| T_GUEST
+    T_GUEST --> OUT_GUESTS
+    OUT_GUESTS -->|seeded into| P
+
+    P -->|compiles to| T_HOST
+    T_HOST --> OUT_NATIVE
+
+    P -->|compiles to| T_WASM
+    T_WASM --> OUT_BROWSER
+
+    P -->|compiles to| T_ARM
+    T_ARM --> OUT_NANO
+```
+
+As illustrated:
+
+1. Core provides portable operating system logic as a library dependency to Applications and Platforms.
+2. Applications compiles guest applications into `wasm32-wasip1` WebAssembly binaries.
+3. Platforms provisions those compiled guest binaries into reference LittleFS disk images using `xila-fs-image`.
+4. Platforms compiles final runtime executables for host Linux (`x86_64-unknown-linux-gnu`), web browsers (`wasm32-unknown-unknown`), and the Arduino Nano 33 BLE (`thumbv7em-none-eabihf`).
+
+## Design choices and trade-offs
+
+- **Strict guest isolation via WASI Preview 1:** Guest applications run within isolated Wasmi instances compiled to `wasm32-wasip1`. Guests cannot inspect host memory or invoke arbitrary host syscalls; all interactions occur through typed Xila device paths and ABI calls.
+- **`no_std` kernel core:** Core subsystems avoid dependencies on standard OS libraries. This allows the identical VFS, task scheduler, and authentication logic to execute on Linux, in browser WebAssembly, and on bare-metal ARM microcontrollers.
+- **Cooperative scheduling for constrained targets:** While desktop Linux can utilize preemptive threads, browser and bare-metal targets employ cooperative task execution with fuel-based limits and explicit yield points.
+- **Build-time disk provisioning:** Application bundles and filesystem hierarchies are assembled at build time into reference disk images. This avoids running heavy package installations or compilations on memory-limited microcontrollers.
+
+## Limits
+
+- **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the resource budget.
+- **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
+- **Espressif target status:** Although driver sources exist in `drivers/espressif`, ESP32 builds are gated out on host targets and are not currently verified in continuous integration.
+
+## API reference
+
+- <HostReference crate="virtual_file_system" /> for the host virtual file
+  system.
+- <HostReference crate="task" /> for the task management subsystem.
+- <HostReference crate="file_system" /> for file system traits and
+  implementations.
+- <GuestReference repo="applications" crate="wasm" /> for the guest WebAssembly
+  API.
+- <CodeReference repo="platforms" path="examples/native/README.md" /> for the
+  native runtime specification.
+- <CodeReference repo="platforms" path="examples/nano_33_ble/README.md" /> for
+  the Arduino Nano 33 BLE profile.
+
+## Related
+
+- [Set up a development environment](/how-to/setup-development/)
+- [Run Xila natively](/tutorials/native/)
+- [Run Calculator in the browser](/tutorials/browser/)
+- [Run Xila on the Arduino Nano 33 BLE](/how-to/run-nano-33-ble/)

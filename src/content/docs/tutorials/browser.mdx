@@ -1,50 +1,59 @@
 ---
 title: "Run Calculator in the browser"
 docType: tutorial
-description: Run Xila's Platforms-hosted browser demo and build matching Applications guests locally.
+description: "Launch the browser runtime at platforms.xila.dev or build guest applications locally to evaluate an expression in Calculator."
 ---
 
-import { Steps } from "@astrojs/starlight/components";
 import DemoLanguages from "@/components/DemoLanguages.astro";
-
 import CodeReference from "@/components/CodeReference.astro";
 
-The live browser demonstration is published by [Xila Platforms](https://github.com/xila-project/platforms), not Core. Open **[platforms.xila.dev](https://platforms.xila.dev/)** for the English experience, or choose a locale under `https://platforms.xila.dev/demonstrations/wasm/<locale>/` (currently en, fr, es, de, pt-BR, it and pl).
+In this tutorial, you run Xila in a web browser using the hosted demonstration or a local build. At the end, you have an active Xila desktop in your browser running the Calculator guest application.
 
-The demo runs the browser host (`wasm32-unknown-unknown`) with **separate WASI application binaries** (`wasm32-wasip1`). The browser needs OPFS and Web Locks on HTTPS or localhost.
+## Before you begin
 
-## 1. Try the hosted demo
-
-<Steps>
-
-1. Open [the Platforms demonstration](https://platforms.xila.dev/). <DemoLanguages />
-2. Create or select a disk in the browser's Help panel if prompted.
-3. On a fresh installation, log in as **administrator** with an empty password.
-4. Open **Calculator** from the launcher and evaluate `1 + 2 = 3`. Close the window and check that the desktop remains usable.
-
-</Steps>
-
-The demo also includes Clock, Pixel Painter, Text Editor, Synth and Weather, subject to the available browser drivers. **An existing OPFS disk keeps its data and old applications**; publishing a new seed never automatically replaces it. Browser storage is origin-specific: the old Core Pages origin and the new `platforms.xila.dev` origin do **not** share saved disks.
-
-## 2. Build a matching local guest set
-
-For development, clone **Applications** and **Platforms** as siblings (Core is consumed through pinned Git dependencies):
+- A modern web browser supporting Origin Private File System (OPFS) and Web Locks (such as Chromium, Chrome, or Firefox).
+- For the hosted demonstration: an internet connection to access `https://platforms.xila.dev/`.
+- For local builds: an x86_64 Linux development system with [Git](https://git-scm.com/), [mise](https://mise.jdx.dev/), Node.js, and npm.
+- For local builds, clone the [Applications repository](https://github.com/xila-project/applications) and [Platforms repository](https://github.com/xila-project/platforms) side by side:
 
 ```sh
 git clone https://github.com/xila-project/applications.git
 git clone https://github.com/xila-project/platforms.git
+```
 
+## Open the hosted demonstration
+
+1. In your web browser, navigate to the [Platforms hosted demonstration](https://platforms.xila.dev/). <DemoLanguages />
+
+The browser page loads the Xila runtime canvas and displays the login screen.
+
+2. If prompted by the disk manager in the help panel, create or select an OPFS disk image.
+
+## Log in and launch Calculator
+
+1. On the login screen, enter `administrator` in the user name field and leave the password blank.
+2. Click the login button. The login screen closes, and the Xila desktop appears with the dock.
+3. Click the Xila icon on the dock to open the application drawer.
+4. Click the **Calculator** icon. The Calculator application opens in a window on the canvas.
+5. Click `1`, `+`, `2`, and `=`. The Calculator display updates to show `3`.
+6. Click the close button in the top-right corner of the Calculator window. The window closes cleanly.
+
+## Build and serve locally
+
+To build and serve the browser runtime locally:
+
+1. In the terminal, navigate to the Applications repository root and compile the guest applications:
+
+```sh
 cd applications
 mise trust
 mise run build:applications
 cd ..
 ```
 
-Applications produces the six guest files under `applications/target/wasm32-wasip1/release-wasm/`. Keep applications, platform runtime, font catalogs and image built for compatible Core revisions and the **same locale**. For local multi-checkout changes rather than pinned revisions, follow <CodeReference repo="platforms" path="tools/dev/local_overrides.py" />.
+The terminal compiles the seven guest applications for the `wasm32-wasip1` target. The `.wasm` binaries appear in `target/wasm32-wasip1/release-wasm/`.
 
-## 3. Seed and build the local browser runtime
-
-From `platforms`:
+2. Navigate to the Platforms repository root, install dependencies, and create the browser disk image:
 
 ```sh
 cd platforms
@@ -54,32 +63,36 @@ npm ci
 export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
 export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
 mise run image:browser
+```
+
+The `xila-fs-image` tool creates the reference LittleFS image at `target/seed/browser/seed.img`.
+
+3. Copy the reference image to the path expected by the browser build:
+
+```sh
 mkdir -p target/seed/wasm
 cp target/seed/browser/seed.img target/seed/wasm/seed.img
+```
+
+4. Build the browser demonstration and start a local HTTP server:
+
+```sh
 MISE_ENV=ci mise run pages:demo
 python3 -m http.server 8080 --directory examples/wasm/dist
 ```
 
-Open `http://localhost:8080`. The `image:browser` task prepares `target/seed/browser/seed.img` from the already-built guest applications; the browser's Trunk build expects the appropriate seed at `target/seed/wasm/seed.img`. For a local demo build, copy the freshly generated image before invoking `pages:demo`:
+The terminal reports that the HTTP server is listening on port 8080.
 
-```sh
-cp target/seed/browser/seed.img target/seed/wasm/seed.img
-```
+5. In your web browser, navigate to `http://localhost:8080`.
 
-If you use the full CI-oriented `MISE_ENV=ci mise run pages:build` instead, Platforms orchestrates per-locale guest compilation, reference seed verification and Trunk builds into `pages/demonstrations/wasm/<locale>/`, without needing the manual copy.
+## Check your result
 
-## 4. Verify and clean up
+The browser canvas displays the Xila desktop. Calculator opens, responds to clicks, and evaluates arithmetic expressions. Changes are persisted to the selected OPFS disk.
 
-Test app launch/close, display input and persistence after a completed disk save. Closing the browser abruptly can lose changes not yet saved to OPFS. Stop the HTTP server with `Ctrl+C`. Clearing site data is destructive; see [Browser storage](/explanation/browser-storage).
+To stop the local HTTP server, press `Ctrl+C` in the terminal.
 
-## Source and deployment
+## Next steps
 
-- <CodeReference repo="platforms" path="examples/wasm/README.md" /> - browser
-  setup, OPFS, audio and test limitations.
-- <CodeReference repo="platforms" path=".github/workflows/demo.yml" /> - actual
-  Pages deployment.
-- <CodeReference repo="platforms" path="mise.ci.toml" /> - `pages:build` and
-  `pages:demo`.
-- <CodeReference repo="applications" path="mise.toml" /> - guest compilation
-  tasks.
-- [Build a guest](/how-to/build-guest) and [WASM runtime](/reference/wasm-runtime).
+- [Run Xila natively](/tutorials/native/) to run on desktop Linux.
+- [Manage browser disks](/how-to/reset-browser-storage/) to inspect and clear OPFS storage.
+- [Browser storage](/explanation/browser-storage/) to understand how OPFS persistence works.
