@@ -1,103 +1,127 @@
 ---
 title: "Peripherals"
 docType: explanation
-description: Typed embedded-hal GPIO controller, line reservations, configuration and heap-free test mock.
+description: "Hardware controller traits, VFS peripheral adapters, GPIO line contracts, and deterministic mocks in the peripherals libraries."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `peripherals` crate currently provides a **GPIO controller contract** and a deterministic mock. It is a reusable hardware abstraction, not a runtime-managed peripheral service or a complete SPI/I²C/UART implementation.
+The <HostReference crate="peripherals" /> library defines hardware-facing controller contracts, while <HostReference crate="drivers_peripherals" /> adapts these traits into character devices mounted in the virtual file system (VFS).
 
-## API and feature boundaries
+## Context
 
-The `gpio` feature exposes `GpioController`, `LineId`, `LineCapabilities`, `InputConfig`, `OutputConfig`, `Pull`, `DriveMode`, and `PinState`. The `mock` feature exposes `GpioMock<N>`, `MockInput`, `MockOutput`, and `MockError`.
+Microcontrollers provide hardware peripherals such as GPIO pins, ADCs, I2C buses, SPI buses, PWM channels, and UARTs. Direct hardware access ties application logic to specific register maps and board SDKs.
 
-`GpioController` declares a controller-specific `Error` implementing `embedded_hal::digital::Error`, and lifetime-bound associated types `Input<'a>` and `Output<'a>`. Input handles implement `embedded_hal::digital::InputPin`; output handles implement both `OutputPin` and `StatefulOutputPin`. The three controller methods are:
+Xila decouples peripheral operations into two architectural layers:
 
-- `capabilities(LineId) -> Option<LineCapabilities>`: query an existing line's supported operations.
-- `request_input(LineId, InputConfig)`: reserve an input line and return a borrowed handle.
-- `request_output(LineId, OutputConfig)`: reserve an output line and return a borrowed handle.
+1. **Controller traits** (<HostReference crate="peripherals" />): pure Rust trait contracts built on standard `embedded-hal` and `embedded-io` interfaces, paired with deterministic in-memory test mocks.
+2. **VFS device adapters** (<HostReference crate="drivers_peripherals" />): character-device wrappers that expose peripheral controllers under the `/devices/` path namespace for applications and command-line utilities.
 
-The returned handles borrow the controller, so callers cannot treat them as detached, indefinitely owned device objects.
+## How it works
 
-## Configurations and validation
+### Controller trait families
 
-`LineId::new(offset)` wraps a `u16` line offset. `LineCapabilities` reports whether the line supports input, output, pull-up, pull-down and open-drain. `InputConfig` chooses `Pull::Disabled`, `Up`, or `Down` (disabled by default). `OutputConfig` adds `DriveMode::PushPull` or `OpenDrain` and an initial physical `PinState::Low` or `High`.
+The `peripherals` crate groups hardware capabilities into modular features:
 
-Controllers may reject an invalid line, a line already reserved by another handle, or a requested capability that hardware does not support. Reserving a line is exclusive until the handle is dropped. The output initial state is applied when the output is requested.
+| Family | Controller trait | Ecosystem base         | Key types                                                                                    |
+| ------ | ---------------- | ---------------------- | -------------------------------------------------------------------------------------------- |
+| `adc`  | `AdcController`  | Xila contract          | `AdcChannelId`, `AdcChannelCapabilities`, `AdcResolution`                                    |
+| `gpio` | `GpioController` | `embedded-hal` digital | `LineId`, `LineCapabilities`, `InputConfig`, `OutputConfig`, `PinState`, `Pull`, `DriveMode` |
+| `i2c`  | `I2cController`  | `embedded-hal` I2C     | `I2cSpeed`, `I2cAddress`                                                                     |
+| `pwm`  | `PwmController`  | `embedded-hal` PWM     | `PwmChannelId`, `PwmChannelCapabilities`                                                     |
+| `spi`  | `SpiController`  | `embedded-hal` SPI     | `SpiMode`, `SpiBitOrder`                                                                     |
+| `uart` | `UartController` | `embedded-io`          | `UartBaudRate`, `UartParity`, `UartStopBits`                                                 |
 
-## Heap-free mock for tests
+The `mock` feature provides deterministic, heap-free fixed-capacity mocks (`GpioMock<N>`, `AdcMock<N>`, `I2cMock<N>`, `PwmMock<N>`, `SpiMock<N>`, `UartMock<N>`) for unit tests and simulation without hardware.
 
-`GpioMock<N>` receives an array of `N` line capabilities and stores state in fixed-capacity memory. Its line handles implement the same `embedded-hal` digital traits as real adapters. Tests can call `set_input_level()` to inject an input level, read it through `InputPin`, and verify output levels through `StatefulOutputPin`.
+### VFS peripheral adapter architecture
 
-```rust
-use embedded_hal::digital::{InputPin, OutputPin, StatefulOutputPin};
-use peripherals::gpio::{
-    DriveMode, GpioController, GpioMock, InputConfig, LineCapabilities,
-    LineId, OutputConfig, PinState, Pull,
-};
+The `drivers_peripherals` crate adapts controller handles into VFS nodes. The following diagram illustrates how applications access peripherals through the VFS:
 
-let capabilities = LineCapabilities {
-    input: true, output: true, pull_up: true,
-    pull_down: true, open_drain: true,
-};
-let gpio = GpioMock::new([capabilities; 2]);
-let line = LineId::new(0);
-gpio.set_input_level(line, PinState::High)?;
-let mut input = gpio.request_input(line, InputConfig::default())?;
-assert!(input.is_high()?);
-drop(input);
-
-let mut output = gpio.request_output(
-    line,
-    OutputConfig::new(Pull::Disabled, DriveMode::PushPull, PinState::Low),
-)?;
-output.set_high()?;
-assert!(output.is_set_high()?);
+```mermaid
+flowchart TD
+    App["Application / Shell (File::open / read / write / control)"] --> VFS["Virtual file system (/devices/gpio/pin0)"]
+    VFS --> Dev["PeripheralDevice (exclusive access, BaseOperations)"]
+    Dev --> Handle["PeripheralHandle (GpioHandle / UartHandle / ...)"]
+    Handle --> Controller["Hardware controller (GpioController / Mock)"]
 ```
 
-This example requires the `gpio` and `mock` features. The mock tests cover invalid IDs, exclusive reservations, release on drop, initial output level, injected input state, and unsupported pull/drive modes.
+The adapter pipeline consists of two primary constructs:
 
-## Migration and limitations
+1. <HostReference
+     crate="drivers_peripherals"
+     kind="trait"
+     symbol="PeripheralHandle"
+   />
+   : implemented by peripheral classes. Each method represents a single
+   synchronous attempt. If an operation would block, it returns
+   `Error::RessourceBusy` instead of yielding or holding caller buffers.
+2. <HostReference
+     crate="drivers_peripherals"
+     kind="struct"
+     symbol="PeripheralDevice"
+   />
+   : wraps a `PeripheralHandle` into a VFS character device. Opening is
+   exclusive: while one file handle holds a peripheral open, subsequent `open`
+   calls return `Error::RessourceBusy` until the owning handle is closed.
 
-The earlier `PinData` byte-buffer interface has been removed. Consumers should migrate to typed controller requests and borrowed line handles; serialized pin-state operations are no longer the GPIO API.
+Mount helpers such as <HostReference crate="drivers_peripherals" kind="fn" symbol="mount_peripheral" /> and `mount_gpio` mount adapters under standard paths such as `/devices/gpio/<name>`.
 
-Board-specific adapters remain separate work. A passing mock test does not establish that a particular MCU pin, interrupt, pull resistor or electrical mode is supported. The Espressif integration remains constrained by the target/toolchain work tracked in Core issue #328.
+### GPIO device behavior and text read/write semantics
 
-## Integration boundaries and physical pin discovery
+A mounted GPIO character device supports both binary I/O and typed control commands:
 
-This is a digital GPIO **controller trait**, not a mounted device or a protocol bus implementation. A `GpioController` adapter decides which numeric `LineId` values exist and what `LineCapabilities` each reports. A client should query `capabilities(id)` before requesting a borrowed `Input<'a>` or `Output<'a>` handle. The handle retains exclusive line ownership until dropped.
+- **Core binary adapter** (<CodeReference path="drivers/peripherals/src/gpio.rs" />): `GpioHandle` exposes a single line handle. `read` writes a single byte (`0` for low, `1` for high) to the caller buffer, returning `Error::NotInitialized` if the pin has not been configured. `write` accepts a single byte (`0` or `1`), rejecting inputs if the pin is configured as input (`Error::UnsupportedOperation`) or if any other byte value is provided (`Error::InvalidParameter`).
+- **Interactive shell text adapter** (such as `drivers_nordic` on the Arduino Nano 33 BLE): reads format the pin level as text `0\n` or `1\n` followed by an end-of-file condition so shell utilities like `cat` terminate cleanly. Writes accept ASCII `0` or `1` with optional surrounding whitespace (`\r`, `\n`, spaces), or binary bytes `0` and `1`. Unconfigured pins auto-configure as input on read or push-pull output on write.
 
-```rust
-use peripherals::gpio::{GpioController, LineId, InputConfig};
-let id = LineId::new(0);
-if let Some(caps) = controller.capabilities(id) {
-    if caps.input {
-        let _input = controller.request_input(id, InputConfig::default())?;
-        // The line is reserved until _input is dropped.
-    }
-}
+```text
+# Read the current digital level:
+cat /devices/gpio/d13
+0
+
+# Set the pin level:
+echo 1 > /devices/gpio/d13
 ```
 
-The example assumes a concrete `controller` implementing `GpioController` and the `gpio` Cargo feature. The controller's `Error` is backend-specific; a caller may need to map it into its own error domain.
+Typed control commands for pin reservation, direction, pull resistors, and electrical drive modes are defined by the `device` crate. For the complete command table and ABI specifications, see the [Device](/explanation/architecture/libraries/device/) documentation.
 
-## Features, memory and unimplemented capabilities
+## Design choices and trade-offs
 
-`peripherals` has **no default features**. Enable `gpio` for the `embedded-hal` digital API; `mock` implies `gpio` and provides a deterministic fixed-size `GpioMock<N>`. The mock supports capability checks, injected physical input levels and simulated exclusive reservation, without heap allocation in its line-state storage.
+- **Exclusive device ownership**: only one task may hold an open handle to a peripheral device at a time, preventing race conditions and pin contention without complex scheduling locks.
+- **Borrowed controller handles**: controller trait methods borrow the controller and yield scoped handles. Dropping a handle automatically releases the line back to high-impedance state.
+- **Immediate non-blocking execution**: peripheral methods run directly on the executor and never yield `Poll::Pending`. If a hardware bus or FIFO is unavailable, callers receive `Error::RessourceBusy` and manage retries.
 
-Analog/ADC modes, PWM, interrupt subscriptions, hardware pin multiplexing, and UART/I²C/SPI discovery are **not part of this GPIO trait**. Likewise a future VFS-backed `/devices/gpio` provider must adapt these controller contracts; it is not automatically exposed by constructing `GpioMock`. Do not advertise host/browser pin mocks as electrical or timing-equivalent hardware.
+## Limits
 
-### Core implementation references
+- `GpioController` reservations require explicit line release before reconfiguring a pin to a different mode.
+- Advanced peripheral features such as DMA transfers, hardware interrupts, and analog triggering are managed by platform drivers outside the generic controller trait.
 
-- <CodeReference path="libraries/peripherals/src/gpio.rs" /> - typed digital
-  controller and configurations.
-- <CodeReference path="libraries/peripherals/src/gpio/mock.rs" /> - exclusive
-  fixed-capacity test adapter.
-- <CodeReference path="libraries/peripherals/Cargo.toml" /> - feature gates.
+## API reference
 
-## Source and API references
+- <HostReference crate="peripherals" /> — hardware controller traits and mocks.
+- <HostReference crate="drivers_peripherals" /> — VFS peripheral adapters.
+- <HostReference
+    crate="drivers_peripherals"
+    kind="trait"
+    symbol="PeripheralHandle"
+  />
+  — synchronous peripheral handle contract.
+- <HostReference
+    crate="drivers_peripherals"
+    kind="struct"
+    symbol="PeripheralDevice"
+  />
+  — exclusive-access VFS device wrapper.
+- <HostReference
+    crate="drivers_peripherals"
+    kind="fn"
+    symbol="mount_peripheral"
+  />
+  — peripheral node mounting helper.
 
-- <HostReference crate="peripherals" />
-- <CodeReference path="libraries/peripherals/src/gpio.rs" />
-- [Drivers](/explanation/architecture/drivers)
+## Related
+
+- [Device](/explanation/architecture/libraries/device/)
+- [File system](/explanation/architecture/libraries/file_system/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)

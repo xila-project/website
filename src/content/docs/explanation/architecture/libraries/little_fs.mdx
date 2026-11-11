@@ -1,104 +1,113 @@
 ---
 title: "Little FS"
 docType: explanation
-description: "The little_fs crate is the concrete LittleFS backend that implements Xila's file-system contracts."
+description: "LittleFS integration, block geometry, cache parameters, and safe mounting in the little_fs crate."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
+import DocsRsReference from "@/components/DocsRsReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `little_fs` crate is the concrete LittleFS backend that implements Xila's file-system contracts.
+The <HostReference crate="little_fs" /> crate provides a fail-safe, power-loss-resilient file system backend for Xila. It integrates the LittleFS C library through the <DocsRsReference crate="littlefs2" /> ecosystem and adapts it to Xila's storage traits.
 
-## Role
+## Context
 
-- Implements `file_system::FileSystemOperations` and related traits on top of `littlefs2-sys`.
-- Provides mount/format bootstrap paths used before VFS initialization.
+Embedded systems and microcontrollers require file systems resilient to sudden power interruptions and flash wear. Standard desktop file systems often fail to recover cleanly from uncommitted writes and demand excessive RAM for caching.
 
-## Boundaries
+`little_fs` bridges the C implementation of LittleFS with Xila's <HostReference crate="file_system" kind="trait" symbol="FileSystemOperations" /> trait. It operates over any storage driver implementing <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />, including partition devices, flash memories, and origin-private browser storage.
 
-- In scope: backend adaptation, attribute translation, file/directory context operations.
-- Out of scope: global mount namespace and path policy (owned by VFS).
+## How it works
 
-## Internal structure
+### Block geometry and configuration parameters
 
-- `file_system.rs`: `FileSystem` type, mount/format lifecycle, trait implementations.
-- `callbacks.rs` + `configuration.rs`: glue from `DirectBlockDevice` to LittleFS C callbacks/config.
-- `file.rs` / `directory.rs`: context-specific file and directory operations.
-- `attributes.rs` / `flags.rs`: mapping between Xila and LittleFS representations.
-- `error.rs`: LittleFS result-to-`file_system::Error` conversion.
+When initializing or formatting a filesystem, `little_fs` queries block parameters directly from the underlying `DirectBlockDevice`:
 
-## Runtime interaction
-
-1. Backend is created via `FileSystem::new(...)`, `new_format(...)`, or `get_or_format(...)`.
-2. It mounts using `littlefs::lfs_mount` and seeds root internal attributes if missing.
-3. VFS calls trait methods; crate routes calls through a mounted mutex wrapper.
-4. On drop, it unmounts and releases leaked configuration context.
-
-## Dependency model
-
-- Core dependencies: [File system](/explanation/architecture/libraries/file_system), [Task](/explanation/architecture/subsystems/task), [Users](/explanation/architecture/subsystems/users), [Time](/explanation/architecture/subsystems/time), [Synchronization](/explanation/architecture/libraries/synchronization), `littlefs2-sys`.
-
-## Failure semantics
-
-- Mount/format/operation failures are translated to `file_system::Error`.
-- `get_or_format` retries by formatting when initial mount fails.
-- Context type mismatch in operation dispatch returns `InvalidParameter`.
-
-## Extension points
-
-- Additional mount policies can wrap existing constructors.
-- New attribute/flag translations can be added without changing trait-level contracts.
-
-## Contract vs implementation
-
-- **Contract**: fully conforms to `file_system` trait interfaces expected by VFS.
-- **Current implementation**: based on LittleFS C runtime (`lfs_*`) with `MutexMountWrapper<CriticalSectionRawMutex, lfs_t>`.
-
-## Limitations and trade-offs
-
-- Behavior inherits LittleFS semantics and target storage constraints.
-- Relies on callback/config correctness; misconfigured block geometry can fail at runtime.
-
-## Safe mounting and formatting choices
-
-The public constructors have distinct **data-loss implications**:
-
-- `FileSystem::new(device, cache_size)` mounts an existing filesystem and reports errors if it cannot mount.
-- `FileSystem::new_format(device, cache_size)` **formats unconditionally**, then mounts. Use only for deliberately disposable or freshly initialized storage.
-- `FileSystem::get_or_format(device, cache_size)` tries to mount, but **formats whenever that first mount fails**. It does not distinguish a blank disk from a corrupt disk, incompatible geometry or transient I/O failure. This is unsafe as an automatic recovery policy for a persistent user disk.
-- `FileSystem::format(device, cache_size)` explicitly formats the underlying storage without returning a mounted filesystem.
-
-All constructors require an `&'static dyn DirectBlockDevice` and a cache size; they derive physical block size and count from the supplied device and build a LittleFS C configuration. Initialization populates missing root attributes. A transient lock failure during an operation may surface as `RessourceBusy`.
+- **Block size**: queried via `GET_BLOCK_SIZE`. The configuration requires the block size to be a multiple of the cache size (`block_size % cache_size == 0`).
+- **Block count**: queried via `GET_BLOCK_COUNT`.
+- **Cache and lookahead sizes**: both set to the caller-supplied `cache_size` (for example, 256 bytes in native and browser runtimes). The lookahead buffer size must be a multiple of 8.
+- **Read and program sizes**: set to 16 bytes by default in `Configuration::new`.
+- **Block cycles**: set to `None` (`-1` in raw `littlefs::lfs_config`), disabling wear-leveling cycle limits unless explicitly configured.
 
 ```rust
-// Intentionally format an ephemeral in-memory block device for testing.
-let device = file_system::MemoryDevice::<512>::new_static(512 * 1024);
-let filesystem = little_fs::FileSystem::new_format(device, 256)?;
+use little_fs::FileSystem;
+
+// Mount an existing formatted partition with a 256-byte cache:
+let filesystem = FileSystem::new(device, 256)?;
 ```
 
-This example is suitable for **disposable test data only**. For existing flash/OPFS disks, prefer `new` and handle mount failure explicitly, without automatic destruction.
+### C callback bridge and erase handling
 
-## Handle lifetimes, metadata and failure behavior
+LittleFS issues synchronous C callbacks for media operations. The `callbacks` module routes these calls to the underlying device:
 
-The backend wraps the mounted `littlefs::lfs_t` in `MutexMountWrapper<CriticalSectionRawMutex, _>`. Open file/directory contexts use shared `Arc<Mutex<...>>` state rather than duplicating raw LittleFS C caches. `operation_with_context` verifies the stored type and uses `try_lock`; a mismatch yields `InvalidParameter`, and contention yields `RessourceBusy`.
+- `read_callback`: translates `(block, offset)` into an absolute byte position (`block * block_size + offset`) and calls `device.read_sync`.
+- `programm_callback`: translates `(block, offset)` into an absolute byte position and calls `device.write_sync`.
+- `erase_callback`: calculates the block start position and calls `device.erase(position, block_size)`. If the device returns `Error::UnsupportedOperation` (such as rewritable RAM or file-backed disks), the callback clears the sector by writing a zeroed pattern with `write_pattern_sync(&[0x00], block_size, position)`.
+- `flush_callback`: calls `device.flush_sync` to ensure buffered writes reach hardware.
 
-`writable_attributes()` advertises the specific `InternalAttributes::PERSISTED_ATTRIBUTE_FLAGS`. This is important: LittleFS cannot necessarily store every VFS-provided timestamp or metadata field. The backend translates file/directory operations through `lfs_*` and maps LittleFS error codes to `file_system::Error`.
+The following flowchart illustrates how LittleFS callbacks interact with device contracts:
 
-A target storage driver must provide correct block geometry, read/program/erase semantics and durability on flush. Cache size and driver alignment need to fit the underlying device; using a correctly mounted VFS cannot compensate for a broken block callback.
+```mermaid
+flowchart TD
+    App["VFS File / Directory operations"] --> FS["FileSystem (little_fs)"]
+    FS --> LFS["LittleFS C engine (littlefs2-sys)"]
+    LFS --> Callbacks["C callbacks (read, prog, erase, flush)"]
+    Callbacks --> Device["DirectBlockDevice (PartitionDevice / MemoryDevice)"]
+    Device --> ERASE["ERASE control command / write_pattern_sync"]
+```
 
-### Source and API references
+Because C callbacks execute synchronously on the executor thread, drivers must complete immediately. If a driver returns `Poll::Pending` or a short byte count, the callback returns `LFS_ERR_IO` instead of spinning.
 
-- <CodeReference path="libraries/little_fs/src/file_system.rs" /> -
-  constructors, mount wrapper and attributes.
-- <CodeReference path="libraries/little_fs/src/configuration.rs" /> - LittleFS
-  geometry and callbacks.
-- <CodeReference path="libraries/little_fs/src/attributes.rs" /> - persisted
-  metadata flags.
-- <HostReference crate="little_fs" kind="struct" symbol="FileSystem" /> -
-  concrete backend.
+### Formatting and mounting behavior
 
-## References
+`little_fs` supports three distinct mount workflows:
 
-- <HostReference crate="little_fs" />
-- <CodeReference path="libraries/little_fs" />
-- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)
+1. <HostReference crate="little_fs" kind="fn" symbol="mount_disk" />: the
+   standard entry point used by production platforms. It reads the Master Boot
+   Record, verifies
+   <HostReference
+     crate="file_system"
+     kind="constant"
+     symbol="XILA_DISK_SIGNATURE"
+   />
+   , checks partition boundaries against total block count, locates the Xila
+   partition, and mounts it using `FileSystem::new`. If the partition table or
+   filesystem is invalid, `mount_disk` aborts with an error without modifying
+   the disk.
+2. `FileSystem::new`: mounts an existing filesystem without formatting. If the root directory lacks internal metadata, it initializes the root attributes (`/` with directory kind) while preserving stored files.
+3. `FileSystem::format`: reformats the entire storage block using `lfs_format`.
+
+:::caution[Formatting erases all stored data]
+Calling `FileSystem::format` or `FileSystem::get_or_format` wipes existing directories and files on the target partition. Production boot paths use `mount_disk` to prevent accidental data erasure on corrupted disks.
+:::
+
+## Design choices and trade-offs
+
+- **Static device binding**: the filesystem context holds a `'static` reference to the block device. In production runtimes, devices are leaked or placed in static memory to satisfy lifetime requirements safely.
+- **Fail-safe mounting**: existing disks are never reformatted on mount failure. Corrupted images return `Error::InvalidFile` to allow caller diagnosis and backup recovery.
+- **MutexMountWrapper**: filesystem instances wrap the raw `littlefs::lfs_t` pointer inside a `MutexMountWrapper`, providing thread-safe concurrency across multiple tasks while guarding against use-after-unmount errors.
+
+## Limits
+
+- The block size must be an exact multiple of the cache size.
+- File names cannot exceed 255 bytes (`LFS_NAME_MAX`).
+- Extended attributes store metadata up to 1,022 bytes (`LFS_ATTR_MAX`).
+
+## API reference
+
+- <HostReference crate="little_fs" /> — crate root.
+- <HostReference crate="little_fs" kind="struct" symbol="FileSystem" /> —
+  concrete LittleFS filesystem instance.
+- <HostReference crate="little_fs" kind="fn" symbol="mount_disk" /> — safe disk
+  mounting without reformatting.
+- <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />—
+  underlying block device contract.
+- <HostReference crate="file_system/block_device" kind="struct" symbol="ERASE">
+    <code>file_system::block_device::ERASE</code>
+  </HostReference>
+  — sector erase command.
+
+## Related
+
+- [File system](/explanation/architecture/libraries/file_system/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)
+- [Browser storage](/explanation/browser-storage/)
