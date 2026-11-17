@@ -1,23 +1,23 @@
 ---
 title: "Tutorials"
-description: Learn Xila through guided native and browser examples with observable results.
+description: "Learn Xila through guided native and browser examples with observable results."
 ---
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-These walkthroughs guide your first experience with Xila. Follow one supported path and check the result at each stage.
+These walkthroughs guide your first experience with Xila. Follow one supported path from start to finish and observe the result at each stage.
 
 <CardGrid>
   <LinkCard
     title="Run Xila natively"
     href="/tutorials/native/"
-    description="Set up the checkout, check it, and interact with the native desktop. <br/>Environment: x86_64 Linux with a Wayland session; WSL2/WSLg needs a GUI check."
+    description="Create a reference disk image and run the native Xila desktop on Linux."
   />
   <LinkCard
     title="Run Calculator in the browser"
     href="/tutorials/browser/"
-    description="Build a WASI guest, start browser-hosted Xila, and use Calculator. <br/>Environment: x86_64 Linux development environment and an OPFS/Web Locks-capable browser."
+    description="Open the hosted browser runtime at platforms.xila.dev, log in and evaluate an expression in Calculator."
   />
 </CardGrid>
 
-Already familiar with Xila? Use the [how-to guides](/how-to/) to complete a specific task.
+To complete a specific task rather than following a guided tour, see the [how-to guides](/how-to/).

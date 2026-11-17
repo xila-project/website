@@ -1,104 +1,203 @@
 ---
 title: "Development commands"
 docType: reference
-description: Repository-specific mise tasks, native/browser image generation, CI workflows and the split Rust toolchains.
+description: "Look up repository mise tasks, website commands, and dependency inventory settings."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
+These tasks come from each repository's mise configuration. Run `mise run <task>` in the named repository root; CI and development task availability depends on the selected mise environment.
 
-Xila now has three distinct Rust workspaces. **Run each command in the repository that owns the task**. All use [mise](https://mise.jdx.dev/); `MISE_ENV=ci` selects CI tasks. Local task lists are visible with `mise tasks`.
+## Core tasks
 
-## Common Core tasks
+| Task                       | Repository | Description                                                                     |
+| -------------------------- | ---------- | ------------------------------------------------------------------------------- |
+| `deps:npm`                 | Core       | Install locked npm dependencies                                                 |
+| `check:host`               | Core       | Check the Linux host target                                                     |
+| `check:guest`              | Core       | Check the WASM guest target                                                     |
+| `localization:host-check`  | Core       | Strictly check host localization                                                |
+| `localization:guest-check` | Core       | Strictly check Wasm guest API localization                                      |
+| `localization:lint`        | Core       | Check semantic translation keys, catalogs and Rust macro references             |
+| `localization:check`       | Core       | Run strict host and guest localization checks                                   |
+| `clippy:host`              | Core       | Run Clippy for the Linux host target                                            |
+| `clippy:guest`             | Core       | Run Clippy for the WASM guest target                                            |
+| `clippy:all`               | Core       | Run host and guest Clippy                                                       |
+| `docs:host`                | Core       | Build host documentation                                                        |
+| `docs:guest`               | Core       | Build guest documentation                                                       |
+| `docs:all`                 | Core       | Build host and guest documentation                                              |
+| `check:all`                | Core       | Check host and guest targets                                                    |
+| `test:workspace`           | Core       | Test the Cargo workspace                                                        |
+| `test:fonts`               | Core       | Test font caching, compile-time selection, and linked archive exclusion         |
+| `build:cargo`              | Core       | Build Cargo packages                                                            |
+| `firmware:test`            | Core       | Test bounded firmware transactions                                              |
+| `firmware:integration`     | Core       | Test firmware VFS permissions                                                   |
+| `ci:packages-linker`       | Core       | Install CI linker packages only when a build task needs them                    |
+| `ci:toolchain`             | Core       | Prepare the pinned stable compiler and report its cache key                     |
+| `ci:toolchain-nightly`     | Core       | Prepare the pinned nightly compiler and report its cache key                    |
+| `ci:packages-host`         | Core       | Install CI native GUI and linker packages                                       |
+| `ci:packages-benchmark`    | Core       | Install benchmark packages before timed commands                                |
+| `ci:format-rust`           | Core       | Check Rust formatting without native build dependencies                         |
+| `ci:format-toml`           | Core       | Check TOML formatting without native build dependencies                         |
+| `ci:quality-js`            | Core       | Check JSON formatting and localization extractor tests                          |
+| `ci:lint-workflows`        | Core       | Lint GitHub Actions workflows                                                   |
+| `ci:host`                  | Core       | Run primary host lint, test, and native build validation                        |
+| `ci:wasm`                  | Core       | Run primary Wasm guest and portable audio validation                            |
+| `ci:abi`                   | Core       | Run locked WASM ABI translation tests including doctests                        |
+| `ci:localization`          | Core       | Run strict host and guest localization checks for selected locales              |
+| `ci:coverage`              | Core       | Run host-only workspace coverage in LCOV format                                 |
+| `ci:abi-deep`              | Core       | Run ABI coverage thresholds and Miri across host architectures                  |
+| `ci:host-clippy`           | Core       | Lint host workspace targets                                                     |
+| `ci:host-wasm-clippy`      | Core       | Lint host WASM runtime and graphics bindings                                    |
+| `ci:verification`          | Core       | Test verifier features and link without an allocator on Cortex-M and WASM       |
+| `ci:host-tests`            | Core       | Test the host workspace                                                         |
+| `ci:host-font-tests`       | Core       | Test the standalone font-link workspace                                         |
+| `ci:wasm-clippy`           | Core       | Lint WASM guest targets                                                         |
+| `ci:wasm-audio-check`      | Core       | Check browser audio support                                                     |
+| `ci:abi-coverage`          | Core       | Enforce ABI translation coverage thresholds                                     |
+| `ci:abi-miri`              | Core       | Test ABI translation with host Miri                                             |
+| `ci:abi-miri-cross`        | Core       | Test ABI translation with cross-architecture Miri                               |
+| `ci:firmware`              | Core       | Test firmware update transactions and VFS integration                           |
+| `ci:bare-metal`            | Core       | Check the façade for a bare-metal Cortex-M target, with and without network     |
+| `ci:profiling-task-tests`  | Core       | Runs `cargo test --locked -p xila-task --lib --features test_harness,profiling` |
+| `format:rust`              | Core       | Format Rust sources                                                             |
+| `format:toml`              | Core       | Format TOML files                                                               |
+| `format:json`              | Core       | Format JSON files                                                               |
+| `format:all`               | Core       | Format Rust, TOML, and JSON                                                     |
+| `translate:compare`        | Core       | Compare translation catalogs                                                    |
+| `translate:sync`           | Core       | Synchronize translation catalogs                                                |
+| `translate:pull`           | Core       | Pull translation catalogs                                                       |
+| `translate:push`           | Core       | Push translation catalogs                                                       |
+| `lint:all`                 | Core       | Run workspace Clippy with all features                                          |
+| `run:cargo`                | Core       | Run a Cargo binary                                                              |
+| `coverage:host`            | Core       | Run host-only workspace coverage                                                |
+| `dev:before-commit`        | Core       | Run formatting, checks, docs, and Clippy                                        |
 
-The following portable Core tasks remain available; the guest checks require an external Applications checkout (see below).
+## Platforms tasks
 
-## Core: portable OS libraries
+| Task                                | Repository | Description                                                                                                  |
+| ----------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| `build:native`                      | Platforms  | Build the native runtime                                                                                     |
+| `build:nano-33-ble`                 | Platforms  | Build the Arduino Nano 33 BLE firmware                                                                       |
+| `flash:nano-33-ble`                 | Platforms  | Build the Arduino Nano 33 BLE firmware and flash it through the Arduino bootloader                           |
+| `check:browser`                     | Platforms  | Check the browser runtime                                                                                    |
+| `test:seed`                         | Platforms  | Test filesystem images and package verification                                                              |
+| `image:native`                      | Platforms  | Create a native seed from the released bundles in bundles.lock.json, or from XILA_BUNDLES_DIR                |
+| `image:browser`                     | Platforms  | Create a browser seed from the released bundles in bundles.lock.json, or from XILA_BUNDLES_DIR               |
+| `firmware:test`                     | Platforms  | Test the native firmware simulator and VFS integration                                                       |
+| `test:drivers`                      | Platforms  | Test native and common platform drivers                                                                      |
+| `clippy:drivers`                    | Platforms  | Lint native and common platform drivers                                                                      |
+| `clippy:browser`                    | Platforms  | Lint browser drivers                                                                                         |
+| `build:profiling`                   | Platforms  | Build the native profiling runtime                                                                           |
+| `ci:format-rust`                    | Platforms  | Runs `cargo fmt --all -- --check`                                                                            |
+| `ci:format-toml`                    | Platforms  | Runs `taplo format --check`                                                                                  |
+| `ci:toolchain`                      | Platforms  | Report the pinned Rust toolchain version for CI.                                                             |
+| `ci:build-applications`             | Platforms  | Build the Applications guests for the WASI target.                                                           |
+| `ci:bundle-applications`            | Platforms  | Package the built Applications guests as unsigned bundles with their own manifests and shortcuts             |
+| `ci:runtime-smoke`                  | Platforms  | Runs `rustc --edition=2021 --target wasm32-wasip1 -O tests/container/runtime_smoke.rs -o runtime-smoke.wasm` |
+| `pages:demo`                        | Platforms  | Runs `trunk build --release --public-url ./`                                                                 |
+| `pages:build`                       | Platforms  | Build localized browser demonstrations and reference file system images.                                     |
+| `ci:profiling`                      | Platforms  | Runs `cargo test --locked --manifest-path tools/profiling/Cargo.toml`                                        |
+| `ci:profiling-runtime-tests`        | Platforms  | Runs `cargo test --locked -p xila-drivers-std --lib --features profiling,heaptrack`                          |
+| `ci:profiling-native-tests`         | Platforms  | Runs `cargo test --locked -p xila-native-example --bin native_example --features profiling,heaptrack`        |
+| `ci:lint-workflows`                 | Platforms  | Runs `actionlint`                                                                                            |
+| `ci:packages-linker`                | Platforms  | Install required CI linker packages through mise bootstrap                                                   |
+| `ci:packages-host`                  | Platforms  | Install required native GUI and linker packages through mise bootstrap                                       |
+| `ci:deps-npm`                       | Platforms  | Install locked Node tooling using the pinned mise version                                                    |
+| `ci:browser-node-tests`             | Platforms  | Run Web runtime and disk manager JavaScript tests with pinned Node                                           |
+| `ci:quality-extra`                  | Platforms  | Validate platform-specific CI workflow and source policies                                                   |
+| `ci:deps-npm-applications`          | Platforms  | Install locked dependencies in the explicitly checked-out Applications repository                            |
+| `ci:locked-revisions`               | Platforms  | Write the Core, Applications and package_manager commits locked in Cargo.lock to the step output             |
+| `ci:integration-toolchain`          | Platforms  | Install pinned WASI and native integration Rust targets via mise                                             |
+| `ci:integration-build-applications` | Platforms  | Build Applications guests with the selected integration checkouts                                            |
+| `format:rust`                       | Platforms  | Runs `cargo fmt --all`                                                                                       |
+| `format:toml`                       | Platforms  | Runs `taplo format`                                                                                          |
 
-Run in [`Xila-Project/core`](https://github.com/xila-project/core):
+## Applications tasks
 
-```sh
-mise trust
-mise run deps:npm
-mise run check:all
-mise run test:workspace
-mise run clippy:all
-mise run docs:host
-```
+| Task                 | Repository   | Description                                                                                                                                                                                |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `check:guest`        | Applications | Check all WASI guest applications                                                                                                                                                          |
+| `build:applications` | Applications | Build the seven WASI application artifacts                                                                                                                                                 |
+| `test:workspace`     | Applications | Test application crates on the host                                                                                                                                                        |
+| `localization:lint`  | Applications | Validate application translation keys and catalogs                                                                                                                                         |
+| `docs:guest`         | Applications | Build WebAssembly guest API documentation                                                                                                                                                  |
+| `docs:host`          | Applications | Build host application and runtime documentation                                                                                                                                           |
+| `ci:format-rust`     | Applications | Runs `cargo fmt --all -- --check`                                                                                                                                                          |
+| `ci:format-toml`     | Applications | Runs `taplo format --check`                                                                                                                                                                |
+| `ci:toolchain`       | Applications | Report the pinned Rust toolchain version for CI.                                                                                                                                           |
+| `ci:clippy-guest`    | Applications | Runs `cargo clippy --locked --target wasm32-wasip1 -p xila-calculator -p xila-clock -p xila-weather -p xila-pixel-painter -p xila-text-editor -p xila-synth -p xila-digits -- -D warnings` |
+| `ci:clippy-host`     | Applications | Run Clippy on host applications with warnings treated as errors.                                                                                                                           |
+| `ci:localization`    | Applications | Check guest localization for the configured locales.                                                                                                                                       |
+| `ci:core-revision`   | Applications | Write the Core commit locked in Cargo.lock to the step output                                                                                                                              |
+| `ci:font-japanese`   | Applications | Install the verified Japanese font from the matching Core checkout                                                                                                                         |
+| `ci:lint-workflows`  | Applications | Runs `actionlint`                                                                                                                                                                          |
+| `ci:packages-linker` | Applications | Install required CI linker packages through mise bootstrap                                                                                                                                 |
+| `ci:packages-host`   | Applications | Install required native GUI and linker packages through mise bootstrap                                                                                                                     |
+| `ci:deps-npm`        | Applications | Install locked application Node dependencies with the pinned toolchain                                                                                                                     |
+| `ci:quality-extra`   | Applications | Validate application manifests, workflows, and localization                                                                                                                                |
+| `format:rust`        | Applications | Runs `cargo fmt --all`                                                                                                                                                                     |
+| `format:toml`        | Applications | Runs `taplo format`                                                                                                                                                                        |
+| `translate:compare`  | Applications | Runs `npm exec tolgee compare`                                                                                                                                                             |
+| `translate:pull`     | Applications | Runs `npm exec tolgee pull && python3 tools/localization/relocate_shortcuts.py`                                                                                                            |
+| `translate:push`     | Applications | Runs `npm exec tolgee push`                                                                                                                                                                |
 
-Core contains portable task, VFS, networking, time, graphics, filesystem, ABI and shared-device crates, and an `xila` façade in `core/src/lib.rs`. Core's default workspace member is `core`, not the former root `[package]`.
+## Package manager tasks
 
-It **no longer owns** the `xila-wasm` runtime, bundled guest apps, native/browser seed generators, platform drivers (except `drivers/core`), the native example, the OCI runtime or demonstration deployment. Core's <CodeReference path=".github/workflows/pages.yml" /> now publishes **host Rustdoc only**.
+| Task            | Repository      | Description                                                           |
+| --------------- | --------------- | --------------------------------------------------------------------- |
+| `format`        | package manager | Format every Rust crate in the workspace                              |
+| `format:check`  | package manager | Check Rust formatting                                                 |
+| `check`         | package manager | Check all workspace crates and targets                                |
+| `clippy`        | package manager | Lint all workspace crates and targets                                 |
+| `test`          | package manager | Run all workspace tests                                               |
+| `build`         | package manager | Build the workspace                                                   |
+| `coverage`      | package manager | Run Rust workspace tests with LLVM coverage instrumentation           |
+| `coverage:lcov` | package manager | Generate an LCOV report for Codecov                                   |
+| `doc:check`     | package manager | Build Rustdoc for all workspace crates and treat warnings as errors   |
+| `ci:toolchain`  | package manager | Install and report the mise-pinned Rust toolchain for shared CI setup |
 
-## Applications: guest and host executables
+## Website tasks
 
-Run in [`Xila-Project/applications`](https://github.com/xila-project/applications):
+| Task                        | Repository | Description                                                                                                 |
+| --------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `documentation:check`       | website    | Validate references, formatting and build the Astro and Starlight documentation                             |
+| `documentation:rustdoc`     | website    | Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it into dist/rustdoc |
+| `ci:rustdoc-toolchain`      | website    | Prepare Core's pinned Rust toolchain and report its cache key                                               |
+| `ci:rustdoc-packages`       | website    | Install Core's native host packages needed to document its graphics stack                                   |
+| `documentation:development` | website    | Start the Astro local development server                                                                    |
 
-```sh
-mise trust
-npm ci
-mise run check:guest
-mise run build:applications
-mise run test:workspace
-mise run localization:lint
-mise run docs:guest
-mise run docs:host
-```
+## Workspace tasks
 
-`build:applications` builds the six official `wasm32-wasip1` applications with the `release-wasm` profile under `target/wasm32-wasip1/release-wasm`. `docs:guest` generates the `wasm32-wasip1` Rustdoc for `xila-wasm` (`wasm`). The `xila-wasm` package (host Wasmi runtime and guest bindings) and native shells/settings also live here. Check <CodeReference repo="applications" path="mise.toml" /> and <CodeReference repo="applications" path=".github/workflows/ci.yml" /> for additional ABI, release-package, translation and application tests.
+| Task                              | Repository | Description                                                                                               |
+| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| `repositories:initialize`         | workspace  | Initialize every pinned Git submodule                                                                     |
+| `repositories:initialize-runtime` | workspace  | Initialize the repositories needed for integration validation                                             |
+| `repositories:status`             | workspace  | Show current pinned and checked-out submodule revisions                                                   |
+| `repositories:update`             | workspace  | Explicitly advance submodules to their configured main branches; review and commit the resulting gitlinks |
+| `workspace:validate`              | workspace  | Verify gitlinks, repository URLs and workspace structure                                                  |
+| `ci:toolchain`                    | workspace  | Prepare the pinned Rust toolchain for the shared GitHub Action                                            |
+| `ci:lint-workflows`               | workspace  | Run actionlint with ShellCheck for workspace workflows                                                    |
+| `ci:packages-integration`         | workspace  | Reuse the platform's native Linux package bootstrap; do not replicate its package list                    |
+| `ci:node-dependencies`            | workspace  | Install pinned font conversion and localization tooling for integration submodules                        |
+| `integration:metadata`            | workspace  | Resolve the Xila multi-repository Cargo graph with local source patches                                   |
+| `integration:check`               | workspace  | Validate native and Wasm integration across pinned repositories                                           |
 
-The reusable workflow can generate **unsigned development** `.xpk` release assets using pinned [package_manager](/explanation/package-management) tools; publishing still requires appropriate tags/permissions, and does not constitute a production trust policy.
+## Website npm scripts
 
-## Platforms: final runtimes, drivers and demos
+| Command                  | Arguments | Description                                                                                           |
+| ------------------------ | --------- | ----------------------------------------------------------------------------------------------------- |
+| `npm run docs:dev`       | —         | Runs `astro dev`.                                                                                     |
+| `npm run docs:build`     | —         | Runs `astro build`.                                                                                   |
+| `npm run docs:rustdoc`   | —         | Runs `node scripts/build-rustdoc.mjs`.                                                                |
+| `npm run docs:preview`   | —         | Runs `astro preview`.                                                                                 |
+| `npm run docs:validate`  | —         | Runs `node scripts/check-docs.mjs`.                                                                   |
+| `npm run test:reference` | —         | Runs `node --test tests/*.test.mjs`.                                                                  |
+| `npm run format:fix`     | —         | Runs `prettier --write .`.                                                                            |
+| `npm run format:check`   | —         | Runs `prettier --check .`.                                                                            |
+| `npm run check`          | —         | Runs `npm run test:reference && npm run format:check && npm run docs:build && npm run docs:validate`. |
 
-Run in [`Xila-Project/platforms`](https://github.com/xila-project/platforms):
+## Dependency inventory
 
-```sh
-mise trust
-mise bootstrap packages apply --manager apt
-npm ci
-mise run build:native
-mise run check:browser
-mise run test:seed
-mise run test:drivers
-```
+The workspace [Nanobom workflow](https://github.com/xila-project/workspace/blob/main/.github/workflows/nanobom.yml) accepts optional `project`, `scan-path` and `fail-on` inputs. It requires the `NANOBOM_TOKEN` secret. Callers may trigger it on pushes to main, schedules or manual dispatch, not pull requests. The package manager repository calls it.
 
-For a seed, first build matching guests in Applications, then run from Platforms:
+## Related
 
-```sh
-export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
-mise run image:native
-# or: mise run image:browser
-```
-
-`image:native` produces `target/seed/native/seed.img`; `image:browser` produces `target/seed/browser/seed.img`. Existing disks are preserved. Direct native launch uses `cargo run -p xila-native-example --bin native_example -- …`.
-
-Platforms' <CodeReference repo="platforms" path=".github/workflows/demo.yml" /> publishes the browser demonstration at **[platforms.xila.dev](https://platforms.xila.dev/)**. `MISE_ENV=ci mise run pages:build` builds per-locale guests, seeds and Trunk pages under `pages/demonstrations/wasm/<locale>/`. `MISE_ENV=ci mise run pages:demo` only builds the browser Trunk frontend from an appropriately prepared local seed. See <CodeReference repo="platforms" path="mise.ci.toml" />.
-
-Platforms additionally owns the native/OCI <CodeReference repo="platforms" path=".github/workflows/runtime.yml" />, driver CI, a deep Core test workflow and [cross-repository integration CI](https://github.com/xila-project/platforms/actions/workflows/integration.yml).
-
-## Integrating independent checkouts
-
-`core`, `applications` and `platforms` each pin dependency revisions; cloning all three `main` branches side by side **does not automatically use your local changes**. For targeted integration, generate and pass a temporary Cargo patch config using <CodeReference repo="platforms" path="tools/dev/local_overrides.py" />. A checked-in lockfile should be regenerated without transient local overrides.
-
-All workspaces use target-scoped Rust toolchains and optional mr-boxington caching. Host checks are not measurements of MCU RAM/flash and do not imply validated ESP builds.
-
-## Website commands
-
-Run in [`Xila-Project/website`](https://github.com/xila-project/website):
-
-```sh
-npm ci
-npm run check
-npm run docs:rustdoc
-npm run docs:dev
-```
-
-`npm run check` runs tests, Prettier, Astro, Starlight and internal-link validation. `npm run docs:rustdoc` runs Core's `deps:npm` and `docs:host -- --no-deps` tasks and Applications' `docs:guest` task in the checkouts named by `XILA_CORE_PATH` and `XILA_APPLICATIONS_PATH` (or found under `.reference-checkouts/` or next to the website), then stages the output into `dist/rustdoc/host` and `dist/rustdoc/guest`. Run it after `npm run check`, because the Astro build replaces `dist/`. Core's native packages must already be installed (`MISE_ENV=ci mise run ci:packages-host` in Core on Debian-based CI runners). Without the checkouts, the command skips the Rustdoc and the embedded viewers stay empty. Source hyperlinks use the `CodeReference` component with a `repo` attribute (for example `applications` or `platforms`) for relocated files; without `repo`, they default to Core. See [Documentation contribution](/how-to/write-documentation) and [Repository architecture](/explanation/architecture/).
-
-## Related documentation
-
-- [Development setup](/how-to/setup-development)
-- [Native tutorial](/tutorials/native)
-- [Browser tutorial](/tutorials/browser)
-- [Build a guest](/how-to/build-guest)
+- [Validate a Core change](/how-to/validate-core/)

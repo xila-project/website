@@ -1,0 +1,55 @@
+---
+title: "Nordic"
+docType: explanation
+description: "How Nordic drivers connect the Nano 33 BLE hardware to Xila."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+The Platforms `drivers_nordic` crate supplies drivers for the nRF52840 used by the Arduino Nano 33 BLE. The board example assembles these drivers into a Xila runtime.
+
+## Context
+
+The board runs without a host operating system. Its example combines the Nordic executor, memory and time implementations with internal flash, random number generation, GPIO and a USB console.
+
+## How it works
+
+The following diagram shows how the example connects drivers to its virtual file system (VFS).
+
+```mermaid
+flowchart LR
+  Flash["Internal flash"] --> Root["LittleFS root"]
+  USB["USB console"] --> IO["/devices/standard_io"]
+  GPIO["GPIO"] --> Pins["/devices/gpio"]
+  RNG["Random"] --> Random["/devices/random/source"]
+  Clock["Time"] --> Time["/devices/time/clock"]
+```
+
+The flash block device backs LittleFS at the root. USB standard input passes through the shared terminal input device; output and error use USB output. GPIO, random and time devices are mounted separately.
+
+The example mounts GPIO character devices `/devices/gpio/d0` through `/devices/gpio/d13`, `/devices/gpio/a0` through `/devices/gpio/a7`, and `led_red`, `led_green` and `led_blue` under `/devices/gpio/`. D13 starts low, which turns its LED off. The RGB LEDs are active low and start high, also off.
+
+The USB CDC serial console receives bytes and sends output. Input goes through the shared terminal line editor, which echoes characters, handles line editing and control keys, and commits a line on CR or LF. For its exact behavior, see [Shared](/explanation/architecture/drivers/shared/).
+
+## Design choices and trade-offs
+
+The example formats the flash file system when mounting it fails.
+
+## API reference
+
+- <CodeReference repo="platforms" path="drivers/nordic" />: Nordic driver
+  source.
+- <CodeReference repo="platforms" path="examples/nano_33_ble/src/firmware.rs" />
+  : Runtime assembly.
+- <CodeReference repo="platforms" path="examples/nano_33_ble/src/pins.rs" />:
+  Board pin mappings.
+- <CodeReference
+    repo="platforms"
+    path="drivers/shared/src/devices/terminal/logic.rs"
+  />
+  : Terminal line editor.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)
+- [Run Xila on the Nano 33 BLE](/how-to/run-nano-33-ble/)

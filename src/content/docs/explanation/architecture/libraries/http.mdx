@@ -1,50 +1,112 @@
 ---
 title: "HTTP"
 docType: explanation
-description: Portable bounded HTTP/1 response parsing, body decoding and Xila's streaming network devices.
+description: "Bounded HTTP/1.1 response parsing, in-place chunked decoding, and framing."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Core #522 extracted the reusable `xila_http` package under `libraries/http`. It provides `no_std` HTTP/1 request helpers, response-head parsing, borrowed URL parsing and incremental body decoding. The default feature set does not require a heap allocator; the optional `alloc` feature provides URL formatting helpers.
+The `xila_http` crate provides bounded, `no_std` HTTP/1.1 response parsing, in-place chunked transfer decoding, and request framing helpers. It lives in the Core repository under `libraries/http/` and is published as the `xila_http` package.
 
-## Framing and ownership
+## Context
 
-`parse_response_head::<N>` borrows a caller-managed header buffer and returns an incomplete result when more bytes are needed. Its generic `N` header capacity contributes `N × size_of::<httparse::Header>()` of parser stack storage; the caller must also bound header bytes. Header names and transfer coding names are compared case-insensitively.
+Embedded networking stacks cannot afford arbitrary buffer growth or dynamic heap allocations when communicating with web APIs and remote servers. The `xila_http` library provides sans-I/O response framing and in-place chunk decoding that operate within caller-managed, fixed-size buffers, supporting streaming HTTP exchanges across the virtual file system (VFS).
 
-`BodyDecoder` accepts fragmented input and decodes chunked bodies **in place**, discarding chunk extensions and trailers. The parser also handles Content-Length, close-delimited responses, informational 1xx replies and responses that cannot carry a body (including HEAD/204/304). It detects truncated bodies when the stream ends. Protocol upgrades, pipelining and content decompression are not implemented.
+## How it works
 
-## HTTP/HTTPS devices
+### Bounded response head parsing
 
-Xila's VFS HTTP and HTTPS devices now stream response data through a **single 2 KiB buffer per opening**, with reader backpressure instead of accumulating the entire download. Device reads return the original response headers followed by **decoded body bytes**: callers must not decode HTTP chunk framing a second time. Head reads may be fragmented, so read through the empty line before interpreting body bytes.
+The <HostReference crate="xila_http" kind="fn" symbol="parse_response_head" /> function parses an HTTP response head without heap allocations:
 
-The reported native exchange peak of 2,592 bytes for both 4 KiB and 4 MiB generated downloads excludes socket storage, TLS and application buffers. HTTPS separately uses a 16 KiB + 256-byte receive record buffer and a 16 KiB send record buffer. Core #524 fixed reception of maximum-size TLS records and added optional tests against a real local TLS 1.3 server. TLS certificate policy, public-server interoperability and MCU use are **not** established by those tests.
-
-Sockets are reclaimed through the Network runner after queued traffic and FIN/RST processing. Cancelled exchanges stop their worker, and abandoned shutdowns have a bounded cleanup window.
-
-## Validation and boundaries
-
-```sh
-cargo test -p xila_http --all-features
-cargo test -p xila-network --test https -- --ignored --nocapture
+```rust
+pub fn parse_response_head<const N: usize>(
+    input: &[u8],
+    head_request: bool,
+) -> Result<Option<ResponseHead>, Error>
 ```
 
-The HTTPS integration test needs Python 3 and OpenSSL and is intentionally ignored by default. Tests cover chunking, fragmented heads, premature EOF, response variants and memory allocation behavior. For protocol sockets and control-plane integration see [Network](/explanation/architecture/subsystems/network).
+It borrows a caller-managed buffer and allocates a stack array of `[httparse::EMPTY_HEADER; N]`. The memory overhead on the stack is exactly `N * size_of::<httparse::Header>()` bytes.
 
-## References
+- If the buffer contains an incomplete head, it returns `Ok(None)`, signaling that more data must be received from the network.
+- It parses status codes and headers case-insensitively.
+- Informational responses (1xx), `204 No Content`, `304 Not Modified`, and responses to `HEAD` requests are classified as <HostReference crate="xila_http" kind="enum" symbol="BodyKind" />`::Empty`.
+- Protocol upgrade attempts (`101 Switching Protocols`) are rejected with `Error::UnsupportedUpgrade`.
+- Inspects `Transfer-Encoding` for `chunked` framing and reads `Content-Length`.
 
-- <HostReference crate="xila_http" /> - portable HTTP library Rustdoc.
-- <CodeReference path="libraries/http/README.md" /> - formats and memory bounds.
-- <CodeReference path="libraries/http/src/framing.rs" /> - incremental HTTP
-  framing.
-- <CodeReference
-    repo="platforms"
-    path="drivers/shared/src/devices/http_exchange.rs"
-  />
-  (VFS stream transport).
-- <CodeReference
-    repo="platforms"
-    path="drivers/shared/src/devices/https_client.rs"
-  />
-  (HTTPS device).
+### Body framing modes
+
+The <HostReference crate="xila_http" kind="enum" symbol="BodyKind" /> enum distinguishes four framing modes:
+
+- `Empty`: No response body is expected.
+- `Length(u64)`: The body length is fixed and specified by a valid `Content-Length` header.
+- `Chunked`: The payload uses HTTP/1.1 chunked transfer coding.
+- `UntilClose`: The body continues until the transport connection closes.
+
+### In-place chunked transfer decoding
+
+The <HostReference crate="xila_http" kind="struct" symbol="BodyDecoder" /> struct decodes chunked bodies directly in place inside caller-provided memory:
+
+```rust
+let mut decoder = BodyDecoder::new(head.body);
+let decoded_bytes = decoder.decode(&mut buffer[..read_bytes])?;
+```
+
+The decoder maintains an internal state machine (`ChunkState`) spanning chunk size parsing, extension stripping, CRLF validation, payload copying, and trailer consumption. As chunk framing metadata is parsed and discarded, payload bytes are shifted forward in the same buffer, compacting decoded data without secondary heap allocations.
+
+- `is_complete()`: Returns whether the full response body or terminating zero-length chunk has been received.
+- `finish()`: Returns `Ok(())` if the transfer finished cleanly, or `Err(Error::Truncated)` if the stream ended prematurely.
+
+The following diagram shows how `BodyDecoder` compacts chunked HTTP transfer frames in-place within a single buffer:
+
+```mermaid
+flowchart TD
+    Raw["Raw buffer: [Hex size \\r\\n][Payload bytes][\\r\\n]"] --> Decoder["BodyDecoder state machine"]
+    Decoder --> Compact["In-place compaction"]
+    Compact --> Output["Decoded buffer: [Payload bytes (compacted)][Unused capacity]"]
+```
+
+Incoming data contains chunk boundaries, hexadecimal lengths, and carriage-return line-feeds. The decoder state machine strips delimiter tokens and copies payload bytes toward the start of the buffer, leaving valid decoded content ready for application consumption without separate copy buffers.
+
+### Request and response builders
+
+The library also supplies fixed-buffer formatting and parsing abstractions:
+
+- <HostReference crate="xila_http" kind="struct" symbol="HttpRequestBuilder" />:
+  Formats request lines, headers, and payloads into a byte slice.
+- `HttpRequestParser`: Parses request method, path, and headers from an input buffer.
+- <HostReference crate="xila_http" kind="struct" symbol="HttpResponseBuilder" />
+  : Formats response status lines, headers, and chunked frames via `add_chunk`
+  and `finish_chunks`.
+- `HttpResponseParser`: Extracts response status code, headers, and body slices from a buffer.
+
+## Design choices and trade-offs
+
+- Sans-I/O architecture: Protocol parsing is isolated from sockets, event loops, and TLS engines. The caller retains complete control over transport scheduling and memory.
+- In-place decoding: Eliminates double-buffering and secondary allocations, allowing streaming HTTP on microcontrollers with constrained RAM.
+- Stack-bounded parsing: The caller configures the maximum header count `N` as a const generic, bounding stack usage deterministically.
+
+## Limits
+
+- HTTP/1.1 only; HTTP/2 and HTTP/3 multiplexing are not supported.
+- Pipelined requests and protocol upgrades are unsupported.
+- Payload compression (such as gzip or deflate) is not performed by `xila_http`.
+
+## API reference
+
+- <HostReference crate="xila_http" />: package documentation and root exports.
+- <HostReference crate="xila_http" kind="fn" symbol="parse_response_head" />:
+  non-allocating response head parser.
+- <HostReference crate="xila_http" kind="struct" symbol="BodyDecoder" />:
+  in-place streaming body decoder.
+- <HostReference crate="xila_http" kind="enum" symbol="BodyKind" />:
+  representation of expected response body framing.
+- <HostReference crate="xila_http" kind="struct" symbol="HttpRequestBuilder" />:
+  fixed-buffer HTTP request builder.
+- <HostReference crate="xila_http" kind="struct" symbol="HttpResponseBuilder" />
+  : fixed-buffer HTTP response and chunk builder.
+
+## Related
+
+- [Network](/explanation/architecture/subsystems/network/): Network sockets and interface management.
+- [Shared](/explanation/architecture/libraries/shared/): Reusable URL parsing and utility re-exports.

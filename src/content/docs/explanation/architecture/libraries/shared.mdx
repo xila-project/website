@@ -1,94 +1,100 @@
 ---
 title: "Shared"
 docType: explanation
-description: "The shared crate is the low-level cross-cutting utility layer used by modules, drivers, and executables."
+description: "Portable cross-cutting primitives, unit conversions, and layout-based type erasure."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `shared` crate is the low-level cross-cutting utility layer used by modules, drivers, and executables.
+The `shared` crate provides cross-cutting foundational types, layout-based type erasure, bidirectional collections, unit conversion utilities, and shared HTTP types across the Xila workspace. It lives in the Core repository under `libraries/shared/` and is exposed by the `xila` facade crate.
 
-## Role
+## Context
 
-- Centralizes reusable primitives that do not belong to one domain subsystem.
-- Reduces duplication of utility code and shared type definitions across the workspace.
+Subsystems, drivers, and libraries need shared primitives for type erasure across C-compatible boundaries, physical unit formatting, and bidirectional lookups. Rather than duplicating these utilities or creating circular dependencies between higher-level crates, `shared` sits near the bottom of the dependency graph as a reusable, dependency-light foundation.
 
-## Boundaries
+## How it works
 
-- In scope: generic helpers and value types (`flags`, `size`, `time`, HTTP/unit/UTF-8/slice helpers, layout-based any wrappers).
-- Out of scope: module orchestration, stateful managers, backend-specific logic.
+### Layout-based type erasure with AnyByLayout
 
-## Internal structure
-
-- Utility modules include `any`, `bijective_map`, `flags`, `http`, `size`, `slice`, `task`, `time`, `unit`, `utf8`.
-- `error.rs` provides shared error representation utilities.
-
-## Runtime interaction
-
-- Typically used as pure library calls/value containers.
-- Frequently appears at crate boundaries where generic data conversion is needed (for example control payload casting and UTF-8 chunk iteration).
-
-## Dependency model
-
-- Dependency-light by design (`num`, workspace `log`).
-- Sits near the bottom of the dependency graph and is imported by many crates.
-
-## Failure semantics
-
-- Errors are mostly local utility conversion/validation errors (for example slice/layout checks).
-- Crates consuming shared utilities usually remap these errors into their own domains.
-
-## Extension points
-
-- Add new generic helpers when used by multiple subsystems.
-- Keep module additions cohesion-focused to avoid this crate becoming a catch-all for domain logic.
-
-## Contract vs implementation
-
-- **Contract**: stable, dependency-light utility API surface safe for broad workspace reuse.
-- **Current implementation**: collection of no-std-friendly helper modules with selective logging integration.
-
-## Limitations and trade-offs
-
-- Broad reuse increases API stability pressure.
-- Keeping scope strictly "shared only" avoids coupling but may require small wrappers in consumer crates.
-
-## Core public helpers and borrowing rules
-
-The library is `no_std` with `alloc`. `AnyByLayout` is a borrowed byte-layout wrapper used by typed VFS/device controls. `AnyByLayout::from(&value)` and `from_mutable(&mut value)` expose bytes of a live Rust value; `cast::<T>()` and `cast_mutable::<T>()` attempt to recover a typed reference. The unsafe `from_raw_parts` form requires a valid, correctly aligned raw buffer for its entire lifetime.
+The <HostReference crate="shared" kind="struct" symbol="AnyByLayout" /> struct provides a borrowed, type-erased memory wrapper identified by byte size and memory alignment:
 
 ```rust
-use shared::AnyByLayout;
 let value: u32 = 42;
-let raw = AnyByLayout::from(&value);
-assert_eq!(raw.get_size(), core::mem::size_of::<u32>());
-assert_eq!(raw.cast::<u32>(), Some(&42));
+let any = AnyByLayout::from(&value);
+let recovered = any.cast::<u32>()?;
 ```
 
-**Do not treat this as arbitrary wire deserialization.** The byte layout is the compiler's in-memory representation and may include padding or architecture-dependent details. Typed command contracts still need exact type, size, alignment and initialization guarantees; untrusted bytes should be validated through explicit parsing instead.
+- `from(&value)` and `from_mutable(&mut value)`: Wrap live Rust references into an `AnyByLayout`.
+- `cast::<T>()` and `cast_mutable::<T>()`: Verify that the layout size and pointer alignment match `T`, returning a typed reference.
+- `from_raw_parts`: Constructs a wrapper from a raw pointer, size, and alignment.
 
-## Additional utilities
+`AnyByLayout` forms the foundation of device control commands across the virtual file system (VFS), allowing drivers to exchange typed command inputs and outputs through a uniform signature without dynamic memory allocation or runtime type reflection.
 
-- `xila_http::Url::parse("https://example.com/path")` splits the borrowed scheme, host and path and defaults to `"/"` when no path is supplied. It is a **small structural helper**, not a full URL parser/validator, so do not use it as an origin-security boundary.
-- `utf8_chunks(&bytes)` iterates valid UTF-8 fragments and **skips malformed bytes**; it may also yield empty strings where invalid bytes were encountered. It is intended for lossy text presentation, not for validating configuration or filenames.
-- `BijectiveMap` and size/unit/time helpers reduce duplicate representations across consumers, while the `shadow_type` module provides reusable typed wrappers.
-- HTTP response/request parsing is now a separate [HTTP library](/explanation/architecture/libraries/http), not part of `shared`; `shared` does not own sockets or routing.
+### Bidirectional collections
 
-## Ownership and limitations
+The <HostReference crate="shared" kind="struct" symbol="BijectiveBTreeMap" /> struct maintains a one-to-one mapping between keys and values:
 
-These helpers do not register global services and their data lifetimes remain with the caller. Prefer domain-specific types inside subsystem public APIs rather than growing `shared` into a catch-all that forces unrelated crates to couple.
+```rust
+let mut map = BijectiveBTreeMap::new();
+map.insert("name", 100);
+assert_eq!(map.get_value(&"name"), Some(&100));
+assert_eq!(map.get_key(&100), Some(&"name"));
+```
 
-### Source and API references
+Both forward and reverse lookups run in logarithmic time, ensuring consistent bi-directional state tracking without separate lookup tables.
 
-- <CodeReference path="libraries/shared/src/any.rs" /> - byte layout and casts.
-- <CodeReference path="libraries/http/src/url.rs" /> - compact URL parsing.
-- <CodeReference path="libraries/shared/src/utf8.rs" /> - lossy UTF-8 iteration.
-- <HostReference crate="shared" kind="struct" symbol="AnyByLayout" /> -
-  device-control payload helper.
+### Units, calendar, and slice utilities
 
-## References
+The library provides several focused utility modules:
 
-- <HostReference crate="shared" />
-- <CodeReference path="libraries/shared" />
-- [Synchronization](/explanation/architecture/libraries/synchronization)
+- Measurement units: The <HostReference crate="shared" kind="struct" symbol="Unit" /> struct handles quantities with metric and binary prefixes (`PREFIXES`, `BYTES_SUFFIX`, `BITS_SUFFIX`, `FREQUENCY_SUFFIX`).
+- Calendar and time: Functions such as <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" /> convert Unix timestamps into calendar dates, accounting for leap years via `is_leap_year` and month day counts via `days_in_month`.
+- Slice operations: Utilities such as <HostReference crate="shared" kind="fn" symbol="align_slice_to" /> align raw memory slices to requested boundary constraints.
+- UTF-8 handling: `utf8_chunks` provides safe iteration over segmented UTF-8 byte streams.
+- HTTP re-exports: Re-exports request and response builders and parsers from the `xila_http` crate.
+
+The following diagram shows how `AnyByLayout` bridges typed application control payloads and device drivers across the virtual file system:
+
+```mermaid
+flowchart LR
+    Caller["Caller: Typed input T"] --> AnyIn["AnyByLayout::from(&input)"]
+    AnyIn --> VFS["VFS / Character device\ncontrol(command, input, output)"]
+    VFS --> CastIn["cast::<T>()\nVerified size & alignment"]
+    CastIn --> Driver["Device driver execution"]
+    Driver --> CastOut["cast_output::<O>()"]
+    CastOut --> Output["Caller: Typed output O"]
+```
+
+The caller constructs an `AnyByLayout` wrapping a typed payload. The virtual file system passes the layout reference to the driver's `control` handler. The driver verifies size and alignment via `cast`, processes the command, and writes the typed result into the output buffer.
+
+## Design choices and trade-offs
+
+- Layout-based type erasure: `AnyByLayout` avoids `core::any::Any`, eliminating `'static` lifetime restrictions and compiler RTTI requirements while allowing safe borrowed memory passing.
+- Dependency-light design: The crate depends only on `num`, `log`, and `xila_http`, minimizing compilation overhead.
+- `no_std` with `alloc`: Operates in bare-metal and microcontroller targets while utilizing heap collections where necessary.
+
+## Limits
+
+- `AnyByLayout` validates only byte length and pointer alignment; it cannot check semantic type identity beyond layout compatibility.
+- `BijectiveBTreeMap` requires both keys and values to implement `Ord` and `Clone`.
+
+## API reference
+
+- <HostReference crate="shared" />: package documentation and root exports.
+- <HostReference crate="shared" kind="struct" symbol="AnyByLayout" />:
+  layout-based type erasure container.
+- <HostReference crate="shared" kind="struct" symbol="BijectiveBTreeMap" />:
+  bidirectional one-to-one map.
+- <HostReference crate="shared" kind="struct" symbol="Unit" />: unit and prefix
+  conversion abstraction.
+- <HostReference crate="shared" kind="fn" symbol="align_slice_to" />: byte slice
+  alignment utility.
+- <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" />:
+  Unix timestamp to calendar date conversion.
+
+## Related
+
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/): Control command dispatch using layout erasure.
+- [HTTP](/explanation/architecture/libraries/http/): HTTP request and response framing.
+- [Device](/explanation/architecture/libraries/device/): Device control command definitions.

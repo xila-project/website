@@ -1,29 +1,39 @@
 ---
-title: "Espressif driver crate"
+title: "Espressif"
 docType: explanation
-description: "The drivers_espressif crate contains platform-specific drivers for Espressif targets."
+description: "The scope and current build limits of the Espressif driver source."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The `drivers_espressif` crate contains platform-specific drivers for Espressif targets.
+The Platforms `drivers_espressif` crate contains Espressif-specific source, including pin mappings for ESP32 and ESP32-S3.
 
-It includes chip-specific integrations and shared helpers for ESP families (for example ESP32 and ESP32-S3), including pin and file-system related support code.
+## Context
 
-## Dependencies
+This source is separate from the native and browser runtime drivers. Its crate is gated on the `espressif` target vendor.
 
-This crate is intentionally small and keeps dependencies minimal to stay close to the platform.
+## How it works
 
-## References
+The chip source lists GPIO pin numbers and delegates mounting to shared pin code. The crate is gated out on host targets, so host builds do not exercise that code.
 
-- <HostReference repo="platforms" crate="drivers_espressif" /> - generated Rust
-  API documentation.
+## Design choices and trade-offs
 
-- <CodeReference repo="platforms" path="drivers/espressif" />
+Target gating allows host builds to exclude the Espressif source. It also means a successful host build does not establish that an ESP32 runtime builds.
 
-## See also
+## Limits
 
-- [Drivers](/explanation/architecture/drivers)
-- [Core driver crate](/explanation/architecture/drivers/core)
-- [Shared driver crate](/explanation/architecture/drivers/shared)
+Platforms CI does not build an ESP32 runtime. The Platforms README says no ESP32 build is established by its host checks.
+
+## API reference
+
+- <HostReference repo="platforms" crate="drivers_espressif" />: Driver crate
+  source.
+- <CodeReference repo="platforms" path="drivers/espressif/src/chips" />:
+  Chip-specific source.
+- <CodeReference repo="platforms" path="drivers/espressif/src/shared" />: Shared
+  source.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)

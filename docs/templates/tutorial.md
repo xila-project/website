@@ -1,27 +1,27 @@
 ---
-title: "Learn to [perform a concrete activity]"
+title: "Verb phrase naming the activity"
 docType: tutorial
-description: "Replace with the skill and concrete result the learner will achieve."
+description: "One sentence, under 160 characters, naming the skill and the concrete result."
 ---
 
-<!-- Introduce the learner, the small example, and the skills demonstrated by its completion. -->
+<!-- Intro, 1–3 sentences: "In this tutorial, you ... At the end, you have ...". Do not repeat the title as a heading. -->
 
 ## Before you begin
 
-<!-- List prior knowledge, supported environment, tools, access, and artifacts. Choose one supported path. -->
+<!-- Bullet list: operating system, tools, accounts, prior knowledge. Link to where each one comes from. Choose one supported path. -->
 
-## 1. [Perform the first action]
+## Verb phrase for the first stage
 
-<!-- Orient the reader: directory, shell, inputs. Include complete copyable commands and an observable result. -->
+<!-- Numbered list of actions. Say where each command runs ("In the Platforms repository root, run:"). After each important action, state what the learner sees. Link to explanations instead of explaining at length. -->
 
-## 2. [Perform the next action]
+## Verb phrase for the next stage
 
-<!-- Keep the sequence guided. Explain only what the learner needs to continue. Link to deeper explanation. -->
+<!-- Repeat one section per stage. No branches or alternatives. -->
 
 ## Check your result
 
-<!-- Give a concrete observation that demonstrates the learned skill. Include cleanup if the example creates resources. -->
+<!-- The final observable result. Include clean-up when the tutorial created resources. -->
 
-## Continue learning
+## Next steps
 
-<!-- Link to the next tutorial and an independent how-to or explanation the learner can use afterwards. -->
+<!-- 2–4 links: the next tutorial, a related how-to guide and an explanation. -->

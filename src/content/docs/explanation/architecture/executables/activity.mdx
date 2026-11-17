@@ -1,48 +1,101 @@
 ---
-title: "System activity"
+title: "Activity"
 docType: explanation
-description: Native Xila system activity dashboard, its metrics, bounded demo workload and provider limitations.
+description: "System activity dashboard, its metrics, bounded demo workload and provider limitations."
 ---
 
+import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-**System activity** is a native Xila graphical application from [Applications](https://github.com/xila-project/applications), introduced with Core #535 and now mounted by the Platforms native runtime at `/applications/executables/activity`. It is **not a WASI guest**, and no separate WebAssembly binary is produced.
+The Activity executable (<HostReference repo="applications" crate="activity" />) provides a real-time system monitoring dashboard for Xila. It reports uptime, active task counts, and global allocator usage, and includes an optional bounded workload to demonstrate resource consumption under load.
 
-A fresh **native** seed includes a launcher shortcut. Existing disks are not replaced by new seeds; the application can instead be launched from Xila's Terminal if mounted:
+## Context
 
-```text
-/applications/executables/activity --interval-ms 250
+Resource monitoring on embedded systems must balance observability against CPU and heap overhead. A monitoring tool that continuously polls kernel locks or creates unboundedly growing history buffers risks perturbing the exact system performance it attempts to observe.
+
+Activity addresses this challenge as a standalone graphical executable:
+
+- It runs within both the native runtime (<CodeReference repo="platforms" path="examples/native/src/main.rs" />) and the browser runtime (<CodeReference repo="platforms" path="examples/wasm/src/main.rs" />), mounted at `/applications/executables/activity`.
+- It samples metrics asynchronously from core subsystems outside the graphics lock.
+- It operates with bounded allocations, retaining a fixed number of samples for chart rendering.
+- It provides a safe, transient test workload that expires automatically without spawning detached threads or tasks.
+
+## How it works
+
+### Sampling and event loop
+
+The following diagram shows the sampling loop and data flow between kernel subsystems and the Activity user interface.
+
+```mermaid
+flowchart LR
+    Task["task::Manager"] -->|"Task count"| Model["Activity model"]
+    Memory["memory::global_manager"] -->|"Used and total bytes"| Model
+    Time["time::uptime"] -->|"Uptime"| Model
+    Model -->|"Format and scale"| View["LVGL dashboard view"]
 ```
 
-## What the dashboard measures
+The application runs a continuous asynchronous event loop. Each iteration checks for pending user interface events, evaluates the status of any active test workload, and collects fresh metrics whenever the configured sample interval expires:
 
-| Metric                        | Source and meaning                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| Uptime                        | Monotonic time since Time manager initialization; UTC changes do not change it  |
-| Registered tasks              | Entries in Task manager, including root/runtime tasks                           |
-| Allocator used/capacity       | Xila allocator, **not** process RSS, physical RAM or per-application allocation |
-| CPU load / registered devices | **Unavailable** until appropriate service providers are implemented             |
+1. **Task count**: Queries <HostReference crate="task" kind="struct" symbol="Manager" /> via `get_task_count()` to determine the number of currently scheduled tasks.
+2. **Memory allocation**: Reads heap utilization from <HostReference crate="memory" /> via `global_manager().get_used()` and `get_total_size()`. If capacity is zero or smaller than used bytes, capacity is marked unavailable.
+3. **Uptime**: Retrieves monotonic elapsed time from <HostReference crate="time" /> to format the running session duration.
 
-Each metric is sampled separately, not as an atomic snapshot. The default update interval is 1,000 ms; `--interval-ms` accepts 100–10,000 ms, and the Refresh control cycles 250/1,000/2,000 ms.
+Metric retrieval occurs outside the graphics lock, ensuring that slow system queries never block user interface interactivity.
 
-## Bounded demonstration workload
+### Dashboard layout and visualization
 
-A temporary 4,096-byte allocation is increased in small batches (up to 512 bytes per 25 ms) and stopped after ten seconds. The app can stop it sooner; closing the window or cancelling its task releases the buffer. It does not spawn another task or benchmark CPU load. Allocation failure is displayed in the UI rather than crashing Xila.
+Activity renders its dashboard using LVGL through an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />:
 
-Native Linux headless smoke testing exercised uptime, task counts, changing allocator usage and close/stop behavior. It does **not** establish MCU telemetry correctness or memory/latency guarantees.
+- **Metrics summary**: Displays formatted uptime (`D d HH:MM:SS`), total task count, and numerical heap usage (scaled to bytes, KiB, or MiB).
+- **Memory share bar**: A visual progress bar displaying used heap memory as a permille value (0 to 1000) of total heap capacity.
+- **Historical memory chart**: A 60-point line series charting heap usage over time. Points are scaled in 16-byte steps (`bytes / 16`) to fit signed 32-bit chart values, with dynamic axis bounds padded by at least 2,048 bytes to keep flat or subtly varying traces readable.
+- **Adaptive layout**: When window dimensions fall below 560 pixels in width or 360 pixels in height, the dashboard switches to a compact layout with reduced padding and tighter widget spacing.
 
-## Source and tests
+### Refresh interval selection
 
-- <CodeReference repo="applications" path="executables/activity/README.md" /> -
-  actual metrics, options, smoke results and limitations.
-- <CodeReference repo="applications" path="executables/activity/src/lib.rs" /> -
-  sampling/event lifecycle.
-- <CodeReference
-    repo="applications"
-    path="executables/activity/src/workload.rs"
-  />
-  (bounded workload).
-- <CodeReference repo="platforms" path="examples/native/src/main.rs" /> - native
-  executable registration.
+Users can toggle the sampling rate using a segmented button control offering three standard periods: 250 milliseconds, 1 second, and 2 seconds. When launched from the command line, the executable accepts an `--interval-ms` argument between 100 and 10,000 milliseconds:
 
-Run `cargo test -p xila-activity --lib` in Applications. To launch the actual UI, build guests and a fresh image through the [native Platforms tutorial](/tutorials/native).
+```text
+/applications/executables/activity --interval-ms 500
+```
+
+### Bounded demo workload
+
+Activity includes a built-in demo workload to observe memory and CPU activity. When toggled on:
+
+- It allocates an exact 4,096-byte scratch buffer.
+- The async loop ticks the workload, processing at most one 512-byte slice every 25 milliseconds.
+- Missed ticks are discarded rather than queued, avoiding CPU saturation.
+- The workload automatically expires after 10 seconds, freeing its scratch buffer without leaving background tasks or persistent executor allocations.
+
+## Design choices and trade-offs
+
+- **Asynchronous polling over push telemetry**: Polling at user-controlled intervals avoids intrusive event subscriptions or notification buffers inside the kernel task and memory managers.
+- **Scaled integer chart points**: Dividing sample byte counts by 16 allows large memory sizes to fit standard integer coordinates without floating-point math on platforms lacking hardware floating-point units.
+- **Inline workload execution**: The test workload executes directly within the application's cooperative tick loop rather than launching separate kernel tasks. This guarantees that stopping the workload immediately halts its execution.
+
+## Limits
+
+- **Global metrics only**: The dashboard displays total task counts and aggregate heap metrics; it does not provide per-task CPU utilization or per-task memory breakdowns.
+- **Fixed historical depth**: The history chart retains exactly 60 samples. Older samples are dropped as new ones arrive.
+- **Unvarying memory capacity**: Platforms that do not expose a fixed allocator capacity report used bytes only and omit capacity percentage calculations.
+
+## API reference
+
+- <HostReference repo="applications" crate="activity" />: Activity executable
+  crate.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Core host executable interface.
+- <HostReference crate="task" kind="struct" symbol="Manager" />: Kernel task
+  management service.
+- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
+  graphical window surface.
+- <HostReference crate="memory" />: Global heap allocator manager.
+- <HostReference crate="time" />: Monotonic time and uptime service.
+
+## Related
+
+- [Command-line shell](/explanation/architecture/executables/command_line_shell/)
+- [Settings](/explanation/architecture/executables/settings/)
+- [Debug](/explanation/architecture/executables/debug/)
+- [Executables](/explanation/architecture/executables/)

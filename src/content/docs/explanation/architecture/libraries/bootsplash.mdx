@@ -1,90 +1,93 @@
 ---
 title: "Bootsplash"
 docType: explanation
-description: "The bootsplash crate provides a focused startup animation layer around the graphics manager and LVGL objects."
+description: "Startup logo animation and timeline management using the graphics subsystem."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `bootsplash` crate provides a focused startup animation layer around the graphics manager and LVGL objects.
+The `bootsplash` crate provides the startup brand logo animation displayed while the operating system boots. It lives in the Core repository under `libraries/bootsplash/` and is exposed by the `xila` facade crate when the `bootsplash` feature is enabled.
 
-## Role
+## Context
 
-- Owns creation and teardown of the boot logo animation sequence.
-- Encapsulates the startup-only animation policy so initialization code does not manipulate LVGL animation internals directly.
+During early system boot, Xila displays an animated bootsplash on the screen while storage, devices, and background services initialize. The `bootsplash` crate encapsulates the choreography, timing, and LVGL animation callbacks, providing a clean start and stop lifecycle for runtime initialization.
 
-## Boundaries
+## How it works
 
-- In scope: logo object setup, animation callback wiring, animation lifetime management.
-- Out of scope: window/session management, general UI composition, or reusable animation framework APIs.
+### Animation sequence and geometry
 
-## Internal structure
+The brand logo consists of a central square and four arms:
 
-- `lib.rs`: `Bootsplash` state (`lv_anim_t` + `Logo`) and lifecycle methods.
-- `error.rs`: crate-local error type mapped from graphics failures.
-- One `unsafe extern "C"` callback (`load_animation_callback`) updates part opacity across logo children.
+- Top-left (child index 0, clockwise rank 0, direction `(-1, -1)`)
+- Top-right (child index 3, clockwise rank 1, direction `(1, -1)`)
+- Bottom-right (child index 2, clockwise rank 2, direction `(1, 1)`)
+- Bottom-left (child index 1, clockwise rank 3, direction `(-1, 1)`)
 
-## Runtime interaction
+The animation runs in two distinct phases:
 
-1. `Bootsplash::new` acquires `graphics::Manager` lock.
-2. It uses current screen geometry to compute `Logo::get_factor(...)` and instantiate logo.
-3. It initializes `lv_anim_t` (`duration`, reverse timing, repeat count) and registers callback.
-4. `Bootsplash::stop` deletes the animation via `lv_anim_delete` under manager lock.
+1. Intro phase (`timeline::INTRO`, 840 ms total):
+   - The central square fades in from opacity 0 to 255 over 240 ms (`SQUARE_FADE`).
+   - Each arm slides inward along its diagonal into place, one after the other in clockwise order.
+   - Arm animation constants: `ARM_DELAY` 150 ms, `ARM_STAGGER` 100 ms, `ARM_DURATION` 450 ms.
+   - The intro concludes exactly on the static rest pose of the brand symbol.
+2. Loop phase (`timeline::PERIOD` 1600 ms, `PULSE` 800 ms):
+   - A ripple runs clockwise around the symbol.
+   - One arm at a time glides outward along its diagonal, briefly widening separation (opacity drops to `PULSE_OPACITY` 180), and returns.
+   - The next arm clockwise starts halfway through the previous pulse.
+   - The arms return to their rest positions between pulses; the symbol is never rotated or recolored.
 
-## Dependency model
+### Lifecycle management
 
-- Internal runtime dependency: [Graphics](/explanation/architecture/subsystems/graphics) only.
-- Uses LVGL symbols re-exported through graphics (`lv_anim_*`, `lv_obj_*`).
+The <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" /> struct controls animation creation and teardown:
 
-## Failure semantics
+- `Bootsplash::new(graphics_manager)`:
+  Acquires the graphics manager lock.
+  Retrieves screen dimensions, computes the logo scaling factor (`Logo::get_factor(screen_size.scale(0.3)).max(1)`), and instantiates `Logo`.
+  Centers the logo on the active screen (`lv_align_t_LV_ALIGN_CENTER`).
+  Initializes an LVGL animation (`lv_anim_t`) with `intro_callback`, starting the intro timeline.
+  When the intro completes (`intro_completed`), transitions to `first_cycle_callback`, then `cycle_callback` which loops indefinitely until stopped.
+- `Bootsplash::stop(self, graphics_manager)`:
+  Acquires the graphics manager lock.
+  Deletes all registered callbacks (`intro_callback`, `first_cycle_callback`, `cycle_callback`) from the logo object via `lv_anim_delete`.
 
-- Setup failures propagate as crate `Error` during `new`.
-- `stop` can fail through graphics lock/manager-level error propagation.
+The following diagram shows the animation state transitions from startup initialization to the looping ripple and final stop:
 
-## Extension points
-
-- Animation timing/profile can be changed centrally in `Bootsplash::new`.
-- Alternate startup visuals can reuse the same lifecycle contract (`new`/`stop`) while changing object composition.
-
-## Contract vs implementation
-
-- **Contract**: construct bootsplash with `Bootsplash::new(...)`, stop it with `Bootsplash::stop(...)`.
-- **Current implementation**: LVGL opacity animation over 4 logo parts using theme primary color and ease-in-out path.
-
-## Limitations and trade-offs
-
-- Uses `std::os::raw::c_void` and LVGL callback ABI, so the implementation is intentionally low-level.
-- Animation is tightly tied to current logo part layout and not exposed as a generic animation graph.
-
-## Construction, animation and teardown
-
-`Bootsplash::new(graphics_manager: &'static graphics::Manager).await` obtains the Graphics lock, reads the active LVGL screen size, scales the logo to **30%** of the current screen dimension and picks its foreground from the screen's main text color. It constructs a `Logo` and starts a repeating LVGL opacity animation.
-
-The current animation uses values 64–255, **500 ms forward and 500 ms reverse**, an ease-in/out callback and an effectively indefinite repeat count. The callback cycles the four logo parts. Those exact values are design parameters, not part of the general Graphics contract.
-
-`Bootsplash::stop(self, graphics_manager).await` consumes the splash, takes the Graphics lock, deletes the matching animation callback/variable pair and then lets Rust drop the logo. **Call `stop` explicitly** before releasing the logo or ending the graphics runtime: simply dropping an active splash does not execute the animation-deletion path shown in `stop`.
-
-```rust
-let splash = bootsplash::Bootsplash::new(graphics_manager).await?;
-// Continue initializing the runtime while the graphics loop renders.
-splash.stop(graphics_manager).await?;
+```mermaid
+stateDiagram-v2
+    [*] --> Intro: new
+    state Intro {
+        [*] --> SquareFade: square fades in, 240 ms
+        SquareFade --> ArmsSlide: arms slide in, staggered
+    }
+    Intro --> FirstCycle: intro completed, 900 ms
+    FirstCycle --> Ripple: first cycle completed
+    Ripple --> Ripple: arm pulse, 1600 ms period
+    Ripple --> [*]: stop
 ```
 
-The example assumes the Graphics service is running and `graphics_manager` has a `'static` lifetime. An initialized screen and progressing LVGL timer handler are prerequisites for visible animation.
+`Bootsplash::new` begins the intro phase, fading the central square before sliding each arm inward clockwise. Once complete, it enters a continuous loop where each arm pulses outward in turn. When the desktop shell or graphical user interface is ready, calling `Bootsplash::stop` deletes the active animations and dismisses the bootsplash.
 
-## Ownership and portability caveats
+## Design choices and trade-offs
 
-The library owns a boxed `lv_anim_t` and a Graphics `Logo`, but the animation is registered through an unsafe C callback and a static mutable animation-part index. It is therefore **not a reentrant generic animation component**: multiple concurrent splashes and arbitrary LVGL lifecycle resets require care. Its `std::os::raw::c_void` import means the implementation is not universally `no_std` even though many Xila libraries are.
+- Dedicated animation crate: Isolates LVGL C ABI animation descriptors and unsafe C callbacks from general shell and graphics components.
+- Responsive geometric scaling: Automatically adapts logo size to 30% of the screen dimension, ensuring consistent presentation across different display resolutions.
+- Deterministic timeline: Animation progress uses fixed-point mathematical functions (`ArmState`), allowing unit testing without a display server.
 
-- <CodeReference path="libraries/bootsplash/src/lib.rs" /> - actual animation
-  and stop sequence.
-- <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" /> -
-  construction/teardown API.
+## Limits
 
-## References
+- Requires the `graphics` subsystem and an initialized display driver.
+- Animation choreography is hard-coded to the four-arm brand logo layout and does not expose a general-purpose animation timeline API.
 
-- <HostReference crate="bootsplash" /> - generated Rust API documentation.
+## API reference
 
-- <CodeReference path="libraries/bootsplash" />
-- [Graphics](/explanation/architecture/subsystems/graphics)
+- <HostReference crate="bootsplash" />: package documentation and root exports.
+- <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" />:
+  bootsplash animation handle.
+- <HostReference crate="bootsplash" kind="enum" symbol="Error" />: bootsplash
+  error enum.
+
+## Related
+
+- [Graphics](/explanation/architecture/subsystems/graphics/): Graphics manager and display driver integration.
+- [Testing](/explanation/architecture/libraries/testing/): Headless screen testing without window drivers.

@@ -1,105 +1,107 @@
 ---
 title: "ABI"
 docType: explanation
-description: "Xila's C ABI surface is split between declarations and symbol definitions."
+description: "C Application Binary Interface architecture, declarations, symbol definitions, and runtime context in Xila."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Xila's C ABI surface is split between declarations and symbol definitions. Rust services use explicit managers; C entrypoints receive their VFS and time capabilities through a separately installed process-wide runtime context.
+The Xila C Application Binary Interface (ABI) provides a standard FFI boundary between native host services and C-compatible callers. The ABI surface is divided into interface declarations and runtime symbol definitions.
 
-## Responsibilities and boundaries
+## Context
 
-- Export C-compatible signatures, types, constants, and numeric result conventions.
-- Adapt raw pointers and identifiers to Xila's file, memory, task, and time APIs.
-- Keep declarations/header generation separate from concrete exported symbols.
+While Xila core services and drivers communicate internally through Rust trait objects and static managers, foreign callers and compiled guest components require stable C calling conventions, fixed memory layouts, and integer error conventions.
 
-Coverage remains incremental. This ABI is distinct from the Wasmi runtime's local WASI and graphics imports; it is not a claim of full WASI compatibility.
+The ABI subsystem bridges foreign calls to native subsystems:
 
-## Internal architecture
+- <HostReference crate="abi_declarations" />: defines C headers, type
+  signatures, and generated bindings used by callers.
+- <HostReference crate="abi_definitions" />: implements the exported
+  `#[unsafe(no_mangle)] extern "C"` symbols that adapt raw C arguments to Xila's
+  internal services.
 
-- <HostReference crate="abi_declarations" />: C declarations and generated
-  header surface.
-- <HostReference crate="abi_definitions" />: exported `#[unsafe(no_mangle)]
-  extern "C"` functions, types, and service adapters.
-- `abi_definitions::RuntimeContext`: static VFS/time references stored once for C entrypoints.
+## How it works
 
-The old `abi_context` crate and its `Context::call_abi` path are not part of the current workspace. Wasmi keeps file descriptors and active task information in its own per-execution `WasiContext`.
+### Split architecture and header generation
+
+The ABI architecture maintains a strict separation between headers and implementation symbols:
 
 ```mermaid
-graph TD
-    Binary[Final binary] --> Managers[Explicit VFS and time managers]
-    Binary --> Init[abi_definitions initialize]
-    Init --> Context[Process-wide RuntimeContext]
-    Declarations[abi_declarations / headers] -.-> Symbols[abi_definitions / exported symbols]
-    Foreign[C-compatible caller] --> Symbols
-    Symbols --> Context
-    Context --> Managers
+flowchart TD
+    Binary["Host binary / Runtime"] -->|"installs static references"| Init["abi_definitions::initialize"]
+    Init --> Context["RuntimeContext (OnceLock)"]
+    Caller["C-compatible caller (guest / FFI)"] -->|"invokes exported extern C functions"| Symbols["abi_definitions (exported symbols)"]
+    Headers["abi_declarations (xila.h / declarations)"] -.->|"provides C function prototypes"| Caller
+    Symbols -->|"queries VFS & Time"| Context
+    Context --> Subsystems["Subsystems (VirtualFileSystem / Time Manager)"]
 ```
 
-## Lifecycle and execution model
+1. **Definitions** (<CodeReference path="libraries/abi/definitions" />): implements C-exported symbols across file system, memory, string, task, time, and user categories.
+2. **Header generation**: the build script of `abi_declarations` uses `cbindgen` to parse `abi_definitions` and emit the standard C header `xila.generated.h`.
+3. **Declarations** (<CodeReference path="libraries/abi/declarations" />): uses `bindgen` to generate type-checked Rust foreign function declarations (`declarations.generated.rs`) from the C header, exporting constants such as <HostReference crate="abi_declarations" kind="constant" symbol="APPLICATION_ABI_VERSION" />.
 
-1. The final binary constructs the managers and VFS and keeps them alive.
-2. It calls `abi_definitions::initialize(RuntimeContext { virtual_file_system, time_manager })` before C ABI use.
-3. Exported functions obtain this runtime context and dispatch through its references. File/directory entrypoints that require task identity accept it in their C arguments.
-4. Synchronous boundaries use synchronous VFS wrappers or `task::block_on` where required.
+### Process-wide runtime context
 
-Registration uses `OnceLock`: the first context remains installed for the process. Calling a context-dependent entrypoint before registration panics. This is an intentional global FFI boundary, not the production lifecycle of every Rust module.
-
-## Concurrency and failure semantics
-
-- Module locks and ABI-local synchronization protect the operations they own.
-- Success is generally zero; nonzero codes map service errors at the C boundary.
-- Invalid pointers/identifiers must be checked at conversion boundaries.
-- Several exported functions remain `todo!()`; inspect the symbol implementation before depending on it.
-
-## Extension points
-
-Extend definitions and declarations together, regenerate headers, and preserve signature/layout/error-code compatibility. Use explicit Rust manager references inside services and confine runtime-context access to the C boundary.
-
-## Concrete FFI contract
-
-`abi_declarations` uses generated declarations from `OUT_DIR/declarations.generated.rs`; the public header is maintained in `libraries/abi/xila.h`. `abi_definitions` exports the actual symbols and their adapters, grouped into file-system, memory, string, task, time and user families. The declaration and definition crates must evolve together so C integer widths, pointer mutability, structures and command identifiers remain compatible.
-
-A final binary installs `RuntimeContext` once. The context contains `&'static virtual_file_system::VirtualFileSystem` and `&'static time::Manager<'static>`, so the binary must keep both alive for the lifetime of any C caller. Subsequent calls to `initialize` do not replace the first context. Calls to context-dependent exported functions before that initialization panic.
+Internal Rust services receive manager instances through explicit constructor injection. C ABI entry points cannot pass manager pointers on every call; instead, the host runtime initializes a process-wide <HostReference crate="abi_definitions" kind="struct" symbol="RuntimeContext" />:
 
 ```rust
-abi_definitions::initialize(abi_definitions::RuntimeContext {
-    virtual_file_system: vfs,
-    time_manager: clock,
+use xila::abi_definitions::{RuntimeContext, initialize};
+
+initialize(RuntimeContext {
+    virtual_file_system,
+    time_manager,
 });
 ```
 
-Here, `vfs` and `clock` are already constructed `'static` references. This is **process-wide FFI wiring**, not a replacement for passing explicit managers to native Rust libraries.
+The runtime context is stored in a `OnceLock` during host startup:
 
-## ABI stability and incomplete operations
+- Calling context-dependent ABI symbols before initialization causes a panic.
+- Once registered, the runtime context cannot be replaced or cleared.
+- C functions that require task identity (such as file permissions and ownership checks) take the task identifier as a parameter in their C argument list.
 
-- **Pointer and layout safety:** raw C memory must be validated against each exported function's contract. A safe wrapper cannot infer buffer lengths or lifetimes from an arbitrary pointer.
-- **Return conventions:** check each exported symbol's numeric error mapping before treating an integer return as a Rust `Result`; not every category has identical return types.
-- **Task identity:** VFS-facing C functions may require an explicit logical task ID, which is not equivalent to the Wasmi guest's per-execution descriptor table.
-- **Incomplete coverage:** unimplemented `todo!()` functions remain in the ABI tree; the existence of a header declaration does not imply a usable implementation.
-- **Compatibility:** the file-system ABI and Wasmi host imports are separate surfaces and should be tested independently.
+### ABI categories and conventions
 
-### Source and API details
+The exported symbols in `abi_definitions` follow consistent conventions:
 
-- <CodeReference path="libraries/abi/declarations/src/lib.rs" /> - generated
-  declarations entry point.
-- <CodeReference path="libraries/abi/xila.h" /> - C header.
-- <CodeReference path="libraries/abi/definitions/src/lib.rs" /> - runtime
-  context and exported families.
+- **Return values**: integer return values follow POSIX-like semantics where zero indicates success (`XILA_RESULT_OK`) and negative or non-zero integers correspond to mapped system errors.
+- **Memory allocations**: memory management functions (`xila_memory_allocate`, `xila_memory_deallocate`) route requests through Xila's allocator contracts with capability flags.
+- **Synchronization primitives**: mutexes, read-write locks, semaphores, and condition variables are backed by Xila's synchronization library.
+
+## Design choices and trade-offs
+
+- **Static OnceLock boundary**: using a global context for C entry points isolates FFI mechanics from internal Rust libraries, which continue to use explicit dependency injection.
+- **Pre-generated header bindings**: running `cbindgen` and `bindgen` during the build ensures C headers and Rust foreign declarations remain synchronized.
+- **Explicit task parameters**: entry points pass task identifiers explicitly, decoupling ABI dispatch from thread-local storage models.
+
+## Limits
+
+- Calling any context-dependent ABI symbol before invoking <HostReference crate="abi_definitions" kind="fn" symbol="initialize" /> causes a runtime panic.
+- The C ABI is distinct from the WebAssembly Wasmi execution sandbox, which maintains per-instance descriptor tables and WASI contexts.
+
+## API reference
+
+- <HostReference crate="abi_declarations" /> — C declarations and generated
+  headers.
+- <HostReference
+    crate="abi_declarations"
+    kind="constant"
+    symbol="APPLICATION_ABI_VERSION"
+  />
+  — ABI contract version identifier.
+- <HostReference crate="abi_definitions" /> — exported C symbols and adapters.
 - <HostReference
     crate="abi_definitions"
     kind="struct"
     symbol="RuntimeContext"
   />
-  (C runtime capabilities).
+  — process-wide runtime context for C entry points.
+- <HostReference crate="abi_definitions" kind="fn" symbol="initialize" /> —
+  installs the runtime context.
 
-## References / See also
+## Related
 
-- <CodeReference path="libraries/abi/definitions/src/lib.rs" />
-- <HostReference crate="abi_declarations" />
-- <HostReference crate="abi_definitions" />
-- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)
-- [Bindings](/explanation/architecture/executables/bindings)
-- [WASM runtime](/explanation/architecture/executables/wasm)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)
+- [Task](/explanation/architecture/subsystems/task/)
+- [Time](/explanation/architecture/subsystems/time/)
+- [Wasm runtime](/explanation/architecture/executables/wasm/)

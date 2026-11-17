@@ -1,110 +1,118 @@
 ---
 title: "Audio"
 docType: explanation
-description: PCM audio formats, device commands, bounded queues, mixing, VFS integration and platform output.
+description: "PCM audio formats, device commands, bounded queues, mixing, and VFS integration."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `audio` crate supplies reusable PCM playback primitives and a fixed-capacity mixer. It is **not** a process-global audio subsystem: the caller owns the memory, stream handles, output reservations, and platform adapter. The `xila` feature `audio` exposes the API; native host output additionally requires `drivers_native/audio`.
+The `audio` crate supplies reusable PCM playback primitives, character device control contracts, and a fixed-capacity software mixer. It lives in the Core repository under `libraries/audio/` and is exposed by the `xila` facade crate when the `audio` feature is enabled.
 
-## Data flow and ownership
+## Context
 
-1. A caller allocates `PlaybackBuffer<N>` for a single playback device, or constructs and pins `AudioSystem<STREAMS, STREAM_BYTES, MIX_FRAMES, OUTPUTS, SINK_BYTES>` for multiple streams.
-2. Application writers enqueue interleaved PCM frames. Writes are nonblocking and may accept fewer bytes than requested.
-3. A renderer or `mix_next_block()` consumes frames. Paused or empty streams contribute silence.
-4. Output consumers owned by a platform adapter pull the mixed PCM. Native output uses `nanoaudio-cpal`; browser output uses Web Audio integration. For deterministic tests without real audio hardware, `drivers_headless::audio::HeadlessAudioOutput` can consume the same mix pipeline.
+Embedded operating systems require sound synthesis and PCM playback without the memory overhead of a persistent audio server daemon. The `audio` library provides caller-owned playback buffers, format conversion, and a compile-time dimensioned multi-stream mixer that routes audio streams into platform output sinks.
 
-`nanoaudio` provides buffering, DSP, conversion, and volume support. The OS audio dependency does not include codecs or resampling. Host backends may adapt the fixed mix format to device capabilities.
+## How it works
 
-## PCM device protocol
+### PCM formats and configuration
 
-Input samples are interleaved little-endian PCM, with **1–8 channels**. The input formats are U8 (silence 128), signed I16, packed I24, signed I32, and F32 (nominal full scale −1 to 1). `Configuration` is an eight-byte `repr(C)` value containing `u32 sample_rate`, `u8 channels`, `u8 format`, and two zero reserved bytes. Xila's format codes are U8=0, I16=1, I24=2, I32=3, F32=4; these are not nanoaudio's enum discriminants.
+The library handles interleaved little-endian PCM audio with 1 to 8 channels. The <HostReference crate="audio" kind="enum" symbol="SampleFormat" /> enum defines supported formats:
 
-The device control prefix is `b'A'`:
+- `U8` (code 0, silence at 128)
+- `I16` (code 1, signed 16-bit)
+- `I24` (code 2, packed signed 24-bit)
+- `I32` (code 3, signed 32-bit)
+- `F32` (code 4, nominal full scale -1.0 to 1.0)
 
-| Command             | Number | Payload or result             |
-| ------------------- | -----: | ----------------------------- |
-| `SET_CONFIGURATION` |      1 | `Configuration` → `()`        |
-| `GET_CONFIGURATION` |      2 | `()` → `Configuration`        |
-| `GET_WRITABLE`      |      3 | `()` → `u32` free bytes       |
-| `SET_VOLUME`        |      4 | `u8` percentage, 0–100 → `()` |
-| `GET_VOLUME`        |      5 | `()` → `u8` percentage        |
-| `START`             |      6 | `()` → `()`                   |
-| `STOP`              |      7 | `()` → `()`                   |
+The <HostReference crate="audio" kind="struct" symbol="Configuration" /> struct is an 8-byte `repr(C)` descriptor containing `sample_rate: u32`, `channels: u8`, `format: u8`, and two reserved bytes.
 
-Control payloads must have the specified size and alignment; malformed payloads return `InvalidParameter`. Configuration is fixed when storage is split and a backend is opened. Setting the same configuration succeeds, but changing it requires a new stream.
+### PCM control commands
 
-A new stream starts **paused at 100% volume**. `START` enables consumption; `STOP` pauses and preserves queued frames, although an in-progress callback may finish. `write()` only accepts complete frames that fit and returns the accepted byte count (possibly zero). Retry the remainder later rather than busy-spinning. `flush()` is a **nonblocking drain poll**: it reports `RessourceBusy` until the callback consumes queued PCM; it does not guarantee that the host output latency buffer is empty. Capture/read is unsupported.
+Character devices in the audio subsystem respond to typed control commands prefixed with `b'A'`:
 
-## Fixed-capacity mixer
+- `SET_CONFIGURATION` (1): Sets the active `Configuration`.
+- `GET_CONFIGURATION` (2): Reads the current `Configuration`.
+- `GET_WRITABLE` (3): Queries the number of bytes currently free in the input ring buffer.
+- `SET_VOLUME` (4): Sets playback volume as a percentage from 0 to 100.
+- `GET_VOLUME` (5): Queries current volume percentage.
+- `START` (6): Starts or resumes audio playback.
+- `STOP` (7): Pauses playback, preserving queued frames.
 
-`AudioSystem<STREAMS, STREAM_BYTES, MIX_FRAMES, OUTPUTS, SINK_BYTES>` mixes **48 kHz stereo interleaved F32**. The default type is `AudioSystem<4, 2048, 128, 2, 3072>`: four application streams, 128-frame mix blocks, and two output sinks. The system must be pinned before opening output handles or mixing.
+Payloads must match the exact size and alignment expected by each command; otherwise the driver returns `Error::InvalidParameter`.
+
+### Single-device playback buffer
+
+The <HostReference crate="audio" kind="struct" symbol="PlaybackBuffer" /> struct provides caller-owned storage for `N` PCM bytes plus cursor and state metadata:
 
 ```rust
-let system = core::pin::pin!(audio::AudioSystem::<4, 2048, 128, 2, 3072>::new()?);
-let stream = system.open_stream()?;
-let mut output = system.as_ref().open_output()?;
-stream.start()?;
-system.as_ref().mix_next_block()?;
-output.with_consumer(|consumer| { /* platform adapter reads PCM */ });
+let mut buffer = PlaybackBuffer::<4096>::new();
+let (device, mut renderer) = buffer.split(configuration);
 ```
 
-Each stream has its own queue, start/stop state and volume. Mixer gain and master gain use `nanoaudio::Mixer`. When an output sink lacks room for a full block, that sink drops the incoming block and increments `dropped_blocks()`; other sinks continue. Writes, controls and mixing use an atomic try-lock and return `RessourceBusy` under contention; output consumers do not acquire that lock.
+- `PlaybackDevice`: Implements character device operations. Non-blocking writes append PCM frames to the buffer, while control commands manage playback state.
+- `Renderer`: Borrowed by the platform audio callback to consume mixed PCM frames.
 
-The default system contains **14 KiB of PCM queue storage** (8 KiB input and 6 KiB output). Core setup and steady-state operations are allocation-free, but this excludes platform adapter buffers and threads. A consumer transferred with `into_consumer_with_reservation` must be destroyed before its reservation is released; violating that unsafe lifetime contract is not permitted.
+### Multi-stream software mixer
 
-## Deterministic headless output
+The <HostReference crate="audio" kind="struct" symbol="AudioSystem" /> struct implements a multi-stream mixer:
 
-Core #515 adds a `HeadlessAudioOutput` adapter to `drivers_headless`. It reserves an output on a caller-owned pinned `AudioSystem`; the test drives mixing explicitly with `mix_next_block()`, then drains whole 48 kHz stereo F32 frames using `read(&mut buffer)`. Unlike a native sound device, it creates no threads, timers, additional queues or hardware dependencies. `read` returns zero when no frames are queued and rejects non-frame-aligned buffers without consuming audio. It exposes `dropped_blocks()` and releases its reservation on drop.
-
-This makes mixer output deterministic in host tests while leaving audible native and browser adapters independent. See <CodeReference repo="platforms" path="drivers/headless/src/audio.rs" /> and <CodeReference repo="platforms" path="drivers/headless/tests/audio.rs" />. Native ALSA development libraries are now needed only for opt-in host audio builds, not ordinary CI workspace audio tests.
-
-## Virtual filesystem integration
-
-`AudioStreamDevice` mounts the local playback service at `/devices/audio/playback`. Each VFS open reserves an independent stream in its context. Writes and generic `b'A'` controls operate on that stream; closing the file releases the slot. Cloning an open context and reading from it are unsupported. Guests use normal file writes and descriptor controls, without audio-specific WASI imports.
-
-## Native playback and tests
-
-The optional `nanoaudio-cpal` driver creates one or two output sinks and a shared mixer scheduler on Linux, macOS, and Windows. Its callback plays silence on underrun. The owning `Runner` reports errors through `check()` and underruns through `underruns()`; dropping it stops the mixer before releasing output reservations.
-
-```sh
-cargo test -p xila-audio
-cargo run -p xila-drivers-native --features audio --example audio
+```rust
+AudioSystem<const STREAMS: usize = 4, const STREAM_BYTES: usize = 2048, const MIX_FRAMES: usize = 128, const OUTPUTS: usize = 2, const SINK_BYTES: usize = 3072>
 ```
 
-The example emits a short 440 Hz square wave when a host audio device is available. Tests of core buffers and mixing do not prove audible output on a particular device. Web Audio and generic guest descriptor controls are available; ESP32 I2S and system sounds remain follow-up work.
+The system mixes active streams to **48 kHz stereo interleaved F32**. It must be pinned before creating outputs:
 
-## Choosing a playback API
+1. `open_stream()`: Reserves an input slot and returns a `StreamHandle`.
+2. `open_output()`: Reserves an output sink and returns an `OutputReservation`.
+3. `mix_next_block()`: Consumes frames from all active streams, mixes them into a `MIX_FRAMES` buffer using `nanoaudio::Mixer`, and copies the result to each registered output sink. Paused or empty streams contribute silence.
+4. If an output sink is full, it drops the block and increments `dropped_blocks()` without delaying other sinks.
 
-There are two distinct entrypoints, and neither constructs a global audio daemon:
+### Virtual file system integration
 
-- **One device:** `PlaybackBuffer<N>::new().split(configuration)` returns an `OutputDevice` producer and a `Renderer` consumer borrowing the same caller-owned storage. `N` must be nonzero, bounded to `u32::MAX` bytes and divisible by the chosen PCM frame size. A new split resets state and starts paused.
-- **Several streams and outputs:** `AudioSystem::new()` creates a fixed pool whose `STREAM_BYTES` and `SINK_BYTES` capacities must be multiples of an interleaved stereo F32 frame (8 bytes). Each sink must hold a full `MIX_FRAMES` block. A value with invalid capacities returns `InvalidParameter`.
+The <HostReference crate="audio" kind="struct" symbol="AudioStreamDevice" /> character device mounts the mixer at `/devices/audio/playback`. When a task opens the device file, the driver reserves an independent stream from the pinned `AudioSystem` and attaches it to the open file context. File writes stream PCM directly into that reservation, and closing the file releases the stream.
 
-The per-stream `StreamHandle` exposes `start`, `stop`, `write`, `writable`, `flush`, `set_volume` and `volume`. On an `AudioSystem`, `set_master_volume` and `mix_next_block` control mixing. These operations **do not wait for the audio callback**: contention returns `RessourceBusy`, and PCM writes may be short.
+The following diagram shows the audio data flow from applications through stream buffers and mixer blocks to platform output sinks:
 
-## Lifetime rules and platform boundary
+```mermaid
+flowchart LR
+    App1["App 1 PCM write"] --> Stream1["Stream 1 buffer"]
+    App2["App 2 PCM write"] --> Stream2["Stream 2 buffer"]
+    Stream1 --> Mixer["AudioSystem mixer\n(48 kHz stereo F32)"]
+    Stream2 --> Mixer
+    Mixer --> Sink1["Output sink 1\n(Platform driver)"]
+    Mixer --> Sink2["Output sink 2\n(Headless test sink)"]
+```
 
-Pin an `AudioSystem` **before** calling `open_output` or `mix_next_block`. A split output ring has a unique producer and consumer; the audio backend must not keep a consumer alive after releasing its matching `OutputReservation`. The unsafe `into_consumer_with_reservation` transfer is an explicit contract and needs careful teardown ordering.
+Applications write PCM frames into their respective stream buffers. The `AudioSystem` mixer periodically pulls frames from active streams, mixes them into 48 kHz stereo F32 blocks, and pushes the result to registered output sinks, such as the platform sound backend or headless test sinks.
 
-The library implements PCM storage, format conversion and mixer plumbing, not decoding or audio-device discovery. Native `cpal` output, Web Audio output, and future ESP32/I2S drivers are **platform adapters**. Playback availability and host device format negotiation are therefore target-specific, even with identical Xila PCM streams.
+## Design choices and trade-offs
 
-### Core implementation references
+- Bounded static memory: Capacities are defined via const generics (`STREAMS`, `STREAM_BYTES`, `MIX_FRAMES`, `OUTPUTS`, `SINK_BYTES`), preventing runtime allocations during playback.
+- Non-blocking writes: Writes only accept complete frames that fit in available ring buffer capacity, returning the accepted byte count immediately without blocking task execution.
+- Decoupled from codecs: The library handles PCM buffering, volume, and mixing, leaving audio file decoding (WAV, MP3, etc.) to application layers.
 
-- <CodeReference path="libraries/audio/src/playback.rs" /> - borrowed
-  single-device split.
-- <CodeReference path="libraries/audio/src/system.rs" /> - pinned mixer, output
-  reservations and short writes.
-- <CodeReference path="libraries/audio/src/command.rs" /> - command values and
-  directions.
-- <HostReference crate="audio" kind="struct" symbol="AudioSystem" /> -
-  fixed-capacity mixer.
+## Limits
 
-## Source and API references
+- Supported channel counts are restricted to 1 through 8.
+- The software mixer operates at a fixed internal format of 48 kHz stereo interleaved F32.
+- Cloning an open file context for `/devices/audio/playback` is unsupported (`Error::UnsupportedOperation`).
 
-- <HostReference crate="audio" />
-- <CodeReference path="libraries/audio/README.md" />
-- [Synth application](/explanation/architecture/executables/synth)
-- [Virtual filesystem](/explanation/architecture/subsystems/virtual_file_system)
+## API reference
+
+- <HostReference crate="audio" />: package documentation and root exports.
+- <HostReference crate="audio" kind="struct" symbol="AudioSystem" />: pinned
+  multi-stream software mixer.
+- <HostReference crate="audio" kind="struct" symbol="AudioStreamDevice" />: VFS
+  character device mounting the mixer.
+- <HostReference crate="audio" kind="struct" symbol="PlaybackBuffer" />:
+  single-device ring buffer storage.
+- <HostReference crate="audio" kind="struct" symbol="Configuration" />: PCM
+  audio configuration descriptor.
+- <HostReference crate="audio" kind="enum" symbol="SampleFormat" />: supported
+  PCM sample formats.
+
+## Related
+
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/): Character device mounting and file contexts.
+- [Testing](/explanation/architecture/libraries/testing/): Headless audio output for deterministic tests.

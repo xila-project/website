@@ -1,62 +1,53 @@
 ---
 title: "Device"
 docType: explanation
-description: "The device crate defines typed device-control commands and a backend-independent neural-network inference contract."
+description: "Typed control contracts for Xila devices and their drivers."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The `device` crate (package `xila-device`, in Core's top-level `devices/` directory since Core #586) contains shared contracts between Xila consumers and device implementations.
+The Core `device` crate defines typed control commands shared by device callers and drivers. Commands describe the data passed across the virtual file system (VFS) device interface.
 
-## Device-control commands
+## Context
 
-The `hash` module defines hash-device commands such as `RESET` and `SET_ALGORITHM`. Consumers issue typed commands through mounted VFS device files, while drivers implement their behavior.
+The crate groups commands by device kind, including ADC, audio, GPIO, hash, I2C, neural network, PWM, screen, SPI and UART. The declarations define contracts; a particular driver determines which operations it implements.
 
-## Neural-network inference contract
+## How it works
 
-The `neural_network` module defines a backend-independent, **synchronous** inference interface. It supports model sources supplied as serialized buffers, typed ahead-of-time models, or external locations. The contract describes tensor shapes and element types, per-tensor/per-axis quantization, backend capabilities, and caller-provided aligned workspaces.
+The following diagram shows a control command reaching a driver.
 
-Model handles, inference contexts and borrowed tensor views encode important ownership and lifetime relationships. The implementation includes a mock backend exercising model loading, context creation, input binding, computation and output retrieval.
-
-The contract does **not** provide inference kernels, production backends, model discovery or asynchronous inference. Formats such as TFLite and ONNX are represented in the interface but are not proof of a working adapter.
-
-## Hash control contract
-
-`device::hash` defines typed control commands in family `b'H'`: `RESET` is write command **0** with no payload and `SET_ALGORITHM` is write command **1**, carrying a `HashAlgorithm`. Available discriminants are MD5=0, SHA1=1, SHA224=2, SHA256=3, SHA384=4, SHA512=5, SHA512/224=6 and SHA512/256=7. These declarations do not themselves supply hashing hardware or guarantee that every driver supports each algorithm.
-
-Consumers open the appropriate character device through the VFS and send typed commands, as the [Authentication library](/explanation/architecture/libraries/authentication) does for `/devices/hasher`.
-
-## Neural-network model and tensor ownership
-
-`NeuralNetworkDevice<Aot>` is a **synchronous trait**, with associated `Model<'model>` and `Context` types. The caller selects `ModelSource::Buffer`, `Static` or `External` and queries `capabilities()` and `memory_requirements(source)` before loading a model. A model format enum such as `Tflite`, `Onnx`, `Burn` or `EspDl` is only a label; adapter availability is backend-specific.
-
-`TensorSpec::try_new(shape, type, quantization)` validates dimension multiplication and quantization parameters. A `TensorView::try_new(spec, data)` additionally rejects mismatched element type or count. `TensorData` borrows typed slices, while `InputBinding` borrows a tensor view for one synchronous compute call.
-
-```rust
-use device::{TensorData, TensorSpec, TensorType, TensorView};
-let spec = TensorSpec::try_new(&[1, 3], TensorType::F32, None)?;
-let values = [0.1_f32, 0.2, 0.3];
-let input = TensorView::try_new(spec, TensorData::F32(&values))?;
-assert_eq!(input.data().len(), 3);
+```mermaid
+flowchart LR
+    Caller --> VFS --> Driver
+    Driver --> Result["Typed output"]
 ```
 
-`Workspace::try_new(&mut bytes, requirements)` validates **minimum size and power-of-two base-address alignment**; ordinary `[u8]` storage does not automatically satisfy arbitrary alignment. `create_context` holds borrows of both the model and optional workspace. Call `destroy_context(context)` **exactly once** for every successfully created context before calling `unload_model(model)`: dropping the wrapper alone does not perform backend teardown. `compute` and `output` work through the live context.
+A caller sends a typed command through the VFS to a driver. The driver interprets its input and returns its output or an error. The command definitions and kind identifiers are in <CodeReference path="devices/src/lib.rs" />.
 
-No production inference kernels, accelerator discovery, background inference or model-format parsers are provided by this crate. `Capabilities::asynchronous` describes a backend property but does not add async methods to the trait.
+### GPIO controls
 
-### Source and API references
+The GPIO contract uses versioned structures. Their version must equal `ABI_VERSION`, and reserved fields must be zero.
 
-- <CodeReference path="devices/src/hash.rs" /> - hash command identifiers and
-  algorithm discriminants.
-- <CodeReference path="devices/src/neural_network.rs" /> - model, workspace,
-  tensor and lifecycle contracts.
-- <HostReference crate="device" kind="trait" symbol="NeuralNetworkDevice" /> -
-  backend adapter trait.
+| Command                                                                                                                  | Input          | Output            | Description                                      |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------- | ----------------- | ------------------------------------------------ |
+| <HostReference crate="device/gpio" kind="struct" symbol="CONFIGURE"><code>CONFIGURE</code></HostReference>               | `ConfigureAbi` | `VersionAbi`      | Release and request the line as input or output. |
+| <HostReference crate="device/gpio" kind="struct" symbol="GET_CAPABILITIES"><code>GET_CAPABILITIES</code></HostReference> | `VersionAbi`   | `CapabilitiesAbi` | Report line capabilities.                        |
+| <HostReference crate="device/gpio" kind="struct" symbol="RELEASE"><code>RELEASE</code></HostReference>                   | `VersionAbi`   | `VersionAbi`      | Release the line.                                |
 
-## References
+## Design choices and trade-offs
 
-- <HostReference crate="device" />
-- <CodeReference path="devices/src/hash.rs" />
-- <CodeReference path="devices/src/neural_network.rs" />
-- [Drivers](/explanation/architecture/drivers)
+Typed commands give callers and drivers a shared representation without requiring every driver to support every device kind. The neural-network commands describe a device protocol; the backend trait belongs to the `neural_network` library.
+
+## API reference
+
+- <HostReference crate="device" /> — device contracts.
+- <CodeReference path="devices/src/gpio.rs" /> — GPIO command definitions.
+- <CodeReference path="devices/src/neural_network.rs" /> — inference device
+  protocol.
+
+## Related
+
+- [Neural network](/explanation/architecture/libraries/neural_network/)
+- [Peripherals](/explanation/architecture/libraries/peripherals/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)

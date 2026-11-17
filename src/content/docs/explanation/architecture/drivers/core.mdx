@@ -1,27 +1,36 @@
 ---
-title: "Core driver crate"
+title: "Core"
 docType: explanation
-description: "The drivers_core crate contains dependency-light driver building blocks that can be reused across all targets."
+description: "Minimal devices and the optional Wi-Fi mock supplied by Core."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The `drivers_core` crate contains dependency-light driver building blocks that can be reused across all targets.
+The Core repository’s `drivers_core` crate supplies minimal devices and an optional Wi-Fi mock.
 
-It currently provides foundational devices such as the null device implementation used by higher-level systems.
+## Context
 
-## Dependencies
+These implementations use the device interfaces shared with the virtual file system (VFS).
 
-- [File system](/explanation/architecture/libraries/file_system): For common device-facing file system traits.
+## How it works
 
-## References
+The null character device returns zero bytes on reads and accepts all bytes on writes. The native and browser examples mount it at `/devices/standard_io/null`; the browser example also uses it for standard input, output and error.
 
-- <HostReference crate="drivers_core" /> - generated Rust API documentation.
+The `wifi_mock` feature exposes a deterministic Wi-Fi controller and runner. The native example can register it as `wlan0` for control-plane testing.
 
-- <CodeReference path="drivers/core" />
+## Design choices and trade-offs
 
-## See also
+The crate is `no_std`. The mock is feature gated and does not operate a host radio.
 
-- [Drivers](/explanation/architecture/drivers)
-- [Device](/explanation/architecture/libraries/device)
+## API reference
+
+- <HostReference crate="drivers_core" />: Core driver crate.
+- <HostReference crate="drivers_core" kind="struct" symbol="NullDevice" />: Null
+  character device.
+- <CodeReference path="drivers/core/src/wifi" />: Wi-Fi mock source.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)
+- [Device](/explanation/architecture/libraries/device/)

@@ -1,115 +1,80 @@
 ---
 title: "Log"
 docType: explanation
-description: "The Log module is the global bridge between Xila logging calls and a concrete backend implementation."
+description: "Understand Xila's unified logging subsystem, severity levels, and backend logger integration."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The Log module is the global bridge between Xila logging calls and a concrete backend implementation.
+The log subsystem provides a unified logging facade across Xila. It routes messages from standard logging macros through severity-filtering logic to an installed platform backend.
 
-## Role in system
+## Context
 
-- Provides uniform log macros (`error!`, `warning!`, `information!`, `debug!`, `trace!`) across modules.
-- Adapts Xila-specific `LoggerTrait` to the external `log` crate runtime.
-- Centralizes level filtering and formatted record emission policy.
+Kernel subsystems, libraries, and executables need structured log output without hard-coding concrete output channels like UART, serial console, or standard error. The <HostReference crate="log" /> crate adapts the standard Rust `log` crate to Xila's <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> contract.
 
-## Responsibilities and boundaries
+## How it works
 
-**In scope**
+### Architecture and message flow
 
-- Global logger initialization and registration.
-- Severity-level mapping and default formatting.
-- Backend trait abstraction (`enabled`, `write`, optional `flush`).
-
-**Out of scope**
-
-- Transport/storage mechanics (console, serial, file, remote).
-- Advanced aggregation/query infrastructure.
-
-## Internal architecture
-
-- `LOGGER_INSTANCE: OnceLock<Logger>` stores single logger adapter.
-- `LoggerTrait` is backend contract; `Logger` adapter implements `log_external::Log`.
-- `Record` structure captures normalized level/target/arguments.
-- Default `LoggerTrait::log` formatting decorates lines with level tag and ANSI color tokens.
-
-**Contract vs implementation**
-
-- **Contract**: backend `LoggerTrait` methods and macro-level behavior.
-- **Implementation**: concrete formatting/color tokens and `set_max_level` policy.
+The following diagram shows the path of a log record from emission to the platform backend.
 
 ```mermaid
-graph TD
-    Clients@{ shape: processes, label: "Modules / executables" }
-    Macros[error!/warning!/information!/debug!/trace!]
-    Bridge[log module bridge]
-    Once[LOGGER_INSTANCE OnceLock]
-    Backend[LoggerTrait backend]
-
-    Clients --> Macros
-    Macros --> Bridge
-    Bridge --> Once
-    Once --> Backend
-    Backend -->|write/flush| Output[Console / file / platform sink]
+flowchart LR
+    Macro["Macros<br/>(error!, warning!, information!, debug!, trace!)"] --> External["Rust log facade"]
+    External --> Adapter["Logger adapter"]
+    Adapter --> Trait["LoggerTrait backend"]
+    Trait --> Output["Platform destination<br/>(UART, console, null)"]
 ```
 
-## Lifecycle and execution model
+Logging flows through four main stages:
 
-1. Platform creates backend implementing `LoggerTrait`.
-2. Runtime calls `log::initialize(...)` once.
-3. Module macros emit through `log` ecosystem into adapter and backend sink.
+1. Subsystems and executables invoke standard logging macros: `error!`, `warning!`, `information!`, `debug!`, or `trace!`.
+2. The macros invoke the external Rust `log` crate, which checks the current maximum severity filter.
+3. If enabled, the record passes to Xila's internal `Logger` adapter stored in `LOGGER_INSTANCE`.
+4. The adapter converts the record into a Xila <HostReference crate="log" kind="struct" symbol="Record" /> and forwards it to the active `LoggerTrait` implementation.
 
-## Data/control flow
+### Severity levels and formatting
 
-- Macro invocation -> `log_external` -> `Logger` adapter -> `LoggerTrait::enabled/log/write`.
-- Initialization attempts after first registration do not replace logger; they emit an error log.
+The subsystem categorizes log messages into five distinct levels in <HostReference crate="log" kind="enum" symbol="Level" />:
 
-## Concurrency and synchronization model
+- `Level::Error` (tag `E`): critical failures and unrecoverable errors.
+- `Level::Warn` (tag `W`): abnormal conditions that do not immediately halt execution.
+- `Level::Info` (tag `I`): informational status updates during boot and operation.
+- `Level::Debug` (tag `D`): detailed diagnostic information for debugging.
+- `Level::Trace` (tag `T`): low-level tracing events.
 
-- Singleton registration guarded by `OnceLock`.
-- Thread-safety at runtime relies on backend `LoggerTrait: Send + Sync` and backend internals.
+The default `LoggerTrait::log` implementation formats records with ANSI color codes, severity tags, target module names, and formatted argument text before invoking `write`.
 
-## Dependency model
+### Initialization and lifetime
 
-- Depends on `log` ecosystem crate for macro/runtime integration.
-- Consumed by nearly all core modules for diagnostics.
+During system boot, the target platform registers its backend by calling <HostReference crate="log" kind="fn" symbol="initialize" /> with a static reference to its logger implementation (for example, `drivers_std::log::Logger` on native platforms). Once registered, the maximum filter level is set to trace, allowing the backend to control runtime filtering.
 
-## Failure semantics and recovery behavior
+## Design choices and trade-offs
 
-- `initialize` returns `Ok(())` even if logger was already set in `log` runtime; duplicate init is reported via error record.
-- Backend write/flush behavior is backend-defined; module itself does not buffer/retry.
+- **Zero-allocation records**: the `Record` structure references borrowed string slices and `core::fmt::Arguments`, avoiding heap allocations in `no_std` environments.
+- **Static backend dispatch**: using `OnceLock` and a static trait reference ensures logging remains accessible from any execution context without passing manager instances.
+- **Compatibility with standard macros**: re-exporting standard logging macros maintains familiar Rust idioms throughout all repositories.
 
-## Extension points
+## Limits
 
-- Provide alternative backend implementations for each platform.
-- Override `LoggerTrait::log` for custom formatting or structured payload conventions.
-- Add runtime filtering policy in backend or wrapper layer.
+- The logging backend can only be initialized once; subsequent calls to `log::initialize` fail.
+- Log message formatting in the default handler includes ANSI escape sequences, which may require stripping when redirected to raw binary storage.
 
-## Known limitations and trade-offs
+## API reference
 
-- Single global logger; dynamic replacement/reconfiguration is limited.
-- Formatting includes ANSI control sequences by default, which may be undesirable in non-terminal sinks unless backend adapts.
-- Reliability guarantees (buffering, durability) are sink-specific.
+- <HostReference crate="log" /> - crate root and re-exported macros.
+- <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> - interface
+  required for platform logger implementations.
+- <HostReference crate="log" kind="enum" symbol="Level" /> - severity level
+  enumeration.
+- <HostReference crate="log" kind="struct" symbol="Record" /> - structured log
+  message container.
+- <HostReference crate="log" kind="fn" symbol="initialize" /> - registers the
+  platform logger backend.
 
-## Backend contract and global initialization
+## Related
 
-A backend implements `LoggerTrait: Send + Sync`, supplying `enabled(Level)` and `write(fmt::Arguments)`. The default `log(Record)` method formats severity, target and arguments with ANSI escape sequences; `flush()` defaults to a no-op and may be overridden. `Level` covers Error, Warn, Info, Debug and Trace.
-
-`initialize(&'static dyn LoggerTrait)` stores a logger adapter in a `OnceLock` and registers it with the Rust `log` facade. This is process-global integration, unlike managers that can be freely instantiated. The facade maximum level is set to Trace, but the backend's `enabled()` still decides which records are emitted.
-
-**Important initialization caveat:** if `set_logger()` fails, the current implementation logs an error directly to the supplied backend and still returns `Ok(())`. Consequently a successful return does not prove that this backend became the active global logger. `is_initialized()` checks whether the internal `OnceLock` contains an adapter, not whether the requested backend was installed.
-
-Applications can use the re-exported `error!`, `warning!`, `information!`, `debug!`, and `trace!` macros. Transport, persistence and concurrency behavior belong to the concrete backend, not the facade.
-
-### Implementation references
-
-- <CodeReference path="subsystems/log/src/lib.rs" />
-- <HostReference crate="log" />
-
-## References / See also
-
-- <HostReference crate="log" />
-- [Drivers](/explanation/architecture/drivers)
-- [Synchronization](/explanation/architecture/libraries/synchronization)
+- [Task](/explanation/architecture/subsystems/task/) - task execution and logging integration.
+- [Time](/explanation/architecture/subsystems/time/) - timestamping and monotonic uptime.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) - standard I/O device nodes.

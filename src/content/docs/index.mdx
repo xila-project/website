@@ -11,7 +11,7 @@ hero:
     text: Run Calculator in your browser
     link: /tutorials/browser/
   title: An open source OS for the embedded world
-  tagline: Embedded, Rust and WebAssembly - a modular, portable system for devices and the people who make them.
+  tagline: Embedded, Rust, and WebAssembly — a modular, portable system for devices and developers.
   actions:
     - text: Try Xila
       link: https://platforms.xila.dev/
@@ -39,13 +39,13 @@ import IconLinkCard from "@/components/IconLinkCard.astro";
 
 <Tabs>
   <TabItem label="In the browser" icon="laptop">
-    Open the [hosted demonstration](https://platforms.xila.dev/), create or select a disk if prompted, then log in as **administrator** with an empty password. It needs a browser with OPFS and Web Locks. <DemoLanguages />
+    Open the [hosted demonstration](https://platforms.xila.dev/), create or select a disk if prompted, then log in as `administrator` with an empty password. Requires a web browser supporting Origin Private File System (OPFS) and Web Locks. <DemoLanguages />
 
     [Follow the browser tutorial →](/tutorials/browser/)
 
   </TabItem>
   <TabItem label="With Docker" icon="seti:docker">
-    From a host terminal, pull the runtime, create a persistent volume, and open Xila's own command-line shell:
+    From a host terminal, pull the runtime image, create a persistent volume, and open Xila's interactive command-line shell:
 
     ```sh
     docker pull ghcr.io/xila-project/xila-runtime:latest
@@ -60,10 +60,10 @@ import IconLinkCard from "@/components/IconLinkCard.astro";
 
   </TabItem>
   <TabItem label="Natively" icon="seti:rust">
-    On x86_64 Linux with a Wayland session, build the guests and the filesystem image, then start the native desktop from the `platforms` checkout:
+    On x86_64 Linux with a Wayland session, generate the reference disk image and start the native runtime from the Platforms repository:
 
     ```sh
-    mise run run:cargo -- -p xila-native-example --bin native_example -- \
+    cargo run -p xila-native-example --bin native_example -- \
       --gui --no-network --seed-image target/seed/native/seed.img
     ```
 
@@ -76,19 +76,20 @@ import IconLinkCard from "@/components/IconLinkCard.astro";
 
 <CardGrid>
   <Card title="Lightweight" icon="rocket">
-    Optimized for embedded systems, ensuring high performance on
-    resource-constrained hardware.
+    Designed for resource-constrained hardware with predictable memory bounds,
+    small binary sizes, and a `no_std` kernel foundation.
   </Card>
   <Card title="Safe" icon="approve-check">
-    Built on Rust's memory-safety guarantees for a robust and secure execution
-    environment.
+    Built with Rust's memory safety guarantees, typed device interfaces, and
+    isolated task boundaries.
   </Card>
   <Card title="Portable" icon="laptop">
-    Abstracts hardware complexities to run across various architectures and
-    boards.
+    Provides uniform virtual file system, task, and device abstractions across
+    desktop Linux, web browsers, and bare-metal ARM microcontrollers.
   </Card>
   <Card title="Modular" icon="puzzle">
-    Extend functionality dynamically with isolated WebAssembly modules.
+    Executes sandboxed WebAssembly (Wasm) guest applications in isolated Wasmi
+    environments.
   </Card>
 </CardGrid>
 
@@ -105,7 +106,7 @@ import IconLinkCard from "@/components/IconLinkCard.astro";
     title="How-to guides"
     href="/how-to/"
     icon="setting"
-    description="Set up tooling, build a guest, or validate a change."
+    description="Set up tooling, flash hardware, or build an application."
   />
   <IconLinkCard
     title="Reference"

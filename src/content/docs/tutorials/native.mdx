@@ -1,66 +1,86 @@
 ---
 title: "Run Xila natively"
 docType: tutorial
-description: Build official WASI guests in Applications, seed Platforms and launch the native Linux runtime.
+description: "Create a reference disk image and run the native Xila desktop on Linux."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
-
-The native executable and disk generator live in [Platforms](https://github.com/xila-project/platforms); official guest applications live in [Applications](https://github.com/xila-project/applications). **Core is not a runnable desktop checkout** after the repository split.
+In this tutorial, you create a reference disk image with the released WebAssembly (Wasm) applications and start the native runtime on desktop Linux. At the end, you have an interactive Xila desktop running on your display.
 
 ## Before you begin
 
-Use x86_64 Debian/Ubuntu Linux with Git, [mise](https://mise.jdx.dev/) and a working Wayland display for GUI testing. Native Windows/macOS/ARM Linux and ESP32 are not established as supported desktop environments. Cloning adjacent workspaces helps when checking local changes.
+- An x86_64 Linux system with an active Wayland or X11 session. The package step uses `apt`, so a Debian-based distribution such as Debian or Ubuntu is the simplest choice.
+- [Git](https://git-scm.com/), to clone the Platforms repository.
+- [mise](https://mise.jdx.dev/), which installs the Rust toolchain and other tools each task needs.
+- [Node.js](https://nodejs.org/) and npm, for the font converter used by the graphics build.
+- A network connection: the disk image step downloads the released application packages.
 
-## 1. Build the six guest applications
+## Prepare the Platforms repository
+
+1. Clone the [Platforms repository](https://github.com/xila-project/platforms) and enter it:
+
+   ```sh
+   git clone https://github.com/xila-project/platforms.git
+   cd platforms
+   ```
+
+2. Trust the repository's mise configuration:
+
+   ```sh
+   mise trust
+   ```
+
+3. Install the native host packages (for example ALSA, Wayland and X11 development files):
+
+   ```sh
+   mise bootstrap packages apply --manager apt
+   ```
+
+4. Install the locked npm dependencies for the font converter:
+
+   ```sh
+   npm ci
+   ```
+
+   npm prints a summary of the installed packages.
+
+## Create a reference disk image
+
+1. In the Platforms repository root, create the seed image:
+
+   ```sh
+   mise run image:native
+   ```
+
+   The task downloads the released, signed application packages pinned in `tools/fs_image/profiles/bundles.lock.json`, then runs the `xila-fs-image` tool. When it finishes, the 16 MiB LittleFS image is at `target/seed/native/seed.img`.
+
+## Start the native runtime
+
+1. In the Platforms repository root, run the native runtime:
 
 ```sh
-git clone https://github.com/xila-project/applications.git
-git clone https://github.com/xila-project/platforms.git
-cd applications
-mise trust
-mise run build:applications
-cd ..
+cargo run -p xila-native-example --bin native_example -- --gui --no-network --seed-image target/seed/native/seed.img
 ```
 
-The WASI `.wasm` files are emitted under `applications/target/wasm32-wasip1/release-wasm/`.
+Cargo builds the runtime, then a window opens with the Xila login screen. On first start, the runtime imports the seed into a new live disk at `./drive.img`.
 
-## 2. Create a native filesystem image
+## Log in and launch Calculator
 
-```sh
-cd platforms
-mise trust
-mise bootstrap packages apply --manager apt
-npm ci
-export XILA_APPLICATIONS_DIR="$(realpath ../applications/target/wasm32-wasip1/release-wasm)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
-mise run image:native
-```
+1. In the user name field on the login screen, enter `administrator`. Leave the password field empty.
+2. Click **Login**. The login screen closes, and the desktop loads with the dock and status bar.
+3. Click the button with a 3 × 3 grid of squares on the dock to open the application drawer.
+4. Click the **Calculator** icon. A window opens with the Calculator interface.
+5. Click `1`, `+`, `2`, and `=`. The display updates to show `3`.
+6. Click the close button in the top-right corner of the Calculator window. The window closes, returning to the empty desktop.
 
-The image is written to `target/seed/native/seed.img` by the **Platforms** `xila-fs-image` tool. It is a reference image, not a package-manager installation or an upgrade process. Existing writable disks are not overwritten by newer seeds.
+## Check your result
 
-## 3. Start the native runtime
+The Xila desktop is running, Calculator launched and evaluated an expression, and the application closed cleanly. The terminal outputs log messages reporting task and device status.
 
-From the `platforms` checkout:
+To stop the native runtime, close the window or press `Ctrl+C` in the terminal. Your changes stay in `./drive.img`. The next start reuses that disk and ignores the seed; to start from a clean installation, pass another path with `--disk-path`.
 
-```sh
-mise run run:cargo -- -p xila-native-example --bin native_example -- \
-  --gui --no-network --seed-image target/seed/native/seed.img
-```
+## Next steps
 
-If `run:cargo` is unavailable in the selected task profile, use `mise exec -- cargo run -p xila-native-example --bin native_example -- --gui --no-network --seed-image target/seed/native/seed.img`.
-
-On a new disk, log in as **administrator** with an empty password. Test pointer input, application launch and window close. The default writable file is `./drive.img`; select a different one with `--disk-path PATH` to avoid modifying an existing installation.
-
-For terminal mode replace `--gui` with `--terminal`. Headless graphical debugging uses `--display-driver headless --resolution 800x600` plus the `xila-debug` tool.
-
-## Validation and caveats
-
-```sh
-mise run build:native
-mise run test:seed
-```
-
-Platforms also owns driver, browser, integration and runtime-container CI. Native correctness does **not** prove ESP32 operation or flash/RAM consumption. See <CodeReference repo="platforms" path="examples/native/README.md" /> and <CodeReference repo="platforms" path="mise.toml" /> for exact options.
-
-For the browser-hosted build, follow [the browser tutorial](/tutorials/browser).
+- [Run Calculator in the browser](/tutorials/browser/) to try the browser-hosted WebAssembly runtime.
+- [Run Xila on the Arduino Nano 33 BLE](/how-to/run-nano-33-ble/) to flash Xila onto embedded hardware.
+- [Set up a development environment](/how-to/setup-development/) to configure all repositories for cross-repository work.
+- [Development environments and targets](/explanation/development-environments/) to learn how target architectures relate to repositories.

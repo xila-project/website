@@ -1,33 +1,36 @@
 ---
-title: "Std driver crate"
+title: "Std"
 docType: explanation
-description: "The drivers_std crate implements host-side drivers relying on the Rust standard library."
+description: "Standard-library services and devices for host runtimes."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-The `drivers_std` crate implements host-side drivers relying on the Rust standard library.
+The Platforms `drivers_std` crate supplies standard-library based runtime services and devices.
 
-It provides commonly used services for host execution, including logging, memory backends, time devices, executable loading helpers, and a TUN/TAP-based network interface implementation.
+## Context
 
-## Dependencies
+The native runtime uses it for storage, console input and output, time and CPU information.
 
-- [Memory](/explanation/architecture/subsystems/memory)
-- [Time](/explanation/architecture/subsystems/time)
-- [Network](/explanation/architecture/subsystems/network)
-- [Task](/explanation/architecture/subsystems/task)
-- [Users](/explanation/architecture/subsystems/users)
-- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)
+## How it works
 
-## References
+The native example mounts standard input, output and error at `/devices/standard_io/input`, `/devices/standard_io/output` and `/devices/standard_io/error`. It mounts time at `/devices/time/clock` and CPU information at `/devices/compute/informations`.
 
-- <HostReference repo="platforms" crate="drivers_std" /> - generated Rust API
-  documentation.
+A file-backed drive supplies the block storage for the LittleFS root. The crate also provides a TUN/TAP interface, executor, memory, logging and executable loading support. The example can register a tunnel as `tunnel0`.
 
-- <CodeReference repo="platforms" path="drivers/std" />
+## Design choices and trade-offs
 
-## See also
+A host file backs the drive, while console and clock devices use host services. These implementations depend on the Rust standard library.
 
-- [Drivers](/explanation/architecture/drivers)
-- [Native driver crate](/explanation/architecture/drivers/native)
+## API reference
+
+- <HostReference repo="platforms" crate="drivers_std" />: Standard-library
+  driver source.
+- <CodeReference repo="platforms" path="examples/native/src/main.rs" />: Native
+  runtime assembly.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)
+- [Native](/explanation/architecture/drivers/native/)

@@ -1,62 +1,48 @@
 ---
-title: "Weather (executable)"
+title: "Weather"
 docType: explanation
-description: Understand the Weather demo guest and its network-dependent data sources.
+description: "Understand how Weather shows forecasts for a selected location."
 ---
 
+import HostReference from "@/components/HostReference.astro";
+import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-Weather is a WebAssembly demonstration application that queries the Open-Meteo service. It asks for a city, resolves its coordinates, then displays **Current**, **Hourly**, **Daily**, and **Meta** views.
+Weather shows forecasts for a selected location. The Applications repository provides it as a WebAssembly (Wasm) guest application (`wasm32-wasip1`).
 
-The app uses the Xila HTTPS client device at `/devices/https_client`, rather than directly calling browser JavaScript APIs. Its two public data sources are the Open-Meteo geocoding endpoint (`geocoding-api.open-meteo.com`) and forecast endpoint (`api.open-meteo.com`). When more than one geocoding result matches, the current implementation selects the first result.
+## Context
 
-Weather requires the HTTPS device and working network access. A browser or host with restricted networking cannot fetch forecasts; the [headless container runner](/reference/container-runtime) explicitly disables networking and is not an alternative for this app.
+The guest uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint, and its shortcut launches it through `/applications/executables/wasm`. The native image profile includes this bundle.
 
-## Request pipeline and data semantics
+## How it works
 
-`api::build_geocoding_url(city)` generates an Open-Meteo geocoding request with `count=10`, `language=en` and `format=json`. It currently replaces **spaces with plus signs** rather than performing full URL percent-encoding for arbitrary user input. The app picks the **first** returned location rather than presenting an interactive disambiguation choice.
+The guest requests geocoding and forecast data from Open-Meteo through `/devices/network/https_client`. It parses HTTP responses and JSON for display.
 
-The forecast request includes current, hourly and daily measurements, requests **10 forecast days**, and uses `timezone=auto` according to the location returned by the API. This is **not** Xila's system timezone configuration: the time-zone policy comes from Open-Meteo's response.
+The following diagram shows the launch path.
 
-```rust
-// API helpers in the application's own crate:
-let geocode = weather::api::build_geocoding_url("Paris");
-let forecast = weather::api::build_forecast_url(48.8566, 2.3522);
-assert!(geocode.contains("count=10"));
-assert!(forecast.contains("forecast_days=10"));
+```mermaid
+flowchart LR
+    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Weather"] --> API["Guest API"]
 ```
 
-These helpers only construct request URLs; they do not prove that the network or external service is available.
+The shortcut starts the Wasm runner with the bundle entrypoint. The guest uses the guest API for its interface.
 
-## HTTPS transport and errors
+## Design choices and trade-offs
 
-On wasm32, `net::https_get` opens `/devices/https_client`, sends an HTTP/1.1 GET and parses response headers, HTTP status and payload. Chunked transfer encoding and `Content-Length` are handled by the guest's transport helper. Temporarily busy reads are retried with cooperative yields and occasional millisecond sleeps, with a finite limit; nontransient errors return to the UI.
+The application depends on a working HTTPS device and network access.
 
-The fetch sequence is **geocoding → select first location → forecast**. The forecast request is retried once when the first attempt fails. The app distinguishes network failures, invalid API JSON, missing locations and HTTP status failures, then updates Current/Hourly/Daily/Meta labels in its existing window.
+## Limits
 
-The network operation is currently synchronous from the guest UI's refresh handler, so a slow fetch can temporarily delay UI responsiveness despite the small `in_flight` guard. The executable has no offline cache or local weather fallback; it neither reads nor writes application forecast files.
+The interface displays up to 24 hours and 10 days of forecast data.
 
-### Source references
+## API reference
 
-- <CodeReference repo="applications" path="executables/weather/src/api.rs" /> -
-  geocoding/forecast query contracts.
-- <CodeReference repo="applications" path="executables/weather/src/net.rs" /> -
-  HTTPS VFS device and HTTP framing.
-- <CodeReference repo="applications" path="executables/weather/src/state.rs" />-
-  fetch ordering, retries and error mapping.
-- <CodeReference
-    repo="applications"
-    path="executables/weather/src/interface.rs"
-  />
-  (refresh event and views).
-- [Networking](/explanation/architecture/subsystems/network) - underlying host device.
+- <HostReference repo="applications" crate="weather" />: application source.
+- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="packaging/weather.json" />: package
+  metadata.
 
-## Bounded HTTP response processing
+## Related
 
-Core #522 changed the underlying HTTP(S) VFS device from whole-body buffering to a 2 KiB streaming buffer per open. Weather consumes the **already decoded** HTTP response body, handles fragmented and coalesced reads, reuses bounded header memory for JSON, and releases temporary JSON storage before the next request. Large HTTP downloads therefore do not imply large transport response allocations, but Weather's own JSON and socket/TLS storage remain additional memory costs. See [HTTP](/explanation/architecture/libraries/http) and <CodeReference repo="applications" path="executables/weather/src/net.rs" />.
-
-## References
-
-- <CodeReference repo="applications" path="executables/weather/README.md" />
-- <CodeReference repo="applications" path="executables/weather" />
-- [Network subsystem](/explanation/architecture/subsystems/network)
+- [Wasm runtime](/explanation/architecture/executables/wasm/)
+- [Guest API reference](/reference/guest/)

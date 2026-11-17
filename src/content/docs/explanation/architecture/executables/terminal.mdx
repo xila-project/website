@@ -1,95 +1,118 @@
 ---
-title: "Terminal (executable)"
+title: "Terminal"
 docType: explanation
-description: "The terminal executable provides a graphical terminal window exposed as a character device and uses it to host the command-line shell."
+description: "Graphical terminal window exposed as a character device to host the command-line shell."
 ---
 
+import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The terminal executable provides a graphical terminal window exposed as a character device and uses it to host the command-line shell.
+The Terminal executable (<HostReference repo="applications" crate="terminal" />) provides a graphical window console for Xila. It implements a virtual character device, mounts it dynamically into the virtual file system (VFS), connects standard I/O streams to that device, and executes the [Command-line shell](/explanation/architecture/executables/command_line_shell/).
 
-## Role
+## Context
 
-- Bridges GUI events and text I/O semantics through a mounted `/devices/standard_io/terminal` device.
-- Launches `/applications/executables/command_line_shell` with terminal-backed stdin/stdout/stderr.
+On graphical platforms, text-mode applications and interactive command shells cannot write directly to a display framebuffer. Instead, they interact with standard input, standard output, and standard error streams through file descriptors.
 
-## Startup and lifecycle
+Terminal bridges this gap by acting as a user-facing terminal emulator and virtual device:
 
-1. Creates `Terminal` UI object (window, label display, text input).
-2. Mounts terminal object as `/devices/standard_io/terminal` character device.
-3. Opens `Standard` streams on that path.
-4. Executes command-line shell executable.
-5. Runs event loop until terminal window close/delete event.
+- It creates a dedicated graphical window with a scrollable text display and single-line command input field.
+- It exposes itself to the VFS as a character device mounted at `/devices/terminal_{task}`.
+- It instantiates standard streams backed by this character device and spawns `/applications/executables/command_line_shell`.
+- It processes GUI input events and streams them as UTF-8 bytes to the shell while rendering output text using a monospaced font.
 
-## Runtime integration points
+## How it works
 
-- `virtual_file_system::mount_static` for runtime device registration.
-- `xila::executable::execute` to start command-line shell child process.
-- `graphics` and LVGL for window/input rendering.
-- `shared::utf8_chunks` for buffered output write handling.
+### Data flow and stream wiring
 
-## Data and control flow / VFS touchpoints
+The following diagram shows the data flow between the graphical user interface, the mounted terminal character device, standard streams, and the child command-line shell task.
 
-- Write path: shell output -> `/devices/standard_io/terminal` -> `DirectBaseOperations::write` -> UI display append.
-- Read path: UI enter key -> validated input queue -> `/devices/standard_io/terminal` read by shell.
-- Control flow: parent terminal loop keeps processing events while child shell uses same device streams.
+```mermaid
+flowchart LR
+    subgraph GUI["Graphical terminal window"]
+        TextArea["Input text area"]
+        Display["Scrollable label display"]
+    end
+    subgraph Device["/devices/terminal_{task}"]
+        InQueue["Validated input queue"]
+        Waiters["WaitQueue readers"]
+    end
+    subgraph Streams["Standard streams"]
+        StdIn["Standard input (stdin)"]
+        StdOut["Standard output (stdout/stderr)"]
+    end
+    subgraph Shell["Command-line shell task"]
+        ShellExec["Shell executable"]
+    end
 
-## Concurrency and event-loop model
+    TextArea -->|"Enter or Send"| InQueue
+    InQueue -->|"Wake readers"| Waiters
+    Waiters --> StdIn
+    StdIn --> ShellExec
+    ShellExec --> StdOut
+    StdOut -->|"UTF-8 chunks"| Display
+```
 
-- Terminal executable runs a periodic loop with `sleep(20 ms)` while polling `handle_events`.
-- The GUI owns `RwLock<CriticalSectionRawMutex, Inner>` state. Reads also use a per-open `Waiter` and a bounded `WaitQueue<16>` to register wakers instead of repeatedly polling when input is empty.
+When Terminal starts:
 
-## Failure semantics
+1. It allocates a `Terminal` instance through the graphics manager (<HostReference crate="graphics" />), constructing an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> containing a scrollable output display and a bottom toolbar.
+2. It generates a task-specific device path `/devices/terminal_{task}` based on its current <HostReference crate="task" kind="struct" symbol="TaskIdentifier" />.
+3. It mounts the terminal instance into the VFS as a static character device via <HostReference crate="virtual_file_system" kind="enum" symbol="ItemStatic" />.
+4. It creates a <HostReference crate="executable" kind="struct" symbol="Standard" /> descriptor whose standard input, standard output, and standard error paths all point to `/devices/terminal_{task}`.
+5. It executes `/applications/executables/command_line_shell` with those standard streams via <HostReference crate="executable" kind="fn" symbol="execute" />.
+6. It runs an event loop every 20 milliseconds to process LVGL events and forward I/O until the window is closed.
 
-- Device mount/open/execute failures return executable error and are logged + printed.
-- Resource contention on terminal locks maps to `RessourceBusy` / `file_system::Error::RessourceBusy`.
+### Character device interface
 
-## Contract vs implementation
+Terminal implements <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" /> and <HostReference crate="file_system" kind="trait" symbol="BaseOperations" /> directly on the `Terminal` struct:
 
-- **Contract**: terminal executable exposes a character-device-backed text console and runs shell inside it.
-- **Current implementation**: LVGL window + textarea, mounted static device node `/devices/standard_io/terminal`, and shell child execution via executable runtime.
+- **Open**: Allocates a per-handle <HostReference crate="file_system" kind="struct" symbol="Waiter" /> and stores it in the file context private data.
+- **Read**: Pulls pending bytes from the internal validated input queue. If the queue is empty, the calling task registers its waker in `input_waiters` and yields `Poll::Pending`.
+- **Write**: Receives UTF-8 byte chunks written by the shell, appends them to the window's text buffer, updates the display label, and scrolls the view to keep the latest output visible.
+- **Close & cancel**: Deregisters any registered waker from the wait queue and cleans up context private data.
 
-## Operational limitations
+### Graphical line discipline and input handling
 
-- The input queue receives a line when Enter is pressed; no PTY or full ANSI terminal emulator is implemented. Output recognizes **a small subset** of ANSI-like clear/home sequences (`ESC[2J` and `ESC[H`) but not a general cursor/style parser.
-- UI/event loop cadence is fixed and may affect responsiveness under heavy output.
+Line editing and input dispatch in the graphical terminal are split between the widget toolkit and an internal byte queue:
 
-## Device polling, input ownership and cleanup
+1. **Typing and editing**: The LVGL `lv_textarea` widget handles in-field cursor movement, text insertion, selection, and backspacing.
+2. **Submission**: Pressing the Enter key or clicking the Send button invokes `submit()`. This echoes the current text line to the scrollable display buffer, pushes the UTF-8 bytes followed by a newline (`\n`) into a `VecDeque<u8>` queue, and clears the input field.
+3. **Reader notification**: The event loop wakes all waiting readers registered in `input_waiters`, allowing the shell's `read` call to return the queued line.
+4. **ANSI escape sequence support**: When writing output, Terminal checks for specific ANSI control sequences:
+   - `\x1b[2J`: Clears the scrollback display buffer.
+   - `\x1b[H`: Resets the display cursor to home position.
+5. **Clear button**: Clicking the trash icon button drops the current scrollback history while preserving the prompt line currently being typed.
 
-`TerminalExecutable::new(vfs, task)` constructs the executable without filesystem writes. Platforms seeds the [native launcher descriptor](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/terminal.json) under `/configuration/shared/applications/shortcuts/`. At runtime, `Terminal::new(graphics::ffi_manager())` creates the window and text widgets, and the launcher leaks the resulting `Terminal` into `'static` storage before mounting it as a character device at `/devices/standard_io/terminal`. The launcher opens the same device three times through `Standard::open` for stdin, stdout and stderr, then calls `executable::execute(..., "/applications/executables/command_line_shell", ...)`.
+In contrast to the graphical terminal, raw serial interfaces on hardware without displays utilize a dedicated serial line discipline. For example, the Arduino Nano 33 BLE uses the USB console driver in the Platforms repository (<CodeReference repo="platforms" path="drivers/nordic/src/usb_console" />) to handle local echo, backspace erasure, and carriage return normalization over UART. For driver-level serial console details, see [Nordic drivers](/explanation/architecture/drivers/nordic/).
 
-**I/O contract:** the device is a **contextual** `BaseOperations` + `CharacterDevice`, not a direct character device. Each open context gets its own `Waiter`. An empty blocking read registers a waker in `WaitQueue<16>` and returns `Poll::Pending`; cancellation and close unregister pending reads. When Enter is pressed, input bytes plus `\n` enter the queue and registered readers are notified. Output runs through `shared::utf8_chunks`; invalid UTF-8 bytes are skipped rather than preserved byte for byte.
+## Design choices and trade-offs
 
-The terminal UI sleeps **20 ms** between event-processing calls while the command-line shell is scheduled independently. `print` uses try-locks and returns `RessourceBusy` under contention; the device maps this to `file_system::Error::RessourceBusy`.
+- **Per-task device node paths**: Mounting at `/devices/terminal_{task}` instead of a single static path ensures multiple terminal windows operate concurrently without stream crosstalk or permission conflicts on multi-user systems.
+- **Asynchronous wait queue notifications**: Decoupling LVGL GUI input events from asynchronous VFS readers via <HostReference crate="file_system" kind="struct" symbol="WaitQueue" /> prevents GUI thread blocking while waiting for shell processing.
+- **Monospaced font rendering**: Output text is formatted using a dedicated medium monospaced font, ensuring columnar alignment for command outputs such as tables and directory listings.
+- **Selective escape code parsing**: Supporting only ANSI clear and home sequences avoids the significant memory and code complexity of a complete VT100/xterm terminal emulator state machine.
 
-**Current lifecycle limitation:** the main executable ignores the returned shell `JoinHandle`; closing the window ends the terminal's outer event loop, but this code does not explicitly unmount `/devices/standard_io/terminal`, free the leaked `Terminal` allocation, or join/terminate the shell child. Treat repeated mounts and window teardown as areas requiring dedicated lifecycle tests.
+## Limits
 
-### Source and API references
+- **No full terminal emulation**: Terminal does not implement arbitrary cursor positioning, color codes, or interactive full-screen curses applications.
+- **Single-line input field**: Command input is limited to one line at a time in the bottom text area before submission.
+- **Device lifetime tied to window**: Closing the terminal window deletes the `/devices/terminal_{task}` character device node, terminating the active child shell task.
 
-- <CodeReference repo="applications" path="executables/terminal/src/lib.rs" /> -
-  mount/open/launch sequence.
-- <CodeReference
-    repo="applications"
-    path="executables/terminal/src/device.rs"
-  />
-  (polling, cancellation and stream operations).
-- <CodeReference
-    repo="applications"
-    path="executables/terminal/src/terminal.rs"
-  />
-  (UI, input validation and output handling).
-- <CodeReference
-    repo="applications"
-    path="executables/terminal/src/executable.rs"
-  />
-  (side-effect-free constructor and trait wrapper).
-- <CodeReference
-    repo="platforms"
-    path="tools/fs_image/shortcuts/terminal.json"
-  />
-  (native launcher descriptor).
+## API reference
 
-## References
+- <HostReference repo="applications" crate="terminal" />: Terminal executable
+  crate.
+- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
+  VFS character device trait.
+- <HostReference crate="file_system" kind="trait" symbol="BaseOperations" />:
+  Core file system I/O operation trait.
+- <HostReference crate="executable" kind="struct" symbol="Standard" />: Standard
+  streams container.
+- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />:
+  Graphics subsystem window wrapper.
 
-- <CodeReference repo="applications" path="executables/terminal" />
-- [Command line shell](/explanation/architecture/executables/command_line_shell)
+## Related
+
+- [Command-line shell](/explanation/architecture/executables/command_line_shell/)
+- [Shell commands](/reference/shell/)
+- [Nordic drivers](/explanation/architecture/drivers/nordic/)
+- [Executables](/explanation/architecture/executables/)

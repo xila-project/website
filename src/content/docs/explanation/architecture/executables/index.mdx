@@ -1,65 +1,98 @@
 ---
 title: "Executables"
-docType: explanation
-description: "This section maps Xila's host executables and bundled WASM guest applications on top of the executable runtime."
+description: "Explore Xila host executables and WebAssembly guest applications running on the executable runtime."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-This section maps executable crates that run through the [Executable runtime crate](/explanation/architecture/libraries/executable), including native host components and bundled WASM guest applications.
+The executables section is for developers who want to understand the host executables, session shells, and bundled WebAssembly (Wasm) guest applications that run on Xila.
 
-## Architecture map
+## Applications
 
-### Runtime and dispatch executables
-
-- [Bindings](/explanation/architecture/executables/bindings): guest/host graphics memory and handle translation within the executable runtime.
-
-- [WASM](/explanation/architecture/executables/wasm): Wasmi interpreter, WASI execution, cooperative scheduling, guest loading and guest-side API facade.
-- [Command line shell](/explanation/architecture/executables/command_line_shell): bounded parser/executor with composition, built-ins, and mounted-binary dispatch.
-- [Terminal](/explanation/architecture/executables/terminal): graphical terminal device surface that launches the command-line shell.
-
-[System activity](/explanation/architecture/executables/activity) is a native Xila dashboard for uptime, task count and allocator usage, including a bounded demo workload. It lives in Applications and is registered by Platforms; it is not a WASI guest.
-
-The [Debug executable](/explanation/architecture/executables/debug) is a native diagnostics service for bounded task/memory inspection, UI snapshots and synthetic input. Its `/devices/debug/transport` endpoint must be protected by the hosting environment.
-
-### Session and UI shell executables
-
-- [Graphical shell](/explanation/architecture/executables/graphical_shell): login and desktop session shell.
-- [Settings](/explanation/architecture/executables/settings): tab-based configuration UI (general/appearance/password/network/about).
-- [File manager](/explanation/architecture/executables/file_manager): VFS-backed graphical file browser.
-
-### Bundled WASM applications
-
-- [Calculator](/explanation/architecture/executables/calculator): scientific calculator UI and expression engine.
-- [Clock](/explanation/architecture/executables/clock): UTC clock, one saved alarm, stopwatch, and countdown timer.
-- [Pixel Painter](/explanation/architecture/executables/pixel_painter): bounded indexed-canvas drawing application with VFS save/open support.
-- [Text Editor](/explanation/architecture/executables/text_editor): page-based UTF-8 editing with a temporary working copy and bounded memory.
-- [Synth](/explanation/architecture/executables/synth): eight-voice WASM instrument using the audio playback device.
-- [Weather](/explanation/architecture/executables/weather): network-dependent Open-Meteo demonstration guest.
-
-New native and browser seed images bundle Calculator, Clock, Pixel Painter, Synth, Weather, and Text Editor through `/applications/executables/wasm` where the matching image build includes them. Existing persistent disks keep their previous binaries; a newer seed does not automatically upgrade an installed filesystem. Other guest applications can use the same runtime without being part of the default bundle.
-
-## Shared executable model
-
-- Host executable crates generally implement `ExecutableTrait` and are mounted under `/applications/executables/*` as character devices.
-- Launch is performed through `executable::execute(context, ...)`, which handles permission checks and task spawn using explicit managers. Mounted wrappers and `Standard` carry the same `ExecutableContext`.
-- WASM command guests expose `_start: () -> ()`. The Wasm runner executes the guest; it does not install shortcuts.
-- Installed guest bundles keep `shortcut.json` at `/applications/bundles/<id>/shortcut.json`. The graphical Shell scans these on each drawer opening, while Platforms seeds native shortcuts at `/configuration/shared/applications/shortcuts/*.json`. [Add a launcher shortcut](/how-to/add-shortcut) documents the descriptor format.
-- Shortcuts do not confer permissions or package authenticity. The VFS enforces normal POSIX UID/GID/mode checks; applications running as the same UID are **not** isolated from one another by per-application access rules.
-
-## Contract vs implementation
-
-- **Contract**: this map describes executable-level responsibilities and integration points on top of the executable runtime contract.
-- **Current implementation**: entries and relationships reflect the currently mounted/implemented executables and the browser/native demonstration bundle in Applications and Platforms.
-
-## API documentation
-
-The <HostReference crate="executable">host executable contract</HostReference> defines launch and context APIs. The <HostReference repo="applications" crate="wasm">Wasmi host runtime source</HostReference> and <GuestReference repo="applications" crate="wasm">guest API Rustdoc</GuestReference> document the two sides of guest execution.
-
-## See also
-
-- [Executable runtime crate](/explanation/architecture/libraries/executable)
-- [WASM runtime reference](/reference/wasm-runtime)
-- [Headless container runtime](/reference/container-runtime)
-- [Libraries architecture map](/explanation/architecture/libraries/)
+<CardGrid>
+  <LinkCard
+    title="Activity"
+    href="/explanation/architecture/executables/activity/"
+    description="System activity dashboard, its metrics, bounded demo workload and provider limitations."
+  />
+  <LinkCard
+    title="Bindings"
+    href="/explanation/architecture/executables/bindings/"
+    description="How Xila's graphics bindings connect sandboxed WebAssembly guest applications to LVGL and the graphics subsystem."
+  />
+  <LinkCard
+    title="Calculator"
+    href="/explanation/architecture/executables/calculator/"
+    description="Understand how Calculator evaluates mathematical expressions."
+  />
+  <LinkCard
+    title="Clock"
+    href="/explanation/architecture/executables/clock/"
+    description="Understand how Clock shows time and provides an alarm, stopwatch and countdown timer."
+  />
+  <LinkCard
+    title="Command-line shell"
+    href="/explanation/architecture/executables/command_line_shell/"
+    description="Bounded parsing, streaming command composition, built-ins, and executable dispatch."
+  />
+  <LinkCard
+    title="Debug"
+    href="/explanation/architecture/executables/debug/"
+    description="Host diagnostics service providing bounded task inspection, memory metrics, screen captures, UI trees, and synthetic input over a character device."
+  />
+  <LinkCard
+    title="Digits"
+    href="/explanation/architecture/executables/digits/"
+    description="Understand how Digits recognizes handwritten digits through a neural-network device."
+  />
+  <LinkCard
+    title="File manager"
+    href="/explanation/architecture/executables/file_manager/"
+    description="Graphical virtual file system browser with directory navigation controls."
+  />
+  <LinkCard
+    title="Graphical shell"
+    href="/explanation/architecture/executables/graphical_shell/"
+    description="Graphical session shell managing user login, desktop layout, the application drawer, and shortcut execution."
+  />
+  <LinkCard
+    title="Package"
+    href="/explanation/architecture/executables/package/"
+    description="Understand the on-device package installer and its trust checks."
+  />
+  <LinkCard
+    title="Pixel Painter"
+    href="/explanation/architecture/executables/pixel_painter/"
+    description="Understand how Pixel Painter lets you draw and save indexed-color images."
+  />
+  <LinkCard
+    title="Settings"
+    href="/explanation/architecture/executables/settings/"
+    description="Tab-based configuration utility managing system preferences, appearance themes, user passwords, network interfaces, and system information."
+  />
+  <LinkCard
+    title="Synth"
+    href="/explanation/architecture/executables/synth/"
+    description="Understand how Synth plays synthesized notes."
+  />
+  <LinkCard
+    title="Terminal"
+    href="/explanation/architecture/executables/terminal/"
+    description="Graphical terminal window exposed as a character device to host the command-line shell."
+  />
+  <LinkCard
+    title="Text Editor"
+    href="/explanation/architecture/executables/text_editor/"
+    description="Understand how Text Editor edits UTF-8 text files."
+  />
+  <LinkCard
+    title="Wasm"
+    href="/explanation/architecture/executables/wasm/"
+    description="How Xila loads and executes WebAssembly guest applications using Wasmi and cooperative scheduling."
+  />
+  <LinkCard
+    title="Weather"
+    href="/explanation/architecture/executables/weather/"
+    description="Understand how Weather shows forecasts for a selected location."
+  />
+</CardGrid>

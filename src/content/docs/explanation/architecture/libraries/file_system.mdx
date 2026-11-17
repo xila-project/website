@@ -1,119 +1,170 @@
 ---
 title: "File system"
 docType: explanation
-description: "The file_system crate is the architectural contract layer for storage nodes, files, directories, and device endpoints."
+description: "Storage traits, block device abstraction, MBR partition management, and device drivers in the file_system crate."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
+import DocsRsReference from "@/components/DocsRsReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `file_system` crate is the architectural contract layer for storage nodes, files, directories, and device endpoints.
+The <HostReference crate="file_system" /> crate provides the architectural contract layer for storage, files, directories, and hardware devices in Xila. It defines standardized operation traits consumed by the virtual file system (VFS) and implemented by concrete storage engines and device drivers.
 
-## Role
+## Context
 
-- Defines fundamental types (`Path`, flags, permissions, metadata, errors, identifiers).
-- Defines operation traits consumed by VFS and implemented by concrete backends/devices, including optional symbolic-link operations.
-- Provides reusable helpers for memory devices, partitions, and MBR handling.
+Storage hardware in embedded and desktop systems varies from raw NOR/NAND flash memory and SD cards to memory-backed virtual disks. The `file_system` crate abstracts these differences into uniform interfaces: character devices for stream-oriented data, block devices for fixed-size sector access, and file system operations for hierarchical directory trees.
 
-## Boundaries
+Higher-level subsystems such as the [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) rely on `file_system` traits to resolve paths and dispatch control commands without depending on concrete hardware drivers. Concrete storage engines such as [Little FS](/explanation/architecture/libraries/little_fs/) implement these traits to provide persistent file storage.
 
-- In scope: trait contracts and shared semantics for file/device operations.
-- Out of scope: global namespace mounting/orchestration (handled by [Virtual file system](/explanation/architecture/subsystems/virtual_file_system)).
+## How it works
 
-## Internal structure
+### Device abstractions and the polling model
 
-- `fundamentals/`: path, identifiers, permissions, statistics, flags, entry/type primitives.
-- `operations/`: core trait families (`FileSystemOperations`, `BaseOperations`, `DirectoryOperations`, ...).
-- `devices/`: character/block device abstractions and direct operations.
-- `mbr/`: partition tables and partition helpers; `devices/partition_device.rs` implements partition-device access.
-- `devices/memory_device.rs`: in-memory block device implementation.
+The crate defines two primary categories of hardware devices:
 
-## Runtime interaction
+- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
+  stream-oriented devices such as serial ports, sensors, and pipes. They
+  implement
+  <HostReference crate="file_system" kind="trait" symbol="BaseOperations" /> to
+  support contextual, asynchronous byte transfers and typed control commands.
+- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" />:
+  sector-oriented storage media such as flash chips, SD cards, and disk images.
+  In addition to base operations, block devices implement
+  <HostReference crate="file_system" kind="trait" symbol="MountOperations" />
+  for mounting.
 
-- VFS calls file-system and device traits through dynamic dispatch.
-- Device nodes expose `control` commands and read/write operations via the same contract surface.
-- Backends like [Little FS](/explanation/architecture/libraries/little_fs) map these traits to concrete storage engines.
+Synchronous and direct environments use <HostReference crate="file_system" kind="trait" symbol="DirectCharacterDevice" /> and <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />. These traits provide context-free synchronous wrappers (`read_sync`, `write_sync`, `flush_sync`, `control_sync`).
 
-## Dependency model
+Block devices expose standardized geometry commands defined through the <HostReference crate="file_system" kind="macro" symbol="define_command" /> macro:
 
-- Depends on [Task](/explanation/architecture/subsystems/task), [Users](/explanation/architecture/subsystems/users), [Shared](/explanation/architecture/libraries/shared), [Synchronization](/explanation/architecture/libraries/synchronization), and [Internationalization](/explanation/architecture/libraries/internationalization).
-- Upstream consumers include virtual_file_system, executable, authentication, and drivers.
+- <HostReference
+    crate="file_system/block_device"
+    kind="struct"
+    symbol="GET_BLOCK_SIZE"
+  >
+    <code>file_system::block_device::GET_BLOCK_SIZE</code>
+  </HostReference>
+  : returns the device block size in bytes as a `u32` value.
+- <HostReference
+    crate="file_system/block_device"
+    kind="struct"
+    symbol="GET_BLOCK_COUNT"
+  >
+    <code>file_system::block_device::GET_BLOCK_COUNT</code>
+  </HostReference>
+  : returns the total block count as a `Size` (`u64`) value.
+- <HostReference crate="file_system/block_device" kind="struct" symbol="ERASE">
+    <code>file_system::block_device::ERASE</code>
+  </HostReference>
+  : prepares a byte range for writing using an
+  <HostReference
+    crate="file_system/block_device"
+    kind="struct"
+    symbol="EraseRange"
+  >
+    <code>EraseRange</code>
+  </HostReference>
+  structure.
 
-## Failure semantics
+:::caution[Block erasure causes irreversible data loss]
+Sending the `ERASE` control command or formatting a block device resets the specified block range. On raw flash media, erased blocks read back unspecified data and must be rewritten before use.
+:::
 
-- Uniform `file_system::Error` result model across traits.
-- Unsupported operations are explicit (`UnsupportedOperation`), allowing capability probing by callers.
-- Backend-specific failures are expected to be translated into this crate's error domain.
+Device read and write operations return `core::task::Poll<file_system::Result<T>>`. When an operation cannot complete immediately, the driver registers a waker and returns `Poll::Pending`. Synchronous helper methods attempt an operation once and return `Error::RessourceBusy` instead of busy-spinning if the underlying driver reports pending status.
 
-## Extension points
+### Master Boot Record handling
 
-- Add new backend crates by implementing the operation traits.
-- Extend control-command families while preserving command identifiers for compatibility.
-- Add helper devices/partition utilities without changing core trait contracts.
+The `mbr` module parses, validates, and writes Master Boot Record (MBR) partition tables using the <DocsRsReference crate="mbrman" /> crate.
 
-## Contract vs implementation
+Every Xila disk image carries the disk signature <HostReference crate="file_system" kind="constant" symbol="XILA_DISK_SIGNATURE" />, defined as `u32::from_le_bytes(*b"Xila")` (`0x616C6958`). The partition manager reserves the first 2,048 sectors (`Mbr::MINIMUM_START_BLOCK`) for the partition table and alignment.
 
-- **Contract**: typed trait and data-model surface for file and device operations.
-- **Current implementation**: includes reusable helpers (`MemoryDevice`, MBR/partition utilities) but delegates namespace-level behavior to VFS.
+<HostReference crate="file_system/mbr" kind="struct" symbol="Mbr">
+  <code>file_system::mbr::Mbr</code>
+</HostReference>
+provides disk formatting and partition lookup:
 
-## Limitations and trade-offs
+- `Mbr::validate` checks boot signatures, verifies that no partitions overlap, and enforces that at most one partition is marked bootable.
+- `Mbr::format_disk_with_signature_and_partition` writes an MBR header with the specified disk signature and a single <HostReference crate="file_system/mbr" kind="enum" symbol="PartitionKind"><code>PartitionKind::Xila</code></HostReference> partition starting at sector 2,048.
+- <HostReference
+    crate="file_system/mbr"
+    kind="fn"
+    symbol="create_partition_device"
+  >
+    <code>file_system::mbr::create_partition_device</code>
+  </HostReference>
+  wraps an MBR partition entry into a
+  <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" />.
 
-- Intentionally broad contract surface increases flexibility, but requires careful implementer conformance.
-- Policy decisions (mount precedence, path traversal context, async scheduling) live outside this crate.
+### Block device stack
 
-## Operation contracts and wake-up semantics
+The following diagram shows how storage layers compose from physical media to the virtual file system mount point.
 
-`FileSystemOperations` extends `FileOperations`, `DirectoryOperations` and `MountOperations`; a concrete backend implements path lookup/create/remove/rename and attribute access without assuming a global namespace. The VFS owns mounts, caller identity, path routing and authorization; a standalone `FileSystemOperations` backend does not.
-
-The device side supports both **contextual** `BaseOperations` (per-open `Context`) and **direct** devices, plus typed control commands. `BaseOperations::read`, `write`, `flush` and `control` return `Poll<file_system::Result<T>>`:
-
-- `Poll::Pending` means the backend has registered a **race-free waker** and will signal readiness. It must not retain pointers to the caller's buffers or task context.
-- `Poll::Ready(Err(Error::RessourceBusy))` is an immediate busy failure, not a request for the caller to spin.
-- Synchronous `*_sync` adapters make a **single attempt**; if the operation would be pending they cancel the registration and return a busy error.
-- Short reads/writes are permitted. Callers must not assume a successful result consumes the entire buffer.
-
-The `ready(|| ...)` helper wraps a synchronous operation into `Poll::Ready` exactly once, without a hidden retry loop.
-
-## Symbolic-link backend contract
-
-`FileSystemOperations` exposes `create_symlink(target, link)` and `read_symlink(link, buffer)`; their default implementations return `UnsupportedOperation`. A backend can implement native links, or the VFS can store a target path in the file payload and label the entry with persistent `Kind::SymbolicLink` metadata where that capability exists. The VFS, not this library, resolves links and enforces caller permissions. Link support therefore depends on backend capabilities, not merely on the existence of the trait methods.
-
-## Metadata capability negotiation
-
-`FileSystemOperations::writable_attributes()` reports which `AttributeFlags` can be stored by the backend. `get_attributes` only sets requested fields it can actually supply, and must not invent data to satisfy a mask. `set_attributes` must reject unsupported requested attributes **before modifying supported fields**. A later I/O failure may still leave earlier supported attributes changed: it does not guarantee transactional rollback.
-
-`Path` is a lightweight borrowed, `no_std` path type, while `PathOwned` owns its string. Permission flags, user/group identifiers, timestamp attributes and item statistics are shared across backends; they should not be reinterpreted in a driver-specific ABI.
-
-## Implementer checklist and tests
-
-A new backend should validate path operations; propagate `UnsupportedOperation` rather than silently succeeding; maintain per-open `Context` state; support appropriate Poll/Waker cancellation; implement consistent attribute masks; and document geometry, concurrency and unmount constraints. The generic file-system tests in `operations/file_system.rs` can exercise CRUD, rename, directory iteration, positioned I/O, attributes and invalid-path handling.
-
-```rust
-use file_system::{Path, PathOwned};
-let root = Path::from_str("/data");
-let item: PathOwned = root.join(Path::from_str("config.json")).unwrap();
-assert_eq!(item.as_str(), "/data/config.json");
+```mermaid
+flowchart TD
+    Physical["Physical block device (FileDriveDevice / DriveDevice)"] --> MBR["MBR partition table (XILA_DISK_SIGNATURE)"]
+    MBR --> Part["PartitionDevice (offset 2048, bounded sector count)"]
+    Part --> LFS["LittleFS (little_fs::FileSystem)"]
+    LFS --> VFS["Virtual file system mount (/)"]
 ```
 
-### Source and API references
+When a runtime boots:
 
-- <CodeReference path="libraries/file_system/src/operations/base.rs" /> - device
-  polling and sync boundary.
-- <CodeReference path="libraries/file_system/src/operations/file_system.rs" /> -
-  backend trait and conformance tests.
-- <CodeReference path="libraries/file_system/src/fundamentals/path/path_reference.rs" />
-  (borrowed path rules).
-- <CodeReference path="libraries/file_system/src/devices/memory_device.rs" /> -
-  test block storage.
+1. The platform driver opens the underlying physical block storage (such as `FileDriveDevice` on Linux or `DriveDevice` in the browser).
+2. The runtime reads the MBR partition table and validates `XILA_DISK_SIGNATURE` and partition boundaries.
+3. A `PartitionDevice` wraps the physical block device, translating partition-relative offsets and preventing operations outside partition limits.
+4. `LittleFS` initializes its filesystem structures on top of the `PartitionDevice`.
+5. The VFS mounts the filesystem instance as the root filesystem `/`.
+
+For mounting details and runtime control flow, see the [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) documentation.
+
+### In-memory simulation
+
+For automated testing and development without physical hardware, the crate provides <HostReference crate="file_system" kind="struct" symbol="MemoryDevice" />. It implements `DirectBlockDevice` over an in-memory byte buffer guarded by a synchronization lock, with the block size specified by a const generic parameter:
+
+```rust
+use file_system::{DirectBaseOperations, MemoryDevice};
+
+let device = MemoryDevice::<512>::new(1024 * 1024);
+let data = b"Sample data payload";
+let written = device.write_sync(data, 0).unwrap();
+assert_eq!(written, data.len());
+```
+
+## Design choices and trade-offs
+
+- **Separation of contracts and policy**: `file_system` specifies operation traits, geometry commands, and partition structures. Namespace mounting, caller permissions, and path routing belong strictly to the VFS.
+- **`no_std` compatibility**: the entire crate compiles in `no_std` environments, allowing identical trait contracts across microcontroller firmware, WebAssembly runtimes, and desktop platforms.
+- **Non-blocking direct attempts**: synchronous device wrappers make a single attempt and cancel registration on pending status, preventing hidden retries and thread deadlocks on the executor.
+
+## Limits
+
+- `PartitionDevice` relies on the concurrency guarantees of the underlying block device; it does not add internal locking.
+- MBR partition tables accommodate at most four primary partition entries.
+- The `ERASE` command requires hardware support. Devices that rewrite sectors in place return `Error::UnsupportedOperation`, which LittleFS handles as a no-op.
+
+## API reference
+
+- <HostReference crate="file_system" /> — crate root and fundamental types.
+- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" /> —
+  block device abstraction.
+- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" /> —
+  character device abstraction.
 - <HostReference
     crate="file_system"
     kind="trait"
     symbol="FileSystemOperations"
   />
-  (backend contract).
+  — file system backend contract.
+- <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" /> —
+  partition boundary wrapper.
+- <HostReference crate="file_system/mbr" kind="struct" symbol="Mbr">
+    <code>file_system::mbr::Mbr</code>
+  </HostReference>
+  — MBR partition table parser and validator.
 
-## References
+## Related
 
-- <HostReference crate="file_system" />
-- <CodeReference path="libraries/file_system" />
-- [Little FS](/explanation/architecture/libraries/little_fs)
+- [Little FS](/explanation/architecture/libraries/little_fs/)
+- [Peripherals](/explanation/architecture/libraries/peripherals/)
+- [Device](/explanation/architecture/libraries/device/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)

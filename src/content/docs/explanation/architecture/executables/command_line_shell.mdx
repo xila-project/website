@@ -1,131 +1,111 @@
 ---
-title: "Command line shell (executable)"
+title: "Command-line shell"
 docType: explanation
-description: "The command-line shell provides bounded parsing, streaming command composition, built-ins, and native or WebAssembly executable dispatch."
+description: "Bounded parsing, streaming command composition, built-ins, and executable dispatch."
 ---
 
+import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The command-line shell provides a small, bounded shell language for interactive terminal sessions and explicit `shell -c` command source or VFS scripts via `shell -s`. It dispatches built-ins or native/WebAssembly executables through Xila's task and virtual filesystem APIs without depending on a hosted POSIX shell.
+The command-line shell executable (<HostReference repo="applications" crate="command_line_shell" />) provides an interactive text-based shell and scripting environment for Xila. It implements bounded token parsing, streaming command pipelines, a collection of essential built-in commands, and resolution for external native and WebAssembly (Wasm) executables.
 
-## Role
+## Context
 
-- Lexes and parses quoting, environment expansion, pipelines, conditionals, redirections, sequential lists, and background execution.
-- Dispatches built-in commands or resolves executable names through the task's `Paths` search locations.
-- Maintains foreground shell state such as the current directory and environment.
-- Runs pipeline stages and background lists in child tasks with inherited environments and isolated shell state.
+Resource-constrained embedded systems and microcontrollers need a diagnostic and scripting shell that cannot exhaust heap memory through runaway tokenization or unbounded pipeline buffers. At the same time, operators require familiar shell mechanics such as pipes, redirections, conditional execution, and path searching.
 
-## Startup and lifecycle
+The command-line shell satisfies these requirements:
 
-1. Initializes `Shell` state with the current task and root directory.
-2. Resolves `User` from the task environment; if absent, runs the interactive authentication flow.
-3. Loads `Paths` and `Host` environment variables.
-4. Runs the interactive line loop when no arguments are supplied.
-5. Executes already-separated arguments literally, parses shell source with `-c`, or reads and executes lines from a VFS file with `-s`.
-6. Reaps completed background tasks as new jobs start and waits for outstanding jobs when the shell exits.
+- It provides an interactive prompt over standard input and output streams.
+- It parses command lines using strictly bounded static and heap buffers.
+- It connects pipeline stages concurrently through in-memory virtual file system (VFS) pipes.
+- It resolves commands against built-in handlers and mounted directories specified by environment variables.
+- It enforces a recursion limit on nested shell scripts to protect against stack and task exhaustion.
 
-## Parsing and execution model
+## How it works
 
-The lexer borrows slices from one bounded source line. The parser validates a token vector rather than allocating a syntax tree. Expansion happens when each command is prepared for execution.
+### Invocation and execution modes
 
-`|` binds more tightly than `&&` and `||`; the conditional operators have equal precedence and evaluate left to right. `;` separates sequential lists, while `&` launches the preceding conditional list in the background. Input, output, append, and standard-error redirections are applied to one command from left to right.
+The following diagram illustrates how the shell processes user input through parsing, resolution, and execution.
 
-Pipelines run stages concurrently through bounded asynchronous pipes, so command output is streamed rather than collected in full. A pipeline returns the last stage's status after all stages finish. Foreground built-ins can mutate the parent shell's directory and environment; pipeline/background built-ins cannot.
-
-## Runtime integration points
-
-- `task` for child tasks, environments, scheduling, and inherited execution context.
-- `authentication` for the login fallback flow.
-- `virtual_file_system` for command discovery, redirections, file utilities, and current-directory resolution.
-- `xila::executable::execute` for non-built-in command execution.
-- `file_system::Pipe`-style bounded streams for pipeline backpressure.
-
-## Failure and status semantics
-
-- Built-in failures return status 1 unless a command defines another status.
-- Unknown commands return 127.
-- Malformed source passed to `shell -c`, or invalid script input, returns 2; scripts report the offending path and line.
-- External executable statuses are preserved within 0–255.
-- `$?` expands to the previous foreground status; successfully starting a background list sets it to zero.
-- Command errors are written to standard error without terminating the interactive shell unless the shell itself exits.
-
-## Bounded resources
-
-Shell-owned syntax and streaming resources have explicit limits: a 4096-byte source line, 256 tokens, 32 commands, 8 pipeline stages, 8192 bytes of expanded arguments/redirection paths per command, 512 buffered bytes per pipe, and 8 active background lists. These limits do not include memory allocated by launched programs, runtimes, or task infrastructure.
-
-## Contract vs implementation
-
-- **Contract**: a bounded command shell with built-ins, executable discovery, composition, streaming pipes, redirection, quoting, and environment expansion.
-- **Current implementation**: intentionally not a complete POSIX shell. It supports line-oriented VFS scripts, but not multiline grammar, command substitution, globbing, subshells, descriptor duplication such as `2>&1`, here-documents, or shell assignment syntax.
-- Built-ins are registered in one discoverable table used by both dispatch and `help`; recent utilities include `grep`, `realpath`, `touch`, `sleep`, `chmod`, `tree`, `mv`, `cp`, and `find` alongside the existing filesystem/network commands.
-
-`cp SOURCE DESTINATION` copies a regular file through the VFS using a fixed 512-byte buffer. It creates or truncates the target (or appends the source filename when the target is a directory); it does not recursively copy directories.
-
-For exact syntax, statuses, limits, and built-in discovery, see the [shell reference](/reference/shell).
-
-## User-facing command invocation
-
-The shell treats each mode differently. With no arguments it reads an interactive prompt. With `-c` it parses exactly one **shell source string**, while `-s PATH` reads one VFS script line at a time. Otherwise it executes already-separated arguments **literally**, without reparsing metacharacters as shell syntax.
-
-```text
-command_line_shell -c "echo hello | grep hello"
-command_line_shell echo "hello world"
-command_line_shell -s /data/startup.xsh
+```mermaid
+flowchart TD
+    Input["Input source (interactive, -c, or -s)"] --> Tokenizer["Tokenizer and parser"]
+    Tokenizer --> Split["Split pipelines and operators (|, &&, ||, ;, &)"]
+    Split --> Resolve{"Command resolution"}
+    Resolve -->|"Built-in match"| Builtin["Execute built-in command"]
+    Resolve -->|"Path with /"| Direct["Execute absolute or relative path"]
+    Resolve -->|"Command name"| Search["Search directories in Paths variable"]
+    Search --> External["executable::execute"]
 ```
 
-The first form parses a pipeline; the second supplies literal argument words; the third reads a script file. Script lines support LF/CRLF and retain directory/environment state between lines inside the launched shell task. Script failures normally do not stop subsequent commands, but parsing/read errors stop with status 2. Four nested noninteractive shell invocations are allowed. The `-c` mode requires exactly two arguments (the flag and the command source). Invalid UTF-8 input and oversized interactive lines return status 2.
+The shell evaluates commands through four distinct entry paths:
 
-## Script execution and bounded find
+1. **Interactive line loop**: When invoked with no arguments, the shell authenticates the user if needed, prints an interactive prompt (`user@host:directory$ `), and processes lines read from standard input until end-of-file.
+2. **Command string (`-c`)**: Evaluates a command line passed directly as an argument, executing pipelines, conditionals, and redirections.
+3. **Script file (`-s PATH`)**: Reads and evaluates lines sequentially from a file in the virtual file system. Syntax errors, read failures, or non-zero exit codes from commands halt script execution.
+4. **Literal arguments**: When invoked programmatically with pre-separated argument strings, the shell executes the command directly without re-tokenizing or performing shell expansion.
 
-A `shell -s PATH` invocation resolves a path relative to the inherited current directory or uses an absolute VFS path, reading the file while standard input remains independently available to its commands. Each line is bounded to 4096 source bytes, with a 4097-byte buffer allowing for CR before LF. Invalid UTF-8, malformed input, read errors or excessive line length identify the script path and line and stop with status 2. A script returns the last executed command status; `exit` stops script execution. Nested `-c`/`-s` invocations are bounded to four levels.
+To prevent infinite script loops or unbounded task trees, nested invocations of the shell track their depth using the `XILA_SHELL_DEPTH` environment variable, rejecting execution if the nesting exceeds four levels.
 
-The `find` built-in walks from its optional starting directory, applies exact `--name` and type filters, streams paths, and limits depth to 32 and paths to 1024 bytes. It reports VFS/output errors instead of silently skipping them. See [the shell reference](/reference/shell) for flags.
+### Tokenization and operator composition
 
-## Implementation boundaries
+The tokenizer converts input strings up to 4,096 bytes into at most 256 tokens:
 
-- `tokenizer.rs` implements borrowed tokens and differentiates single quotes, double quotes, escapes, variable expansion and comments.
-- `parser.rs` validates all tokens before execution, with **4096 input bytes**, **256 tokens**, **32 commands** and **8 pipeline stages** as limits.
-- `execution.rs` handles conditions, streams, redirection and background tasks. Its **8192-byte** per-command expansion/output buffer bound and **512-byte** pipes provide backpressure.
-- `resolver.rs` scans configured `Paths` directories in order; the **first matching filename** wins. It is not equivalent to a host OS PATH lookup.
-- `commands/` contains the built-in dispatch table, including filesystem/network commands. Parent-shell state changes apply only to foreground built-ins; a pipeline or background command runs in its own child Shell.
+- **Pipelines (`|`)**: Divides commands into pipeline stages. Each stage runs as a spawned task. Adjacent stages communicate through an unnamed VFS pipe (<HostReference crate="virtual_file_system" kind="struct" symbol="File" />) backed by a 512-byte ring buffer.
+- **Conditional chaining (`&&` and `||`)**: Evaluates the right-hand command only if the left-hand command succeeded (status 0) or failed (non-zero status), respectively.
+- **Sequential separation (`;`)**: Runs commands in sequence regardless of the preceding exit status.
+- **Background jobs (`&`)**: Spawns the command pipeline in a detached task with standard input redirected to `/devices/standard_io/null`. The shell tracks up to eight concurrent background tasks and joins them when the shell exits.
+- **Redirection**: Redirects standard input (`<`), standard output (`>` for truncate, `>>` for append), and standard error (`2>` for truncate, `2>>` for append) to VFS files.
 
-For example, a background command gets duplicated output/error streams but its stdin is redirected to `/devices/standard_io/null`; the parent prompt can continue without blocking on that job. Background handles are reaped and the shell joins remaining jobs before exiting.
+### Expansion rules
 
-## Status and failure details
+Before executing a command, the shell expands variables in unquoted text and double-quoted strings (`"..."`):
 
-`$?` reflects the previous foreground status. Shell parsing failures return status 2, unknown commands 127, and most built-in errors 1. In a pipeline, the last stage's status wins after joining all stages; there is **no pipefail mode**. The shell does not offer globbing, command substitution, POSIX here-documents, shell-variable assignment statements or POSIX-style multiline scripts.
+- `$VARIABLE` and `${VARIABLE}`: Substituted with the value of the corresponding task environment variable.
+- `$?`: Substituted with the exit status of the previous foreground command.
+- Single quotes (`'...'`): Preserve all enclosed characters literally without variable expansion or escape sequence processing.
 
-### Source and API references
+Total expanded command strings cannot exceed 8,192 bytes. Command substitutions (`$(...)` and backticks) are deliberately unsupported.
 
-- <CodeReference
-    repo="applications"
-    path="executables/shell/command_line/src/lib.rs"
-  />
-  (entrypoint and invocation modes).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/command_line/src/tokenizer.rs"
-  />
-  (tokenization and quoting).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/command_line/src/parser.rs"
-  />
-  (syntax validation and limits).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/command_line/src/execution.rs"
-  />
-  (composition and child tasks).
-- <CodeReference
-    repo="applications"
-    path="executables/shell/command_line/src/resolver.rs"
-  />
-  (path lookup and precedence).
-- [Executable library](/explanation/architecture/libraries/executable) - native launch contract.
+### Command resolution
 
-## References
+When a command is executed, the shell resolves its target:
 
-- <CodeReference repo="applications" path="executables/shell/command_line" />
-- [Shell reference](/reference/shell)
-- [Terminal](/explanation/architecture/executables/terminal)
+1. **Built-in commands**: The shell checks its internal lookup table. Built-ins include filesystem utilities (`ls`, `cat`, `mkdir`, `rm`, `cp`, `mv`, `stat`), environment controls (`export`, `unset`, `printenv`), networking tools (`ping`, `ip`, `dns_resolve`, `web_request`), and navigation commands (`cd`, `pwd`). For the complete list, see [Shell commands](/reference/shell/).
+2. **Explicit paths**: If the command contains a forward slash (`/`), the shell treats it as a path. Absolute paths (`/applications/executables/...`) run directly. Relative paths are joined against the task's `Current_directory` environment variable.
+3. **Path variable search**: If the command contains no slashes, the shell reads the colon-separated directory list from the `Paths` environment variable (for example, `/applications/executables`). It searches each directory in order and executes the first matching entry via <HostReference crate="executable" kind="fn" symbol="execute" />.
+
+## Design choices and trade-offs
+
+- **Strict allocation bounds**: Hard caps on line length (4,096 bytes), token count (256), and expanded text (8,192 bytes) prevent denial-of-service and memory exhaustion on microcontrollers with limited RAM.
+- **Unnamed in-memory pipes**: Pipeline stages stream data across VFS pipe ring buffers rather than spooling intermediate data to disk files, reducing flash write wear and latency.
+- **No command substitution**: Omitting subshell spawning and command substitution significantly reduces parser complexity, stack usage, and execution indeterminism.
+- **Preserved literal arguments**: Passing pre-separated argument arrays directly bypasses parsing, preventing argument injection when native applications invoke secondary commands.
+
+## Limits
+
+- **Input buffer capacity**: Input lines cannot exceed 4,096 bytes.
+- **Token limit**: A single command line can contain at most 256 tokens.
+- **Background tasks**: At most 8 concurrent background jobs can run simultaneously.
+- **Nesting depth**: Shell scripts and subshells cannot exceed a nesting depth of 4.
+- **No job control**: Interactive job suspension (Ctrl+Z) and job manipulation commands (`fg`, `bg`, `jobs`) are not implemented.
+
+## API reference
+
+- <HostReference repo="applications" crate="command_line_shell" />: Command-line
+  shell crate.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Host executable contract implemented by the shell.
+- <HostReference crate="executable" kind="fn" symbol="execute" />: Executable
+  launch function.
+- <HostReference crate="virtual_file_system" kind="struct" symbol="File" />:
+  Virtual file system file and pipe abstraction.
+- <HostReference crate="task" kind="struct" symbol="Manager" />: Task management
+  service for environment variables and task spawning.
+
+## Related
+
+- [Shell commands](/reference/shell/)
+- [Terminal](/explanation/architecture/executables/terminal/)
+- [Executables](/explanation/architecture/executables/)
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)

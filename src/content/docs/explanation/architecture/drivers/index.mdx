@@ -1,26 +1,35 @@
 ---
 title: "Drivers"
 docType: explanation
-description: "Drivers are specialized software components that facilitate communication between the operating system and hardware devices."
+description: "How Xila drivers connect devices to the virtual file system and runtime services."
 ---
 
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
-Drivers are specialized software components that facilitate communication between the operating system and hardware devices. In Xila, drivers are designed to be modular and extensible, allowing for easy integration of new hardware components.
+Drivers connect Xila services to devices. Core and Platforms provide driver crates for different runtimes.
 
-## Driver crates
+The following diagram shows the relationship between a runtime, the virtual file system (VFS), and devices.
 
-- [Core](/explanation/architecture/drivers/core)
-- [Espressif](/explanation/architecture/drivers/espressif)
-- [Native](/explanation/architecture/drivers/native)
-- [Shared](/explanation/architecture/drivers/shared)
-- [Std](/explanation/architecture/drivers/std)
-- [WASM](/explanation/architecture/drivers/wasm)
+```mermaid
+flowchart LR
+  Runtime["Runtime setup"] --> VFS["VFS"]
+  VFS --> Character["Character device"]
+  VFS --> Block["Block device"]
+  Block --> Storage["Storage"]
+```
 
-## Rust API documentation
+Runtime setup mounts devices in the VFS. Character devices provide byte-oriented access; block devices support storage. The native and browser examples mount LittleFS on block storage and register character devices at boot. Both examples mount the Wasm, graphical shell, command line shell, settings, file manager, terminal and activity executables under `/applications/executables/`. The native example also mounts package and, on Unix, debug executables. See [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/).
 
-Browse the host-side crates: <HostReference crate="drivers_core" />, <HostReference repo="platforms" crate="drivers_espressif" />, <HostReference repo="platforms" crate="drivers_native" />, <HostReference repo="platforms" crate="drivers_shared" />, <HostReference repo="platforms" crate="drivers_std" />, and <HostReference repo="platforms" crate="drivers_wasm" />.
-
-## See also
-
-- [Driver architecture](/explanation/architecture/drivers)
+| Crate                                                        | Package                       | Description                                                                                    |
+| ------------------------------------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| <HostReference crate="drivers_core" />                       | `xila-drivers-core`           | [Core](/explanation/architecture/drivers/core/): minimal devices and Wi-Fi mock.               |
+| <HostReference crate="drivers_neural_network" />             | `xila-drivers-neural-network` | [Neural network](/explanation/architecture/libraries/neural_network/): neural network drivers. |
+| <HostReference crate="drivers_peripherals" />                | `xila-drivers-peripherals`    | [Device](/explanation/architecture/libraries/device/): peripheral drivers.                     |
+| <HostReference repo="platforms" crate="drivers_espressif" /> | `xila-drivers-espressif`      | [Espressif](/explanation/architecture/drivers/espressif/): Espressif drivers.                  |
+| <HostReference repo="platforms" crate="drivers_headless" />  | `xila-drivers-headless`       | [Headless](/explanation/architecture/drivers/headless/): headless runtime drivers.             |
+| <HostReference repo="platforms" crate="drivers_native" />    | `xila-drivers-native`         | [Native](/explanation/architecture/drivers/native/): host integrations.                        |
+| <CodeReference repo="platforms" path="drivers/nordic" />     | `xila-drivers-nordic`         | [Nordic](/explanation/architecture/drivers/nordic/): Nordic hardware drivers.                  |
+| <HostReference repo="platforms" crate="drivers_shared" />    | `xila-drivers-shared`         | [Shared](/explanation/architecture/drivers/shared/): reusable devices.                         |
+| <HostReference repo="platforms" crate="drivers_std" />       | `xila-drivers-std`            | [Std](/explanation/architecture/drivers/std/): standard-library services.                      |
+| <HostReference repo="platforms" crate="drivers_wasm" />      | `xila-drivers-wasm`           | [Wasm](/explanation/architecture/drivers/wasm/): browser runtime drivers.                      |

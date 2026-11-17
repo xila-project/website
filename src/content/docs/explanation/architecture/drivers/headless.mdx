@@ -1,0 +1,39 @@
+---
+title: "Headless"
+docType: explanation
+description: "How headless drivers provide screen and audio interfaces without a window."
+---
+
+import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
+
+The Platforms `drivers_headless` crate provides screen and audio implementations for native host platforms without a display window.
+
+## Context
+
+A runtime can supply these implementations where Xila expects graphics or audio interfaces, without displaying a window.
+
+## How it works
+
+The screen character device tracks a drawing area and resolution. It validates pixel writes and accepts valid data without displaying it. The audio output reads available whole frames from the audio system into caller-provided storage.
+
+## Design choices and trade-offs
+
+The screen does not retain a framebuffer. Its read operation is unsupported, and it reports that it has not resized. The audio reader rejects a buffer whose size is not a whole number of frames.
+
+## Limits
+
+The crate is restricted to Linux, macOS and Windows targets.
+
+## API reference
+
+- <HostReference repo="platforms" crate="drivers_headless" />: Driver crate
+  source.
+- <CodeReference repo="platforms" path="drivers/headless/src/screen.rs" />:
+  Screen implementation.
+- <CodeReference repo="platforms" path="drivers/headless/src/audio.rs" />: Audio
+  output.
+
+## Related
+
+- [Drivers](/explanation/architecture/drivers/)

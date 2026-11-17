@@ -1,126 +1,92 @@
 ---
-title: "Settings (executable)"
+title: "Settings"
 docType: explanation
-description: "The Settings executable manages system configuration and persistent per-user appearance preferences."
+description: "Tab-based configuration utility managing system preferences, appearance themes, user passwords, network interfaces, and system information."
 ---
 
+import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Settings executable is a tab-based graphical configuration application. It now includes **Appearance** alongside General, Password, Network, and About.
+The Settings executable (<HostReference repo="applications" crate="settings" />) provides a tab-based graphical configuration utility for Xila. It manages core system options, visual appearance themes, user authentication credentials, network interface settings, and platform diagnostics.
 
-## Role
+## Context
 
-- Hosts configurable system UI tabs (general/appearance/password/network/about).
-- Applies a dark/light theme and five primary/secondary color presets to existing windows immediately.
-- Uses a launcher shortcut seeded by Platforms for desktop discovery.
+System configuration on multitasking embedded platforms requires a structured interface that exposes administrative settings without requiring command-line execution for routine tasks. Settings must manage distinct subsystems—such as graphics theming, user identity, and network stacks—while isolating sensitive credentials in memory.
 
-## Startup and lifecycle
+Settings fulfills this purpose:
 
-1. Platforms seeds `/configuration/shared/applications/shortcuts/settings.json`; `SettingsExecutable::new` does not write it.
-2. Runtime path constructs `Settings` window and tab view.
-3. Event loop repeatedly dispatches window events to tab handlers until close.
+- It provides an integrated tabview interface spanning five dedicated configuration panels.
+- It dynamically loads and persists user-level appearance preferences to the virtual file system (VFS).
+- It interacts directly with the Core users manager to update authentication credentials.
+- It provides live network status monitoring and interface configuration.
+- It securely releases ephemeral password data and interface panels when closed.
 
-## Runtime integration points
+## How it works
 
-- Graphics/LVGL for tabbed UI composition.
-- Task module for environment and current-task context handling in specific tabs.
-- Authentication crate in password tab (`authenticate_user`, `change_user_password`).
-- Network module in network tab via interface control commands.
-- Graphics theme controls for live palette updates, including calls from within an existing LVGL lock.
-- VFS for appearance persistence and network-device opening.
+### Window architecture and tabs
 
-## Data and control flow / VFS touchpoints
+The following diagram shows how the Settings window coordinates its five configuration panels with Xila's core subsystems.
 
-- VFS write touchpoint: per-user appearance record at `/users/<uid>/.appearance` (not the native launcher descriptor).
-- Shells create private `/users/<uid>` home directories (mode `0700`) and set `HOME`. Appearance records are mode `0600`.
-- A versioned appearance record is written through a temporary replacement and restored for the user at login; native/browser startup also restore administrator preferences for the login screen.
-- Password tab flow: user resolution -> current password validation -> persisted password update through authentication crate.
-- Network tab flow: enumerate `/devices/network/*`, open interface file, issue control commands for status/config.
+```mermaid
+flowchart TD
+    Window["Settings window (OwnedWindow)"] --> TabView["Tabview container"]
+    TabView --> General["General tab"]
+    TabView --> Appearance["Appearance tab"]
+    TabView --> Password["Password tab"]
+    TabView --> Network["Network tab"]
+    TabView --> About["About tab"]
 
-## Concurrency and event-loop model
-
-- **Event-driven** executable loop: `Settings::handle_events()` drains the owning window's events and suspends on its registered window waker. It does not sleep at a fixed 50 ms cadence.
-- Tab handlers perform async operations when triggered by UI events; no internal worker task fan-out in top-level loop.
-
-## Failure semantics
-
-- UI creation/mounting failures return non-zero executable result.
-- Tab operation failures are handled per-tab (status labels/logging) or propagated as typed settings errors.
-
-## Contract vs implementation
-
-- **Contract**: settings executable opens configuration UI and processes tab interactions until closed.
-- **Current implementation**: five fixed tabs including appearance persistence and password/network integration; shortcut discovery belongs to the graphical Shell.
-
-## Operational limitations
-
-- Tab set is compile-time fixed.
-- Top-level window-event processing is waker-driven; the Wi-Fi panel additionally uses a timer to refresh connection progress even when the user sends no input. The other Network tab refresh path remains event-driven.
-
-## Wi-Fi settings and native demo
-
-Since Core #529, a Wi-Fi-capable controller exposes a Settings → Network → `wlan0` panel. It supports radio on/off, bounded scan lists, security mode/signal/channel/BSSID details, connection and disconnection, and asynchronous progress/errors. Unsupported authentication methods are shown but cannot be selected for connection. Passwords are masked, transient, and cleared after submission or dismissal; there is no stored profile or automatic reconnection policy.
-
-For a headless native demo, run `mise run image:native` first, then:
-
-```sh
-mise run run:cargo -- -p xila-native-example --bin native_example -- --no-network --mock-wifi --display-driver headless --resolution 800x600 --disk-path /tmp/xila-wifi-demo.img --seed-image target/seed/native/seed.img
+    Appearance --> GraphicsMgr["Graphics & Appearance preferences"]
+    Password --> UsersMgr["Users manager"]
+    Network --> NetworkMgr["Network subsystem"]
+    About --> AboutData["System info & Memory manager"]
 ```
 
-The mock advertises `Xila demo` (public test password `xila-demo`) and an open `Xila open` network. This only exercises control/UI behavior; it does not access the host wireless radio or provide Internet access. See <CodeReference repo="applications" path="executables/settings/src/tabs/network/wifi.rs" /> and <CodeReference repo="platforms" path="drivers/native/tests/wifi.rs" />.
+Settings initializes by creating an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Se" (Grey palette). It flattens the window chrome to host a full-size LVGL tabview containing five panels:
 
-## Appearance and per-user homes
+1. **General**: Displays the active system language compiled into the system image (<CodeReference repo="applications" path="executables/settings/src/tabs/general.rs" />).
+2. **Appearance**: Configures interface styling. It provides a switch to toggle dark mode and dropdown selectors for the primary and secondary color palette hues (Blue, Green, Red, Orange, and Purple). Changes are applied immediately to all active windows and saved to `/users/<username>/configuration/graphics/appearance.json`.
+3. **Password**: Manages user authentication credentials. It contains fields for the current password, a new password, and password confirmation. Submitting the form validates the existing password and updates the hash through the Users subsystem (<HostReference crate="users" />).
+4. **Network**: Inspects and manages network connectivity. It enumerates active network interfaces (<HostReference crate="network" />), reporting link state, IP address, and subnet masks. It allows configuring static addresses or Wi-Fi credentials. When this tab is active, Settings refreshes interface statistics every 250 milliseconds.
+5. **About**: Reports system metadata, including the host machine name, operating system release, kernel version, total and used allocator heap bytes, and mounted storage statistics.
 
-The Appearance tab supports light/dark mode and five primary/secondary color presets. The Zinc-based palette updates existing windows immediately, including contrasting text colors.
+### Event handling and lifecycle
 
-Each user has a private home directory at `/users/<uid>` (mode `0700`). Appearance preferences are stored in a small versioned record at `/users/<uid>/.appearance` (mode `0600`) and restored on login. The native and browser examples also restore the root user's appearance for the login screen. Changes are saved through a temporary-file replacement strategy; invalid records are rejected.
+Settings runs a responsive event loop that dispatches user actions to the active tab:
 
-## Tab composition and event scheduling
+- **Window close**: When the window receives a close or delete event, event dispatch halts and the application exits cleanly.
+- **Resource cleanup**: Settings implements `Drop` to ensure that ephemeral password text and interface panels are deallocated under the graphics lock before the parent window widget tree is deleted.
 
-`SettingsExecutable::new(vfs, task).await` returns the executable without modifying the filesystem. Platforms provides the [native settings shortcut](https://github.com/xila-project/platforms/blob/main/tools/fs_image/shortcuts/settings.json) in `/configuration/shared/applications/shortcuts/`. At launch, `Settings::new(context).await` creates an `OwnedWindow` and exactly five `Tab` variants: General, Appearance, Password, Network and About. The tab list is fixed at compile time.
+### Desktop discovery
 
-`Settings::handle_events()` acquires the graphics lock, dispatches an event to tabs until one handles it and then suspends on the window's registered waker. Window close/delete ends the task. There is no background worker for tab refresh.
+Settings does not write its own shortcut at runtime. Platforms seeds its shortcut descriptor in `/configuration/shared/applications/shortcuts/settings.json`, making it visible within the launcher drawer of the graphical shell.
 
-## Appearance, password and network contracts
+## Design choices and trade-offs
 
-- Appearance reads the current task's user preferences from `/users/<uid>/.appearance` via `graphics::appearance::Appearance`. The tab applies colors to live windows before attempting to persist the versioned record. **Saving can fail after the UI change has already taken effect**, in which case an error status is shown.
-- The password tab gets the current task identity from Task and Users, checks the current password through `authentication::authenticate_user`, then persists the replacement through `change_user_password`. The current UI requires a non-empty current password, a non-empty new password, matching confirmation and **at least four characters**. This is UI validation, not a strong password-policy implementation; it means a seeded user with an empty password cannot use this screen without first addressing that flow.
-- The Network tab enumerates `/devices/network` and issues typed controls such as `GET_KIND` (now `n/21`) and `IS_LINK_UP`. Non-Wi-Fi details retain event-driven refresh; the new Wi-Fi panel has its own scheduled status refresh while an association or scan is pending.
+- **Instant appearance persistence**: Appearance updates are written directly to per-user VFS configuration files and propagated across existing windows, providing immediate visual feedback without requiring a system restart.
+- **Periodic network polling**: When the network panel is open, the event loop polls network link state every 250 milliseconds. This ensures link up/down transitions appear promptly without registering complex kernel socket callbacks.
+- **Explicit cleanup on drop**: Clearing panel widgets and temporary password strings under the graphics lock during `Drop` prevents sensitive plaintext passwords from lingering in uncollected memory.
 
-The graphical shell provisions user homes with restrictive permissions and restores appearance after login. The executable assumes the current VFS credentials permit reading and writing the relevant files.
+## Limits
 
-### Source and API references
+- **Fixed system language**: The system locale is determined at build time by the internationalization system; the General tab currently displays this language as read-only.
+- **Theme scope**: Theme and palette changes apply to standard LVGL controls and window frames, but do not alter raw pixel buffers drawn by custom canvas applications like Pixel Painter.
 
-- <CodeReference
-    repo="applications"
-    path="executables/settings/src/settings.rs"
-  />
-  (event loop and tab array).
-- <CodeReference repo="applications" path="executables/settings/src/lib.rs" /> -
-  side-effect-free constructor.
-- <CodeReference
-    repo="platforms"
-    path="tools/fs_image/shortcuts/settings.json"
-  />
-  (native launcher descriptor).
-- <CodeReference
-    repo="applications"
-    path="executables/settings/src/tabs/appearance.rs"
-  />
-  (immediate theme application and persistence).
-- <CodeReference
-    repo="applications"
-    path="executables/settings/src/tabs/password.rs"
-  />
-  (password verification and mutation).
-- <CodeReference
-    repo="applications"
-    path="executables/settings/src/tabs/network/mod.rs"
-  />
-  (VFS interface enumeration).
-- [Authentication library](/explanation/architecture/libraries/authentication) - password storage semantics.
+## API reference
 
-## References
+- <HostReference repo="applications" crate="settings" />: Settings application
+  crate.
+- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
+  Core host executable contract.
+- <HostReference crate="graphics" />: Core graphics subsystem and theme engine.
+- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
+  graphics window surface.
+- <HostReference crate="users" />: User identity and credential management
+  service.
+- <HostReference crate="network" />: Network stack and interface management.
 
-- <CodeReference repo="applications" path="executables/settings" />
-- [Internationalization](/explanation/architecture/libraries/internationalization)
+## Related
+
+- [Graphical shell](/explanation/architecture/executables/graphical_shell/)
+- [Activity](/explanation/architecture/executables/activity/)
+- [Executables](/explanation/architecture/executables/)

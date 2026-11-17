@@ -1,21 +1,33 @@
 ---
-title: "About"
+title: "About Xila"
+description: "Project information, source repositories, community channels, and open-source licenses."
 ---
 
-Xila is an open-source operating system designed for embedded systems. It aims to provide a modular, portable, and efficient platform for developing applications in the embedded world.
+Xila is an open-source operating system written in Rust for embedded systems, desktop Linux, and web browsers.
 
-## Mission
+## Repositories
 
-Our mission is to create a versatile operating system that can run on a wide range of hardware platforms, from microcontrollers to desktop computers. We strive to make Xila user-friendly, flexible, and adaptable to various use cases in the embedded domain.
+The project is developed on GitHub under the [Xila Project organization](https://github.com/xila-project):
 
-## Vision
+- [Core](https://github.com/xila-project/core): portable operating system subsystems, virtual file system (VFS), and kernel libraries.
+- [Applications](https://github.com/xila-project/applications): user applications, shell executables, and WebAssembly guest runtime bindings.
+- [Platforms](https://github.com/xila-project/platforms): hardware drivers, runtime assemblies for native and browser targets, seed images, and board examples.
+- [Package manager](https://github.com/xila-project/package_manager): application package format, signing, and verification tools.
+- [Registry](https://github.com/xila-project/registry): signed package release metadata.
+- [Website](https://github.com/xila-project/website): documentation and site source.
 
-We envision a future where Xila becomes the go-to operating system for embedded developers, fostering innovation and collaboration within the community. By providing a robust and scalable platform, we aim to empower developers to create cutting-edge applications that push the boundaries of embedded technology.
+## Community
+
+Discussions and development coordination take place in the Matrix room:
+
+- [Matrix](https://matrix.to/#/#xila:anneraud.fr): `#xila:anneraud.fr`
 
 ## Visual identity
 
-Special thanks to [Martin Legand](https://www.behance.net/martinlegand) for generously designing the Xila logo.
+The Xila logo was designed by [Martin Legand](https://www.behance.net/martinlegand).
 
-## License
+## Authors and license
 
-Xila is developed by [Alix ANNERAUD](https://alix.anneraud.fr). It is released under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0), allowing users to use, modify, and distribute the software under its terms.
+Xila was created by [Alix ANNERAUD](https://alix.anneraud.fr).
+
+All Xila project repositories are published under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).

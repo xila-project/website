@@ -1,79 +1,39 @@
 ---
-title: "Validate a Xila change"
+title: "Validate a Core change"
 docType: how-to
-description: Select checks from Core, Applications and Platforms based on the touched crate or integration boundary.
+description: "Run Core checks, tests, and lint for a change."
 ---
 
-import CodeReference from "@/components/CodeReference.astro";
+This guide shows how to validate a change in Core.
 
-After the repository split, there is no single all-repositories Core test command. **Validate within the owning repository**, then use Platforms integration checks when multiple repositories interact.
+## Before you begin
 
-## Portable Core change
+- Set up the [development environment](/how-to/setup-development/) and install Core's native build dependencies.
+- Read the [Core contributor rules](https://github.com/xila-project/core/blob/main/AGENTS.md).
 
-From the `core` checkout:
+## Steps
 
-```sh
-export XILA_APPLICATIONS_ROOT="$(realpath ../applications)"
-export XILA_APPLICATIONS_MANIFEST="$XILA_APPLICATIONS_ROOT/Cargo.toml"
-export XILA_FONT_CATALOG_ROOTS="$XILA_APPLICATIONS_ROOT"
-mise run format:rust -- --check
-mise run format:toml -- --check
-mise run check:all
-mise run clippy:all
-mise run test:workspace
-mise run docs:host
-```
+1. In the Core repository root, check formatting in a host shell:
 
-The portable graphics/font/linker, VFS, synchronization, networking and cryptographic paths have additional focused tests in Core's <CodeReference path=".github/workflows/ci.yml" /> and <CodeReference path=".github/workflows/extended.yml" />. Core Pages now builds **only Core's Rustdoc**.
+   ```sh
+   mise run format:rust -- --check
+   mise run format:toml -- --check
+   ```
 
-Core's integration tests that build official guests need a compatible external Applications checkout, not a missing `core/executables` directory:
+2. In the Core repository root, check host and guest targets, lint them, and test the workspace:
 
-```sh
-export XILA_APPLICATIONS_MANIFEST="$(realpath ../applications/Cargo.toml)"
-export XILA_APPLICATIONS_ROOT="$(realpath ../applications)"
-export XILA_FONT_CATALOG_ROOTS="$(realpath ../applications)"
-```
+   ```sh
+   mise run check:all
+   mise run clippy:all
+   mise run test:workspace
+   ```
 
-Use matching Git-pinned revisions or an explicit patch file when testing local changes.
+3. In the Core repository root, run `mise run localization:check` for localization changes and `mise run test:fonts` for font changes. Consult [Development commands](/reference/development-commands/) for focused tasks.
 
-## Applications or Wasmi change
+## Verify the result
 
-From the `applications` checkout:
+Each command exits successfully. Core CI's required gate depends on quality, verification, host, Wasm, ABI and localization jobs; local host checks do not establish hardware correctness.
 
-```sh
-mise run check:guest
-mise run build:applications
-mise run test:workspace
-mise run localization:lint
-```
+## Related
 
-For Wasmi and guest bindings, run the ABI translation and guest-memory-width tests configured by <CodeReference repo="applications" path=".github/workflows/ci.yml" />. That CI also validates the unsigned development package workflows. Check host/guest features independently.
-
-## Platforms / demo / hardware change
-
-From the `platforms` checkout:
-
-```sh
-mise run build:native
-mise run check:browser
-mise run test:seed
-mise run test:drivers
-```
-
-For an assembled browser image, build matching `.wasm` guests in Applications and set `XILA_APPLICATIONS_DIR` before `mise run image:browser`. For the **full localized deployment path**, invoke:
-
-```sh
-MISE_ENV=ci mise run pages:build
-```
-
-The browser test surface includes OPFS persistence, UI events, application lifecycle and disk initialization. The <CodeReference repo="platforms" path=".github/workflows/integration.yml" /> workflow accepts explicit Core and Applications commits for compatibility testing.
-
-### Browser behavior
-
-Run a freshly seeded installation and check Calculator, launcher, mouse/keyboard input, close/reopen and disk save/reload. Test on the new origin [platforms.xila.dev](https://platforms.xila.dev/) rather than assuming browser disks migrate from the old Core Pages origin. Existing stored disks are not updated by publishing a new seed.
-
-## Completion and limits
-
-Record the exact commit revisions of **all three** repositories, the locale, selected features/targets, commands executed and any hardware limitations. Native/Chrome CI does **not** establish correctness on ESP32, nor measured flash/peak RAM/stack usage.
-
-See [Development commands](/reference/development-commands), [Core/Applications/Platforms architecture](/explanation/architecture/) and [browser tutorial](/tutorials/browser).
+- [Contribute a Core change](/how-to/contribute-core/)
