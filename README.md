@@ -9,6 +9,8 @@
 [Try Xila](https://platforms.xila.dev/) ·
 [Community](https://matrix.to/#/#xila:anneraud.fr)
 
+[![vulnerabilities](https://vulnerabilities.xila.dev/badges/113c5d3a23dbe126aa6d34c76b91bade.svg)](https://vulnerabilities.xila.dev/public/22a17c99185f8826858e03776c1e9ed7)
+
 Learn to run Xila, build a WebAssembly application, and explore the architecture
 of an open-source embedded operating system written in Rust. This repository
 publishes **[xila.dev](https://www.xila.dev/)**, the official Xila website and
