@@ -20,6 +20,8 @@ export const DEMO_LOCALES: DemoLocale[] = [
   { code: "pt-BR", label: "Português (Brasil)" },
   { code: "it", label: "Italiano" },
   { code: "pl", label: "Polski" },
+  { code: "ja", label: "日本語" },
+  { code: "zh-CN", label: "简体中文" },
 ].map(({ code, label }) => ({
   code,
   label,
