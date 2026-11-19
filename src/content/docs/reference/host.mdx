@@ -17,19 +17,20 @@ Browse crates, modules, traits, structures, and functions in the embedded viewer
 
 ## Cargo features
 
-The `xila` crate in <CodeReference path="core/Cargo.toml" /> is a `#![no_std]` façade (<CodeReference path="core/src/lib.rs" />) that re-exports Core workspace subsystems and libraries under unified names. Modules unconditionally available without optional features include `abi_declarations`, `authentication`, `executable`, `file_system`, `internationalization` (via `embedded-i18n`), `little_fs`, `log`, `memory`, `shared`, `synchronization`, `task`, `time`, `users`, and `virtual_file_system`.
+The `xila` crate in <CodeReference path="core/Cargo.toml" /> is a `#![no_std]` façade (<CodeReference path="core/src/lib.rs" />) that re-exports Core workspace subsystems and libraries under unified names. Modules unconditionally available without optional features include `authentication`, `executable`, `file_system`, `internationalization` (via `embedded-i18n`), `little_fs`, `log`, `memory`, `shared`, `synchronization`, `task`, `time`, `users`, and `virtual_file_system`.
 
-| Feature                       | Default | Effect                                                                                                          |
-| ----------------------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| `abi_definitions`             | Yes     | Re-exports <HostReference crate="abi_definitions" /> (C ABI runtime symbols for memory, time, and file systems) |
-| `network`                     | Yes     | Re-exports <HostReference crate="network" /> and enables network support in `executable`                        |
-| `audio`                       | No      | Re-exports <HostReference crate="audio" /> (PCM stream contracts and software mixer)                            |
-| `bootsplash`                  | No      | Re-exports <HostReference crate="bootsplash" /> (startup splash screen animation)                               |
-| `executable_building`         | No      | Enables executable building utilities in <HostReference crate="executable" />                                   |
-| `graphics`                    | No      | Re-exports <HostReference crate="graphics" /> and enables graphics support in `executable`                      |
-| `graphics_rendering_rgb565`   | No      | Enables `graphics` and configures 16-bit RGB565 color depth rendering                                           |
-| `graphics_rendering_xrgb8888` | No      | Enables `graphics` and configures 32-bit XRGB8888 color depth rendering                                         |
-| `neural_network`              | No      | Re-exports <HostReference crate="neural_network" /> and <HostReference crate="drivers_neural_network" />        |
+| Feature                       | Default | Effect                                                                                                   |
+| ----------------------------- | ------- | -------------------------------------------------------------------------------------------------------- |
+| `network`                     | Yes     | Re-exports <HostReference crate="network" /> and enables network support in `executable`                 |
+| `audio`                       | No      | Re-exports <HostReference crate="audio" /> (PCM stream contracts and software mixer)                     |
+| `bootsplash`                  | No      | Re-exports <HostReference crate="bootsplash" /> (startup splash screen animation)                        |
+| `executable_building`         | No      | Enables executable building utilities in <HostReference crate="executable" />                            |
+| `graphics`                    | No      | Re-exports <HostReference crate="graphics" /> and enables graphics support in `executable`               |
+| `graphics_rendering_rgb565`   | No      | Enables `graphics` and configures 16-bit RGB565 color depth rendering                                    |
+| `graphics_rendering_xrgb8888` | No      | Enables `graphics` and configures 32-bit XRGB8888 color depth rendering                                  |
+| `neural_network`              | No      | Re-exports <HostReference crate="neural_network" /> and <HostReference crate="drivers_neural_network" /> |
+| `native-dev`                  | No      | Enables raw ELF native executables in `executable` (the platform must also register the native format)   |
+| `task_metrics`                | No      | Enables task and executor activity metrics in <HostReference crate="task" />                             |
 
 ## Crates
 
@@ -50,26 +51,25 @@ The `xila` crate in <CodeReference path="core/Cargo.toml" /> is a `#![no_std]` f
 
 ### Libraries
 
-| Crate                                      | Package                 | Description                                                                                                                                                                                                        |
-| ------------------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <HostReference crate="xila" />             | `xila`                  | Core façade crate re-exporting subsystems and libraries under a unified `#![no_std]` interface. See [Architecture overview](/explanation/architecture/).                                                           |
-| <HostReference crate="abi_declarations" /> | `xila-abi-declarations` | C ABI type definitions and function declarations shared between Xila and external C libraries. See [ABI](/explanation/architecture/libraries/abi/).                                                                |
-| <HostReference crate="abi_definitions" />  | `xila-abi-definitions`  | Exported C ABI symbol implementations for memory allocation, time, and file system operations. See [ABI](/explanation/architecture/libraries/abi/).                                                                |
-| <HostReference crate="audio" />            | `xila-audio`            | Bounded PCM audio stream abstractions and software audio mixer. See [Audio](/explanation/architecture/libraries/audio/).                                                                                           |
-| <HostReference crate="authentication" />   | `xila-authentication`   | User and group credential verification with secure password hashing. See [Authentication](/explanation/architecture/libraries/authentication/).                                                                    |
-| <HostReference crate="bootsplash" />       | `xila-bootsplash`       | Startup splash screen animation rendered through the graphics subsystem. See [Bootsplash](/explanation/architecture/libraries/bootsplash/).                                                                        |
-| <HostReference crate="debug_protocol" />   | `xila-debug-protocol`   | Wire protocol serialization, synthetic input injection, and diagnostics framing. See [Debug protocol](/explanation/architecture/libraries/debug_protocol/).                                                        |
-| <HostReference crate="executable" />       | `xila-executable`       | Common abstractions, metadata formats, and trait contracts for native and WebAssembly host executables. See [Executable](/explanation/architecture/libraries/executable/).                                         |
-| <HostReference crate="file_system" />      | `xila-file-system`      | Virtual file system interfaces, filesystem provider traits, character and block device traits, and typed control commands (`ControlCommand`). See [File system](/explanation/architecture/libraries/file_system/). |
-| <HostReference crate="firmware_update" />  | `xila-firmware-update`  | Bounded firmware update transaction state machine and `/devices/system/firmware` device adapter. See [Firmware update](/explanation/architecture/libraries/firmware_update/).                                      |
-| <HostReference crate="xila_http" />        | `xila_http`             | Bounded `#![no_std]` HTTP/1.1 response parser and request serializer. See [HTTP](/explanation/architecture/libraries/http/).                                                                                       |
-| <HostReference crate="little_fs" />        | `xila-little-fs`        | LittleFS block-device filesystem implementation wrapping `littlefs2-sys`. See [Little FS](/explanation/architecture/libraries/little_fs/).                                                                         |
-| <HostReference crate="neural_network" />   | `xila-neural-network`   | Synchronous machine learning model loader and tensor inference traits. See [Neural network](/explanation/architecture/libraries/neural_network/).                                                                  |
-| <HostReference crate="peripherals" />      | `xila-peripherals`      | Base traits and types for hardware peripheral bus access (`adc`, `gpio`, `i2c`, `pwm`, `spi`, `uart`). See [Peripherals](/explanation/architecture/libraries/peripherals/).                                        |
-| <HostReference crate="shared" />           | `xila-shared`           | Type-erased buffer representations (`AnyByLayout`), numeric formatting, and common data structures. See [Shared](/explanation/architecture/libraries/shared/).                                                     |
-| <HostReference crate="synchronization" />  | `xila-synchronization`  | Asynchronous synchronization primitives (`Mutex`, `RwLock`, `Channel`, `Signal`, `OnceLock`) backed by Embassy. See [Synchronization](/explanation/architecture/libraries/synchronization/).                       |
-| <HostReference crate="testing" />          | `xila-testing`          | Host test environment and mock devices for unit and integration testing without platform drivers. See [Testing](/explanation/architecture/libraries/testing/).                                                     |
-| <DocsRsReference crate="embedded-i18n" />  | `embedded-i18n`         | Re-exported as `xila::internationalization` for compile-time localized string catalogs and runtime lookup (`i18n!`, `t!`). See [Internationalization](/explanation/architecture/libraries/internationalization/).  |
+| Crate                                     | Package                | Description                                                                                                                                                                                                        |
+| ----------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <HostReference crate="xila" />            | `xila`                 | Core façade crate re-exporting subsystems and libraries under a unified `#![no_std]` interface. See [Architecture overview](/explanation/architecture/).                                                           |
+| <HostReference crate="abi_application" /> | `xila-abi-application` | Public native application function table, C header, and SDK. See [ABI](/explanation/architecture/libraries/abi/).                                                                                                  |
+| <HostReference crate="audio" />           | `xila-audio`           | Bounded PCM audio stream abstractions and software audio mixer. See [Audio](/explanation/architecture/libraries/audio/).                                                                                           |
+| <HostReference crate="authentication" />  | `xila-authentication`  | User and group credential verification with secure password hashing. See [Authentication](/explanation/architecture/libraries/authentication/).                                                                    |
+| <HostReference crate="bootsplash" />      | `xila-bootsplash`      | Startup splash screen animation rendered through the graphics subsystem. See [Bootsplash](/explanation/architecture/libraries/bootsplash/).                                                                        |
+| <HostReference crate="debug_protocol" />  | `xila-debug-protocol`  | Wire protocol serialization, synthetic input injection, and diagnostics framing. See [Debug protocol](/explanation/architecture/libraries/debug_protocol/).                                                        |
+| <HostReference crate="executable" />      | `xila-executable`      | Common abstractions, metadata formats, and trait contracts for native and WebAssembly host executables. See [Executable](/explanation/architecture/libraries/executable/).                                         |
+| <HostReference crate="file_system" />     | `xila-file-system`     | Virtual file system interfaces, filesystem provider traits, character and block device traits, and typed control commands (`ControlCommand`). See [File system](/explanation/architecture/libraries/file_system/). |
+| <HostReference crate="firmware_update" /> | `xila-firmware-update` | Bounded firmware update transaction state machine and `/devices/system/firmware` device adapter. See [Firmware update](/explanation/architecture/libraries/firmware_update/).                                      |
+| <HostReference crate="xila_http" />       | `xila_http`            | Bounded `#![no_std]` HTTP/1.1 response parser and request serializer. See [HTTP](/explanation/architecture/libraries/http/).                                                                                       |
+| <HostReference crate="little_fs" />       | `xila-little-fs`       | LittleFS block-device filesystem implementation wrapping `littlefs2-sys`. See [Little FS](/explanation/architecture/libraries/little_fs/).                                                                         |
+| <HostReference crate="neural_network" />  | `xila-neural-network`  | Synchronous machine learning model loader and tensor inference traits. See [Neural network](/explanation/architecture/libraries/neural_network/).                                                                  |
+| <HostReference crate="peripherals" />     | `xila-peripherals`     | Base traits and types for hardware peripheral bus access (`adc`, `gpio`, `i2c`, `pwm`, `spi`, `uart`). See [Peripherals](/explanation/architecture/libraries/peripherals/).                                        |
+| <HostReference crate="shared" />          | `xila-shared`          | Type-erased buffer representations (`AnyByLayout`), numeric formatting, and common data structures. See [Shared](/explanation/architecture/libraries/shared/).                                                     |
+| <HostReference crate="synchronization" /> | `xila-synchronization` | Asynchronous synchronization primitives (`Mutex`, `RwLock`, `Channel`, `Signal`, `OnceLock`) backed by Embassy. See [Synchronization](/explanation/architecture/libraries/synchronization/).                       |
+| <HostReference crate="testing" />         | `xila-testing`         | Host test environment and mock devices for unit and integration testing without platform drivers. See [Testing](/explanation/architecture/libraries/testing/).                                                     |
+| <DocsRsReference crate="embedded-i18n" /> | `embedded-i18n`        | Re-exported as `xila::internationalization` for compile-time localized string catalogs and runtime lookup (`i18n!`, `t!`). See [Internationalization](/explanation/architecture/libraries/internationalization/).  |
 
 ### Devices and drivers
 
@@ -90,7 +90,7 @@ Rust API documentation for host crates in the Applications and Platforms reposit
 
 ## Generation
 
-The host Rustdoc is generated by Core's `docs:host` mise task (`mise run docs:host -- --no-deps`, defined in <CodeReference path="mise.toml" />). The task invokes `cargo doc --workspace` for target `x86_64-unknown-linux-gnu` with features `xila/graphics`, `xila/abi_definitions`, `xila/graphics_rendering_xrgb8888`, `xila/audio`, `xila/neural_network`, `xila/bootsplash`, and `xila-testing/graphics`.
+The host Rustdoc is generated by Core's `docs:host` mise task (`mise run docs:host -- --no-deps`, defined in <CodeReference path="mise.toml" />). The task invokes `cargo doc --workspace` for target `x86_64-unknown-linux-gnu` with features `xila/graphics`, `xila/graphics_rendering_xrgb8888`, `xila/audio`, `xila/neural_network`, `xila/bootsplash`, and `xila-testing/graphics`.
 
 When `CARGO_TARGET_DIR` is unset, Cargo places the generated HTML output in `target/x86_64-unknown-linux-gnu/doc/xila/index.html` relative to the Core repository root. The website stages this output into `dist/rustdoc/host/` via `npm run docs:rustdoc` (`mise run documentation:rustdoc` in the website repository; see `scripts/build-rustdoc.mjs` and `mise.toml`).
 
