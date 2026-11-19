@@ -35,26 +35,26 @@ Subsystems own runtime state and background lifecycles for installed system capa
 
 Libraries define reusable data structures, serialization formats, and subsystem protocols without independent runtime lifecycles.
 
-| Crate                                                                             | Package                 | Description                                                                   |
-| --------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
-| [abi_declarations](/explanation/architecture/libraries/abi/)                      | `xila-abi-declarations` | Host-guest Application Binary Interface (ABI) function and type declarations. |
-| [abi_definitions](/explanation/architecture/libraries/abi/)                       | `xila-abi-definitions`  | Host runtime implementations of guest ABI calls.                              |
-| [audio](/explanation/architecture/libraries/audio/)                               | `xila-audio`            | Audio stream types, buffer management, and playback devices.                  |
-| [authentication](/explanation/architecture/libraries/authentication/)             | `xila-authentication`   | User credential hashing, account persistence, and authorization helpers.      |
-| [bootsplash](/explanation/architecture/libraries/bootsplash/)                     | `xila-bootsplash`       | Animated graphical startup screen.                                            |
-| [debug_protocol](/explanation/architecture/libraries/debug_protocol/)             | `xila-debug-protocol`   | Serialized debug commands and remote procedure calls.                         |
-| [device](/explanation/architecture/libraries/device/)                             | `xila-device`           | Common device traits and typed control command definitions.                   |
-| [executable](/explanation/architecture/libraries/executable/)                     | `xila-executable`       | Standard execution contexts and static binary mounting macros.                |
-| [file_system](/explanation/architecture/libraries/file_system/)                   | `xila-file-system`      | Core filesystem traits, path types, and device interfaces.                    |
-| [firmware_update](/explanation/architecture/libraries/firmware_update/)           | `xila-firmware-update`  | Over-the-air and disk-based firmware upgrade interfaces.                      |
-| [http](/explanation/architecture/libraries/http/)                                 | `xila_http`             | Client HTTP and HTTPS request handling over network devices.                  |
-| [internationalization](/explanation/architecture/libraries/internationalization/) | `embedded-i18n`         | Compile-time localized string management.                                     |
-| [little_fs](/explanation/architecture/libraries/little_fs/)                       | `xila-little-fs`        | LittleFS integration conforming to Xila filesystem traits.                    |
-| [neural_network](/explanation/architecture/libraries/neural_network/)             | `xila-neural-network`   | Machine learning model loading and inference interfaces.                      |
-| [peripherals](/explanation/architecture/libraries/peripherals/)                   | `xila-peripherals`      | Hardware peripheral definitions including GPIO, I2C, and SPI.                 |
-| [shared](/explanation/architecture/libraries/shared/)                             | `xila-shared`           | Shared utilities, memory buffers, and collection helpers.                     |
-| [synchronization](/explanation/architecture/libraries/synchronization/)           | `xila-synchronization`  | Critical-section-backed mutexes, locks, and signals.                          |
-| [testing](/explanation/architecture/libraries/testing/)                           | `xila-testing`          | Unit test harnesses and mock device implementations.                          |
+| Crate                                                                             | Package                | Description                                                                |
+| --------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| [abi_application](/explanation/architecture/libraries/abi/)                       | `xila-abi-application` | Public native application ABI with the C function table, header, and SDK.  |
+| [audio](/explanation/architecture/libraries/audio/)                               | `xila-audio`           | Audio stream types, buffer management, and playback devices.               |
+| [authentication](/explanation/architecture/libraries/authentication/)             | `xila-authentication`  | User credential hashing, account persistence, and authorization helpers.   |
+| [bootsplash](/explanation/architecture/libraries/bootsplash/)                     | `xila-bootsplash`      | Animated graphical startup screen.                                         |
+| `c_support`                                                                       | `xila-c-support`       | Internal Rust memory and string helpers for the LVGL and LittleFS C hooks. |
+| [debug_protocol](/explanation/architecture/libraries/debug_protocol/)             | `xila-debug-protocol`  | Serialized debug commands and remote procedure calls.                      |
+| [device](/explanation/architecture/libraries/device/)                             | `xila-device`          | Common device traits and typed control command definitions.                |
+| [executable](/explanation/architecture/libraries/executable/)                     | `xila-executable`      | Standard execution contexts and static binary mounting macros.             |
+| [file_system](/explanation/architecture/libraries/file_system/)                   | `xila-file-system`     | Core filesystem traits, path types, and device interfaces.                 |
+| [firmware_update](/explanation/architecture/libraries/firmware_update/)           | `xila-firmware-update` | Over-the-air and disk-based firmware upgrade interfaces.                   |
+| [http](/explanation/architecture/libraries/http/)                                 | `xila_http`            | Client HTTP and HTTPS request handling over network devices.               |
+| [internationalization](/explanation/architecture/libraries/internationalization/) | `embedded-i18n`        | Compile-time localized string management.                                  |
+| [little_fs](/explanation/architecture/libraries/little_fs/)                       | `xila-little-fs`       | LittleFS integration conforming to Xila filesystem traits.                 |
+| [neural_network](/explanation/architecture/libraries/neural_network/)             | `xila-neural-network`  | Machine learning model loading and inference interfaces.                   |
+| [peripherals](/explanation/architecture/libraries/peripherals/)                   | `xila-peripherals`     | Hardware peripheral definitions including GPIO, I2C, and SPI.              |
+| [shared](/explanation/architecture/libraries/shared/)                             | `xila-shared`          | Shared utilities, memory buffers, and collection helpers.                  |
+| [synchronization](/explanation/architecture/libraries/synchronization/)           | `xila-synchronization` | Critical-section-backed mutexes, locks, and signals.                       |
+| [testing](/explanation/architecture/libraries/testing/)                           | `xila-testing`         | Unit test harnesses and mock device implementations.                       |
 
 ### Drivers
 

@@ -1,107 +1,42 @@
 ---
 title: "ABI"
 docType: explanation
-description: "C Application Binary Interface architecture, declarations, symbol definitions, and runtime context in Xila."
+description: "Understand Xila's native application function table, SDK, and executable loader."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The Xila C Application Binary Interface (ABI) provides a standard FFI boundary between native host services and C-compatible callers. The ABI surface is divided into interface declarations and runtime symbol definitions.
+Core's `xila-abi-application` crate provides Xila's only public native application binary interface (ABI). It gives trusted native applications a C calling convention for accessing Xila services. Wasm guests use the separate [Wasm runtime and WASI interface](/reference/wasm-runtime/).
 
-## Context
+## Function table and startup
 
-While Xila core services and drivers communicate internally through Rust trait objects and static managers, foreign callers and compiled guest components require stable C calling conventions, fixed memory layouts, and integer error conventions.
+The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its version and byte size precede the function pointers. The Core build uses cbindgen to generate the C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and generates the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs from the table.
 
-The ABI subsystem bridges foreign calls to native subsystems:
+The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, arguments, and any capabilities the host grants, such as standard streams and a process heap. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and API sizes and version, makes the table available to the stubs, and calls the application's `xila_main`.
 
-- <HostReference crate="abi_declarations" />: defines C headers, type
-  signatures, and generated bindings used by callers.
-- <HostReference crate="abi_definitions" />: implements the exported
-  `#[unsafe(no_mangle)] extern "C"` symbols that adapt raw C arguments to Xila's
-  internal services.
+Opaque file and directory handles let C callers use filesystem services without depending on Rust object layouts. Calls return an explicit `XilaStatus`, with zero indicating success. Applications borrow their startup capabilities until the entry point returns and close the handles they open themselves.
 
-## How it works
+## Loading native executables
 
-### Split architecture and header generation
+Core's `native_loader` loads trusted static position-independent executables (PIEs) into executable memory supplied by the platform. It validates the ELF image and its ABI version note, maps loadable segments, applies relative relocations, and calls the image's `_xila_start` entry point. The image must be self-contained because the loader rejects dynamic library dependencies. Platforms can opt into raw ELF execution from a trusted filesystem through the loader's `native-dev` feature.
 
-The ABI architecture maintains a strict separation between headers and implementation symbols:
+## Compatibility
 
-```mermaid
-flowchart TD
-    Binary["Host binary / Runtime"] -->|"installs static references"| Init["abi_definitions::initialize"]
-    Init --> Context["RuntimeContext (OnceLock)"]
-    Caller["C-compatible caller (guest / FFI)"] -->|"invokes exported extern C functions"| Symbols["abi_definitions (exported symbols)"]
-    Headers["abi_declarations (xila.h / declarations)"] -.->|"provides C function prototypes"| Caller
-    Symbols -->|"queries VFS & Time"| Context
-    Context --> Subsystems["Subsystems (VirtualFileSystem / Time Manager)"]
-```
+The `XilaApi` table layout is currently version `0.1`. The loader requires an exact match for pre-release `0.x` images. Rebuild native applications against the matching SDK when the table or status codes change.
 
-1. **Definitions** (<CodeReference path="libraries/abi/definitions" />): implements C-exported symbols across file system, memory, string, task, time, and user categories.
-2. **Header generation**: the build script of `abi_declarations` uses `cbindgen` to parse `abi_definitions` and emit the standard C header `xila.generated.h`.
-3. **Declarations** (<CodeReference path="libraries/abi/declarations" />): uses `bindgen` to generate type-checked Rust foreign function declarations (`declarations.generated.rs`) from the C header, exporting constants such as <HostReference crate="abi_declarations" kind="constant" symbol="APPLICATION_ABI_VERSION" />.
+Core also defines <HostReference crate="abi_application" kind="constant" symbol="APPLICATION_ABI_VERSION" />, currently `1`. This Rust constant covers the application contract for both native and Wasm packages. The package installer compares it with the manifest's [`minimum_xila_abi`](/reference/package-format/) field. The C header exposes the native table version.
 
-### Process-wide runtime context
+## Internal C library support
 
-Internal Rust services receive manager instances through explicit constructor injection. C ABI entry points cannot pass manager pointers on every call; instead, the host runtime initializes a process-wide <HostReference crate="abi_definitions" kind="struct" symbol="RuntimeContext" />:
-
-```rust
-use xila::abi_definitions::{RuntimeContext, initialize};
-
-initialize(RuntimeContext {
-    virtual_file_system,
-    time_manager,
-});
-```
-
-The runtime context is stored in a `OnceLock` during host startup:
-
-- Calling context-dependent ABI symbols before initialization causes a panic.
-- Once registered, the runtime context cannot be replaced or cleared.
-- C functions that require task identity (such as file permissions and ownership checks) take the task identifier as a parameter in their C argument list.
-
-### ABI categories and conventions
-
-The exported symbols in `abi_definitions` follow consistent conventions:
-
-- **Return values**: integer return values follow POSIX-like semantics where zero indicates success (`XILA_RESULT_OK`) and negative or non-zero integers correspond to mapped system errors.
-- **Memory allocations**: memory management functions (`xila_memory_allocate`, `xila_memory_deallocate`) route requests through Xila's allocator contracts with capability flags.
-- **Synchronization primitives**: mutexes, read-write locks, semaphores, and condition variables are backed by Xila's synchronization library.
-
-## Design choices and trade-offs
-
-- **Static OnceLock boundary**: using a global context for C entry points isolates FFI mechanics from internal Rust libraries, which continue to use explicit dependency injection.
-- **Pre-generated header bindings**: running `cbindgen` and `bindgen` during the build ensures C headers and Rust foreign declarations remain synchronized.
-- **Explicit task parameters**: entry points pass task identifiers explicitly, decoupling ABI dispatch from thread-local storage models.
-
-## Limits
-
-- Calling any context-dependent ABI symbol before invoking <HostReference crate="abi_definitions" kind="fn" symbol="initialize" /> causes a runtime panic.
-- The C ABI is distinct from the WebAssembly Wasmi execution sandbox, which maintains per-instance descriptor tables and WASI contexts.
-
-## API reference
-
-- <HostReference crate="abi_declarations" /> — C declarations and generated
-  headers.
-- <HostReference
-    crate="abi_declarations"
-    kind="constant"
-    symbol="APPLICATION_ABI_VERSION"
-  />
-  — ABI contract version identifier.
-- <HostReference crate="abi_definitions" /> — exported C symbols and adapters.
-- <HostReference
-    crate="abi_definitions"
-    kind="struct"
-    symbol="RuntimeContext"
-  />
-  — process-wide runtime context for C entry points.
-- <HostReference crate="abi_definitions" kind="fn" symbol="initialize" /> —
-  installs the runtime context.
+The <CodeReference path="libraries/c_support">`xila-c-support`</CodeReference> crate contains internal Rust allocation, memory, and string helpers for LVGL and LittleFS. Their C hooks remain in <CodeReference path="subsystems/graphics/src/stubs.rs">`graphics/src/stubs.rs`</CodeReference> and <CodeReference path="libraries/little_fs/src/stubs.rs">`little_fs/src/stubs.rs`</CodeReference>.
 
 ## Related
 
+- <CodeReference path="libraries/abi/application/README.md">
+    Native application ABI and SDK documentation
+  </CodeReference>
+- <CodeReference path="libraries/native_loader/README.md">
+    Native executable format and loader documentation
+  </CodeReference>
 - [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/)
-- [Task](/explanation/architecture/subsystems/task/)
-- [Time](/explanation/architecture/subsystems/time/)
-- [Wasm runtime](/explanation/architecture/executables/wasm/)
