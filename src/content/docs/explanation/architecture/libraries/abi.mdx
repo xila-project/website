@@ -7,19 +7,45 @@ description: "Understand Xila's native application function table, SDK, and exec
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Core's `xila-abi-application` crate provides Xila's only public native application binary interface (ABI). It gives trusted native applications a C calling convention for accessing Xila services. Wasm guests use the separate [Wasm runtime and WASI interface](/reference/wasm-runtime/).
+Core's `xila-abi-application` crate is Xila's native application binary interface (ABI). It gives trusted native applications a C calling convention for Xila services. Wasm guests use the separate [Wasm runtime and WASI interface](/reference/wasm-runtime/).
 
-## Function table and startup
+## Context
 
-The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its version and byte size precede the function pointers. The Core build uses cbindgen to generate the C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and generates the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs from the table.
+Native applications are trusted code: they run in the same address space as Xila and are not sandboxed. The ABI lets them be written in C (or any language with a C calling convention), built separately against an SDK, and loaded at runtime without rebuilding the firmware. Wasm applications, which are untrusted, never use it.
 
-The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, arguments, and any capabilities the host grants, such as standard streams and a process heap. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and API sizes and version, makes the table available to the stubs, and calls the application's `xila_main`.
+## How it works
 
-Opaque file and directory handles let C callers use filesystem services without depending on Rust object layouts. Calls return an explicit `XilaStatus`, with zero indicating success. Applications borrow their startup capabilities until the entry point returns and close the handles they open themselves.
+### Function table and startup
 
-## Loading native executables
+The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stub list are committed files: the Core build regenerates them from the table with cbindgen and a test checks that the committed copies are up to date.
 
-Core's `native_loader` loads trusted static position-independent executables (PIEs) into executable memory supplied by the platform. It validates the ELF image and its ABI version note, maps loadable segments, applies relative relocations, and calls the image's `_xila_start` entry point. The image must be self-contained because the loader rejects dynamic library dependencies. Platforms can opt into raw ELF execution from a trusted filesystem through the loader's `native-dev` feature.
+The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
+
+### Services
+
+The table covers files and directories through opaque handles, monotonic and real-time clocks, sleep, randomness, the process heap, and optional networking. Builds without the `network` feature keep the network slots, which return `UNSUPPORTED`. Every call returns an explicit `XilaStatus`, with zero meaning success. Applications borrow their startup capabilities until the entry point returns and close the handles they open themselves.
+
+On Linux x86_64 and AArch64 and on supported single-core bare-metal targets, a call that waits on a file or network operation suspends the application's coroutine and lets other tasks run on the same executor.
+
+### Loading native executables
+
+<CodeReference path="libraries/native_loader">
+  `xila-native-loader`
+</CodeReference>
+loads trusted static position-independent executables (PIEs) into executable
+memory supplied by the platform. It validates the ELF image and its `XILA` ABI
+note, copies the loadable segments, applies relative relocations, and calls the
+image's `_xila_start` entry point. The image must be self-contained: the loader
+rejects dynamic library dependencies.
+
+Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem by enabling the `xila` `native-dev` feature and registering the native format in `ExecutableContext.formats`.
+
+## Design choices and trade-offs
+
+- **Footprint first.** Files wrap an owned file handle and directories keep only a reference, a task identity, a canonical path and one byte of rights. There is no global handle table or ambient context, and reads and writes use the caller's buffers without temporary allocations.
+- **Capabilities, not global paths.** Paths are relative to a directory capability; absolute paths and parent components are rejected, and a child capability can only have fewer rights than its parent.
+- **Trusted code.** The ABI checks arguments for mistakes, not for malice: pointers must be valid and calls on each object serialized.
+- **One table, one version.** A single `#[repr(C)]` struct is the source of the header, the SDK stubs and the slot order, so they cannot drift apart.
 
 ## Compatibility
 
@@ -27,9 +53,31 @@ The `XilaApi` table layout is currently version `0.1`. The loader requires an ex
 
 Core also defines <HostReference crate="abi_application" kind="constant" symbol="APPLICATION_ABI_VERSION" />, currently `1`. This Rust constant covers the application contract for both native and Wasm packages. The package installer compares it with the manifest's [`minimum_xila_abi`](/reference/package-format/) field. The C header exposes the native table version.
 
+## Limits
+
+- No threads or synchronization primitives yet ([Core #718](https://github.com/xila-project/core/issues/718)).
+- No dynamic linking, POSIX compatibility layer or published SDK archives yet ([Core #334](https://github.com/xila-project/core/issues/334), [Core #686](https://github.com/xila-project/core/issues/686)).
+- The loader runs no constructors and rejects images that have them.
+- Coroutine suspension is only available on the targets listed above; elsewhere a waiting call blocks its task.
+- Xtensa images are recognized but cannot run yet ([Core #648](https://github.com/xila-project/core/issues/648)).
+- Cancelling a native task leaks its stack, arguments and startup streams ([Core #731](https://github.com/xila-project/core/issues/731)).
+- Loaded images are not registered with debuggers automatically ([Core #722](https://github.com/xila-project/core/issues/722)).
+
 ## Internal C library support
 
-The <CodeReference path="libraries/c_support">`xila-c-support`</CodeReference> crate contains internal Rust allocation, memory, and string helpers for LVGL and LittleFS. Their C hooks remain in <CodeReference path="subsystems/graphics/src/stubs.rs">`graphics/src/stubs.rs`</CodeReference> and <CodeReference path="libraries/little_fs/src/stubs.rs">`little_fs/src/stubs.rs`</CodeReference>.
+The <CodeReference path="libraries/c_support">`xila-c-support`</CodeReference> crate contains internal Rust allocation, memory, and string helpers for LVGL and LittleFS. It is not part of the ABI. Their C hooks remain in <CodeReference path="subsystems/graphics/src/stubs.rs">`graphics/src/stubs.rs`</CodeReference> and <CodeReference path="libraries/little_fs/src/stubs.rs">`little_fs/src/stubs.rs`</CodeReference>.
+
+## API reference
+
+- <HostReference crate="abi_application" kind="struct" symbol="XilaApi" />
+- <HostReference
+    crate="abi_application"
+    kind="constant"
+    symbol="APPLICATION_ABI_VERSION"
+  />
+- <CodeReference path="libraries/abi/application/include/xila/application.h">
+    `xila/application.h`
+  </CodeReference>
 
 ## Related
 

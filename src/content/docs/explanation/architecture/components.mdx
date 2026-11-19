@@ -5,6 +5,7 @@ description: "Locate runtime owners, libraries, drivers, and executables across 
 ---
 
 import HostReference from "@/components/HostReference.astro";
+import CodeReference from "@/components/CodeReference.astro";
 
 The Xila workspace organizes code into four primary architectural roles across its repositories: subsystems, libraries, drivers, and executables. Every component is an individual Rust crate with distinct ownership and lifecycle semantics.
 
@@ -41,7 +42,7 @@ Libraries define reusable data structures, serialization formats, and subsystem 
 | [audio](/explanation/architecture/libraries/audio/)                               | `xila-audio`           | Audio stream types, buffer management, and playback devices.               |
 | [authentication](/explanation/architecture/libraries/authentication/)             | `xila-authentication`  | User credential hashing, account persistence, and authorization helpers.   |
 | [bootsplash](/explanation/architecture/libraries/bootsplash/)                     | `xila-bootsplash`      | Animated graphical startup screen.                                         |
-| `c_support`                                                                       | `xila-c-support`       | Internal Rust memory and string helpers for the LVGL and LittleFS C hooks. |
+| <CodeReference path="libraries/c_support">`c_support`</CodeReference>             | `xila-c-support`       | Internal Rust memory and string helpers for the LVGL and LittleFS C hooks. |
 | [debug_protocol](/explanation/architecture/libraries/debug_protocol/)             | `xila-debug-protocol`  | Serialized debug commands and remote procedure calls.                      |
 | [device](/explanation/architecture/libraries/device/)                             | `xila-device`          | Common device traits and typed control command definitions.                |
 | [executable](/explanation/architecture/libraries/executable/)                     | `xila-executable`      | Standard execution contexts and static binary mounting macros.             |
