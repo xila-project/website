@@ -19,7 +19,7 @@ This guide shows how to submit a released package to the registry.
 1. In a host shell in the registry repository root, generate the entry using your package, public key, publisher ID and release URL:
 
    ```sh
-   xila-package registry entry ./Weather.xpk ./public.key community https://example.org/Weather.xpk packages/community/weather/1.0.0.json
+   xila-package registry entry ./Weather.xpk ./public.key community https://xila.example/Weather.xpk packages/community/weather/1.0.0.json
    ```
 
 2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. Its namespaces must authorize the package identifier. Follow the <CodeReference repo="package_manager" path="schemas/developer-key.schema.json">developer-key schema</CodeReference>.

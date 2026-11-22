@@ -81,7 +81,7 @@ When the user opens the application drawer by clicking the main dock button, the
 
 1. **Static shortcuts**: Reads pre-seeded native shortcuts in `/configuration/shared/applications/shortcuts/`, such as Terminal, Settings, and File Manager.
 2. **Bundle shortcuts**: Scans the `/applications/bundles` directory. For every subdirectory that does not begin with a period (skipping staging directories such as `.incoming-1`), it reads `shortcut.json`.
-3. **Bundle path resolution**: When reading bundle shortcuts, the parser resolves any argument or command starting with the `@bundle/` prefix. It replaces the prefix with the canonical path of the containing bundle (for example, `@bundle/executables/app.wasm` becomes `/applications/bundles/com.example.app/executables/app.wasm`).
+3. **Bundle path resolution**: When reading bundle shortcuts, the parser resolves any argument or command starting with the `@bundle/` prefix. It replaces the prefix with the canonical path of the containing bundle (for example, `@bundle/executables/app.wasm` becomes `/applications/bundles/example.xila.app/executables/app.wasm`).
 4. **Drawer rendering**: Populates the drawer grid with the application's icon string and configured color palette.
 5. **Launch dispatch**: When an icon is clicked, the shell calls <HostReference crate="executable" kind="fn" symbol="execute" />, which starts the target executable with its configured arguments.
 
