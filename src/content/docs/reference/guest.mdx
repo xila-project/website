@@ -78,15 +78,14 @@ When compiled with the `graphics` feature, `xila-wasm` provides safe wrappers ar
 
 ## Limits
 
-| Resource                  | Limit                | Traced code location                                                    |
-| ------------------------- | -------------------- | ----------------------------------------------------------------------- |
-| Object handles per VM     | 256                  | `MAX_OBJECTS` in `executables/wasm/src/host/graphics/objects.rs`        |
-| Control command payload   | 256 bytes            | `MAX_CONTROL_PAYLOAD` in `executables/wasm/src/host/wasi/file.rs`       |
-| Control command alignment | 16 bytes             | `CONTROL_PAYLOAD_ALIGNMENT` in `executables/wasm/src/host/wasi/file.rs` |
-| Instruction fuel quantum  | 100,000 instructions | `instruction_limit` default in `executables/wasm/src/host/main.rs`      |
-| Standard string length    | 1,024 bytes          | `MAX_STRING_BYTES` in `executables/wasm/src/host/graphics/marshal.rs`   |
-| Textarea string length    | 4,097 bytes          | `MAX_TEXTAREA_BYTES` in `executables/wasm/src/host/graphics/marshal.rs` |
-| Clock subscriptions       | 64                   | `MAX_SUBSCRIPTIONS` in `executables/wasm/src/host/wasi/poll_memory.rs`  |
+| Resource                  | Limit                | Traced code location                                                     |
+| ------------------------- | -------------------- | ------------------------------------------------------------------------ |
+| Control command payload   | 256 bytes            | `MAX_CONTROL_PAYLOAD` in `executables/wasm/src/host/wasi/file.rs`        |
+| Control command alignment | 16 bytes             | `CONTROL_PAYLOAD_ALIGNMENT` in `executables/wasm/src/host/wasi/file.rs`  |
+| Instruction fuel quantum  | 100,000 instructions | `instruction_limit` default in `executables/wasm/src/host/main.rs`       |
+| Standard string length    | 1,024 bytes          | `MAX_STRING_BYTES` in `subsystems/graphics/src/call/marshal.rs` (Core)   |
+| Textarea string length    | 4,097 bytes          | `MAX_TEXTAREA_BYTES` in `subsystems/graphics/src/call/marshal.rs` (Core) |
+| Clock subscriptions       | 64                   | `MAX_SUBSCRIPTIONS` in `executables/wasm/src/host/wasi/poll_memory.rs`   |
 
 ## Errors
 

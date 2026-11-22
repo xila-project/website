@@ -49,7 +49,7 @@ The dispatch layer validates the function identifier, verifies parameter counts,
 
 Guest code never receives or manipulates native LVGL pointers (`lv_obj_t*`). Instead, the host assigns monotonically increasing integer handles:
 
-- The per-VM object table maintains up to 256 active object entries.
+- The per-VM object table has no fixed entry cap; retained resources are bounded by the limits below.
 - Each handle identifies a specific widget type and native pointer.
 - Calling <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" /> deletes the LVGL widget and invalidates the handle.
 - Handles are not reused within a single execution lifetime, preventing stale handle references from interacting with newly created widgets.
@@ -71,7 +71,7 @@ To maintain deterministic memory usage, all data transfers across the boundary a
 
 ## Limits
 
-- Object capacity: Each guest instance can allocate at most 256 objects concurrently.
+- Object capacity: Each guest instance has no fixed object cap; retained resources are bounded by per-VM limits.
 - Canvas memory: Host-owned indexed canvas pixel buffers are capped at 65,536 pixels per VM.
 - Unsupported widgets: Tables, Menus, and Messageboxes are not exposed in the guest API.
 
@@ -93,11 +93,8 @@ To maintain deterministic memory usage, all data transfers across the boundary a
     symbol="object_delete"
   />
   : Guest object destructor.
-- <CodeReference
-    repo="applications"
-    path="executables/wasm/src/host/graphics/dispatch.rs"
-  />
-  : Host dispatch implementation.
+- <CodeReference path="subsystems/graphics/src/call/handlers.rs" />: Graphics
+  call handlers (in Core).
 
 ## Related
 

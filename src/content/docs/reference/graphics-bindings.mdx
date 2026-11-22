@@ -32,7 +32,7 @@ The function receives a numeric call identifier, up to seven word arguments (`a`
 
 ## Status codes
 
-Every graphics call returns a numeric status code (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/error.rs" />):
+Every graphics call returns a numeric status code (<CodeReference path="subsystems/graphics/src/call/error.rs" />):
 
 | Code | Name                    | Description                                                              |
 | ---- | ----------------------- | ------------------------------------------------------------------------ |
@@ -93,15 +93,14 @@ Attempting to call an unsupported function identifier returns status code 4 (`Un
 
 ## Limits
 
-The host dispatcher enforces the following resource boundaries (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/marshal.rs" />):
+The graphics call executor in Core enforces the following resource boundaries (<CodeReference path="subsystems/graphics/src/call/marshal.rs" />):
 
 | Resource                         | Limit           | Source                                              |
 | -------------------------------- | --------------- | --------------------------------------------------- |
-| Object handles per VM            | 256 handles     | `MAX_OBJECTS` in `objects.rs`                       |
 | Grid tracks per axis             | 32 tracks       | `MAX_GRID_TRACKS_PER_AXIS` in `marshal.rs`          |
-| Retained grid descriptors per VM | 512 descriptors | `MAX_GRID_TRACKS_PER_VM` in `objects.rs`            |
+| Retained grid descriptors per VM | 512 descriptors | `MAX_GRID_TRACKS_PER_VM` in `state.rs`              |
 | Canvas pixels per VM             | 65,536 pixels   | `MAX_CANVAS_PIXELS` in `canvas.rs`                  |
-| Control range value              | 1,000,000       | `MAX_RANGE_VALUE` in `dispatch.rs`                  |
+| Control range value              | 1,000,000       | `MAX_RANGE_VALUE` in `handlers.rs`                  |
 | String length                    | 1,024 bytes     | `MAX_STRING_BYTES` in `marshal.rs`                  |
 | Textarea text length             | 4,097 bytes     | `MAX_TEXTAREA_BYTES` in `marshal.rs`                |
 | Widget options count             | 64 options      | `MAX_WIDGET_OPTIONS` in `marshal.rs`                |
