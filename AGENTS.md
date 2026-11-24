@@ -63,12 +63,27 @@ Keep one primary reader need per substantive page. Split mixed content when read
 - State the working directory and execution context before commands. Distinguish host-shell commands, browser-console commands, Devbox/Core commands, and commands run inside Xila.
 - Add observable results for important tutorial steps and completion checks for how-to guides.
 - Use reference pages for exhaustive facts and explanation pages for design reasoning.
-- Prefer plain language, active voice, short paragraphs, and consistent terminology.
+- Follow the writing style below.
 - Use tables for lookup/comparison and Mermaid diagrams when they clarify relationships.
 - Keep technical headings, navigation labels, reference text, and documentation-link labels free of decorative emojis. Sparse, consistent emojis are acceptable on overview/marketing surfaces.
 - Put warnings next to the action that requires them, especially destructive storage operations. Do not add speculative warnings.
 - Avoid unnecessary troubleshooting sections; include them only when there is a concrete recovery path.
 - Do not claim a command, browser flow, hardware target, or runtime path was verified unless it actually ran successfully.
+
+### Writing style
+
+Write every page in the style of ASD-STE100 Simplified Technical English. Apply it as a guideline, not as a strict vocabulary restriction.
+
+- Use precise, concise and unambiguous language.
+- Use active voice and short sentences. Express one idea or instruction per sentence.
+- Use the same term for the same concept on every page. Prefer established technical terms over invented abstractions. Define an unfamiliar term before you use it.
+- Avoid jargon, synonyms, filler, repetition, promotional language and redundant summaries.
+- Spell words out (`device`, not `dev`; `configuration`, not `config`; `/demonstration/`, not `/demo/`). This applies to text, file names and page paths. Keep a short form only when an external name imposes it.
+- Do not use em dashes or en dashes. Use a hyphen or a comma. Check a page with `grep -n "[—–]"` before you publish it.
+- Document actual behaviour, not hypothetical or intended behaviour. State limitations, assumptions and requirements explicitly.
+- Explain non-obvious design decisions. Do not describe obvious implementation details.
+- Keep identifiers, commands, paths and API names exactly as they are.
+- Do not sacrifice technical accuracy or completeness for brevity.
 
 ### Frontmatter
 
