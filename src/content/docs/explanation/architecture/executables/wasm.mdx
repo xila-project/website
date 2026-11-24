@@ -9,11 +9,11 @@ import HostReference from "@/components/HostReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 
-The Wasm executable loads WebAssembly (Wasm) guest applications from Xila's virtual file system (VFS) and executes them using the <DocsRsReference crate="wasmi" /> interpreter. The `xila-wasm` crate in the Applications repository provides both the host runtime program and the guest API helpers.
+The Wasm executable loads WebAssembly (Wasm) guest applications from the virtual file system (VFS) of Xila and runs them with the <DocsRsReference crate="wasmi" /> interpreter. The `xila-wasm` crate in the Applications repository provides the host runtime and the guest API helpers.
 
 ## Context
 
-Xila applications run as sandboxed WebAssembly modules rather than native machine code. This architecture isolates application memory from the kernel, provides a uniform binary format across host CPU architectures, and enables applications to run identically on microcontroller development boards, desktop native builds, and browser platforms.
+Xila applications run as sandboxed WebAssembly modules instead of native machine code. This isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller boards, desktop builds, and browser platforms.
 
 The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" />, <HostReference crate="task" kind="struct" symbol="Manager" />, and <HostReference crate="graphics" kind="struct" symbol="Manager" />) and implements <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> to integrate into Xila's process lifecycle.
 
@@ -31,25 +31,25 @@ flowchart LR
     Subsystem --> Driver["Device driver or display hardware"]
 ```
 
-The guest application executes within sandboxed WebAssembly linear memory and invokes an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O, or through `xila_graphics_call` for graphical operations. The host runtime verifies memory bounds, checks task capabilities, and forwards requests to Core subsystems. The subsystems then dispatch typed control commands or pixel operations to underlying device drivers.
+The guest application runs in sandboxed WebAssembly linear memory and calls an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O or through `xila_graphics_call` for graphical operations. The host runtime checks memory bounds and task capabilities, then forwards the request to the Core subsystems. The subsystems dispatch typed commands or pixel operations to the device drivers.
 
 ### Module initialization and lifecycle
 
 When launched from the shell or desktop, the host runner completes the following lifecycle:
 
 1. Path resolution: The runner reads the module bytecode from the VFS into memory using <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />.
-2. Directory provisioning: If the path belongs to an application bundle, the runner ensures configuration, data, and cache directories exist for the calling user, configuring `XILA_APPLICATION_*` environment variables.
+2. Directory provisioning: For an application bundle, the runner creates the configuration, data, and cache directories of the calling user and sets the `XILA_APPLICATION_*` environment variables.
 3. Engine instantiation: A fresh Wasmi engine and store are allocated for each execution. There is no globally cached interpreter state.
-4. Eager translation: Function bytecode is translated eagerly before execution begins, ensuring that fuel exhaustion cannot interrupt lazy compilation.
+4. Eager translation: The runner translates all function bytecode before execution starts. Fuel exhaustion therefore cannot interrupt lazy compilation.
 5. WASI environment setup: Standard streams (`stdin`, `stdout`, `stderr`) are mapped to descriptors `0`, `1`, and `2`. If available, the root directory (`/`) is preopened as descriptor `3`.
 6. Import registration and execution: WASI and graphics imports are linked, and the runner invokes the exported entry point `_start: () -> ()`.
-7. Teardown: On exit or trap, the runtime cleans up allocated resources and frees all VM-owned graphics objects.
+7. Teardown: On exit or trap, the runtime frees the allocated resources and all graphics objects owned by the virtual machine.
 
 ### Cooperative fuel slicing
 
-Xila operates on an asynchronous cooperative multitasking model. To prevent a guest module from monopolizing CPU execution, the host configures Wasmi fuel metering:
+Xila uses asynchronous cooperative multitasking. To prevent a guest module from monopolizing the CPU, the host configures fuel metering in Wasmi:
 
-- Each execution slice consumes fuel up to `--instruction-limit` (defaulting to 100,000 instructions).
+- Each execution slice consumes up to `--instruction-limit` fuel (default: 100,000 instructions).
 - When fuel is exhausted, Wasmi suspends execution.
 - The host runtime yields control to Xila's task scheduler, allowing other system tasks and display updates to run.
 - When the task resumes, fuel is replenished and execution continues.
@@ -59,17 +59,17 @@ Xila operates on an asynchronous cooperative multitasking model. To prevent a gu
 Xila maintains a strict separation between guest code and the host environment:
 
 - Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API.
-- The browser runtime compiles Xila's host kernel and drivers to `wasm32-unknown-unknown`. In this mode, the browser runs the Xila host, which in turn executes `wasm32-wasip1` guest applications within Wasmi.
+- The browser runtime compiles the Xila host kernel and drivers to `wasm32-unknown-unknown`. The browser then runs the Xila host, which executes `wasm32-wasip1` guest applications in Wasmi.
 
 ## Design choices and trade-offs
 
-- Eager compilation: Translating all functions at module load time increases startup latency slightly, but eliminates the risk of compilation failures during time-critical event processing or when fuel is nearly exhausted.
-- Isolated engine per execution: Creating a distinct Wasmi engine and store per guest run prevents state leakage between executions and ensures that memory corruption or crashes in one application cannot affect another.
+- Eager compilation: Translating all functions at module load time adds a little startup latency. It removes the risk of compilation failures during time-critical event processing or when fuel runs low.
+- Isolated engine per execution: A distinct Wasmi engine and store per guest run prevents state leakage between executions. A crash or memory corruption in one application cannot affect another.
 - Monotonic descriptor tables: Descriptors within a guest execution are allocated monotonically, avoiding use-after-free bugs from reused descriptor numbers.
 
 ## Limits
 
-- Scheduling quantum: Execution slices are metered by instruction count, not wall-clock time; CPU-intensive instructions may vary in duration.
+- Scheduling quantum: Execution slices are metered by instruction count, not by wall-clock time. CPU-intensive instructions can vary in duration.
 - Polling support: The `poll_oneoff` WASI implementation supports clock timer subscriptions, but does not support arbitrary file descriptor readiness events.
 - Single root preopen: Guests receive descriptor `3` preopened to `/`; path operations resolving outside `/` are rejected with `Notcapable`.
 
