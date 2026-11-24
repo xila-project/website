@@ -33,6 +33,7 @@ const links = {
   "/how-to/add-shortcut/": "star",
   "/how-to/run-guest/": "rocket",
   "/how-to/package-application/": "seti:zip",
+  "/how-to/publish-package/": "approve-check-circle",
   "/how-to/submit-package/": "seti:json",
   "/how-to/run-container-guest/": "seti:docker",
   "/how-to/validate-core/": "approve-check-circle",

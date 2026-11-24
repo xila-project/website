@@ -37,6 +37,7 @@ const sidebar = [
       page("Add a launcher shortcut", "/how-to/add-shortcut/"),
       page("Run a guest", "/how-to/run-guest/"),
       page("Create a development package", "/how-to/package-application/"),
+      page("Publish a package", "/how-to/publish-package/"),
       page("Submit a package", "/how-to/submit-package/"),
       page("Run Xila with Docker", "/how-to/run-container-guest/"),
       page("Validate Xila changes", "/how-to/validate-core/"),
