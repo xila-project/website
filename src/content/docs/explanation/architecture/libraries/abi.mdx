@@ -11,21 +11,21 @@ Core's `xila-abi-application` crate is Xila's native application binary interfac
 
 ## Context
 
-Native applications are trusted code: they run in the same address space as Xila and are not sandboxed. The ABI lets them be written in C (or any language with a C calling convention), built separately against an SDK, and loaded at runtime without rebuilding the firmware. Wasm applications, which are untrusted, never use it.
+Native applications are trusted code. They run in the same address space as Xila and are not sandboxed. The ABI lets them be written in C, or in any language with a C calling convention. They build separately against an SDK and load at runtime without rebuilding the firmware. Wasm applications are untrusted. They never use this ABI.
 
 ## How it works
 
 ### Function table and startup
 
-The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs and slot list are committed files. The Core build regenerates them from the table (cbindgen for the header, a separate generator for the SDK files), and a test checks that the committed copies match.
+The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs and slot list are committed files. The Core build regenerates them from the table. cbindgen generates the header, and a separate generator writes the SDK files. A test checks that the committed copies match.
 
-The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
+The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
 
 ### Services
 
-The table covers files and directories through opaque handles, monotonic and real-time clocks, sleep, randomness, the process heap, and optional networking. Builds without the `network` feature keep the network slots, which return `UNSUPPORTED`. Every call returns an explicit `XilaStatus`, with zero meaning success. Applications borrow their startup capabilities until the entry point returns and close the handles they open themselves.
+The table covers files and directories through opaque handles, monotonic and real-time clocks, sleep, randomness, the process heap, and optional networking. Builds without the `network` feature keep the network slots. Those slots return `UNSUPPORTED`. Every call returns an explicit `XilaStatus`. Zero means success. Applications borrow their startup capabilities until the entry point returns, and they close the handles they open themselves.
 
-When the application runs in a coroutine, on Linux x86_64 and AArch64 and on supported single-core bare-metal targets, a call that has to wait (blocking file I/O, directory and network operations, sleep, randomness) suspends the coroutine and lets other tasks run on the same executor. Files opened as nonblocking return `WouldBlock` instead, even inside a coroutine.
+When the application runs in a coroutine, on Linux x86_64 and AArch64 and on supported single-core bare-metal targets, a call that has to wait suspends the coroutine. Blocking file I/O, directory and network operations, sleep, and randomness let other tasks run on the same executor. Files opened as nonblocking return `WouldBlock` instead, even inside a coroutine.
 
 ### Loading native executables
 
@@ -35,17 +35,17 @@ When the application runs in a coroutine, on Linux x86_64 and AArch64 and on sup
 loads trusted static position-independent executables (PIEs) into executable
 memory supplied by the platform. It validates the ELF image and its `XILA` ABI
 note, copies the loadable segments, applies relative relocations, and calls the
-image's `_xila_start` entry point. The image must be self-contained: the loader
+image's `_xila_start` entry point. The image must be self-contained. The loader
 rejects dynamic library dependencies.
 
-Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem by enabling the `xila` `native-dev` feature and registering the native format in `ExecutableContext.formats`.
+Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem. It enables the `xila` `native-dev` feature and registers the native format in `ExecutableContext.formats`.
 
 ## Design choices and trade-offs
 
-- **Footprint first.** Files wrap an owned file handle and directories keep only a reference, a task identity, a canonical path and one byte of rights. There is no global handle table or ambient context, and reads and writes use the caller's buffers without temporary allocations.
-- **Capabilities, not global paths.** Paths are relative to a directory capability; absolute paths and parent components are rejected, and a child capability never has more rights than its parent.
-- **Trusted code.** The ABI checks arguments for mistakes, not for malice: pointers must be valid and calls on each object serialized.
-- **One table, one version.** A single `#[repr(C)]` struct is the source of the header, the SDK stubs and the slot order, and a test keeps the committed copies in sync.
+- **Footprint first.** Files wrap an owned file handle. Directories keep only a reference, a task identity, a canonical path, and one byte of rights. There is no global handle table or ambient context. Reads and writes use the caller's buffers without temporary allocations.
+- **Capabilities, not global paths.** Paths are relative to a directory capability. The ABI rejects absolute paths and parent components. A child capability never has more rights than its parent.
+- **Trusted code.** The ABI checks arguments for mistakes, not for malice. Pointers must be valid, and calls on each object are serialized.
+- **One table, one version.** A single `#[repr(C)]` struct is the source of the header, the SDK stubs, and the slot order. A test keeps the committed copies in sync.
 
 ## Compatibility
 
@@ -56,11 +56,11 @@ Core also defines <HostReference crate="abi_application" kind="constant" symbol=
 ## Limits
 
 - No threads or synchronization primitives yet ([Core #718](https://github.com/xila-project/core/issues/718)).
-- No dynamic linking, POSIX compatibility layer or published SDK archives yet ([Core #334](https://github.com/xila-project/core/issues/334), [Core #686](https://github.com/xila-project/core/issues/686)).
-- The loader runs no constructors and rejects images that have them.
-- Coroutine suspension is only available on the targets listed above. Elsewhere, and outside a coroutine, file reads, writes and flushes poll once and return `WouldBlock`, and other waiting calls block the whole executor thread.
+- No dynamic linking, POSIX compatibility layer, or published SDK archives yet ([Core #334](https://github.com/xila-project/core/issues/334), [Core #686](https://github.com/xila-project/core/issues/686)).
+- The loader runs no constructors. It rejects images that have them.
+- Coroutine suspension is only available on the targets listed above. Elsewhere, and outside a coroutine, file reads, writes, and flushes poll once and return `WouldBlock`. Other waiting calls block the whole executor thread.
 - Xtensa images are recognized but cannot run yet ([Core #648](https://github.com/xila-project/core/issues/648)).
-- Cancelling a native task leaks its stack, arguments and startup streams ([Core #731](https://github.com/xila-project/core/issues/731)).
+- Cancelling a native task leaks its stack, arguments, and startup streams ([Core #731](https://github.com/xila-project/core/issues/731)).
 - Loaded images are not registered with debuggers automatically ([Core #722](https://github.com/xila-project/core/issues/722)).
 
 ## Internal C library support
