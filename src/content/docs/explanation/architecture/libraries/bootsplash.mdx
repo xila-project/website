@@ -7,11 +7,11 @@ description: "Startup logo animation and timeline management using the graphics 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `bootsplash` crate provides the startup brand logo animation displayed while the operating system boots. It lives in the Core repository under `libraries/bootsplash/` and is exposed by the `xila` facade crate when the `bootsplash` feature is enabled.
+The `bootsplash` crate provides the startup brand logo animation displayed while the operating system boots. It lives in the Core repository under `libraries/bootsplash/`. The `xila` facade crate exposes it when the `bootsplash` feature is enabled.
 
 ## Context
 
-During early system boot, Xila displays an animated bootsplash on the screen while storage, devices, and background services initialize. The `bootsplash` crate encapsulates the choreography, timing, and LVGL animation callbacks, providing a clean start and stop lifecycle for runtime initialization.
+During early boot, Xila displays an animated logo on the screen while storage, devices, and background services initialize. The `bootsplash` crate runs the animation choreography, timing, and LVGL callbacks. It provides a start and stop lifecycle for runtime initialization.
 
 ## How it works
 
@@ -24,7 +24,7 @@ The brand logo consists of a central square and four arms:
 - Bottom-right (child index 2, clockwise rank 2, direction `(1, 1)`)
 - Bottom-left (child index 1, clockwise rank 3, direction `(-1, 1)`)
 
-The animation runs in two distinct phases:
+The animation runs in two phases:
 
 1. Intro phase (`timeline::INTRO`, 840 ms total):
    - The central square fades in from opacity 0 to 255 over 240 ms (`SQUARE_FADE`).
@@ -33,23 +33,16 @@ The animation runs in two distinct phases:
    - The intro concludes exactly on the static rest pose of the brand symbol.
 2. Loop phase (`timeline::PERIOD` 1600 ms, `PULSE` 800 ms):
    - A ripple runs clockwise around the symbol.
-   - One arm at a time glides outward along its diagonal, briefly widening separation (opacity drops to `PULSE_OPACITY` 180), and returns.
+   - One arm at a time glides outward along its diagonal and returns. During the pulse, the opacity drops to `PULSE_OPACITY` (180).
    - The next arm clockwise starts halfway through the previous pulse.
-   - The arms return to their rest positions between pulses; the symbol is never rotated or recolored.
+   - The arms return to their rest positions between pulses. The symbol is never rotated or recolored.
 
 ### Lifecycle management
 
 The <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" /> struct controls animation creation and teardown:
 
-- `Bootsplash::new(graphics_manager)`:
-  Acquires the graphics manager lock.
-  Retrieves screen dimensions, computes the logo scaling factor (`Logo::get_factor(screen_size.scale(0.3)).max(1)`), and instantiates `Logo`.
-  Centers the logo on the active screen (`lv_align_t_LV_ALIGN_CENTER`).
-  Initializes an LVGL animation (`lv_anim_t`) with `intro_callback`, starting the intro timeline.
-  When the intro completes (`intro_completed`), transitions to `first_cycle_callback`, then `cycle_callback` which loops indefinitely until stopped.
-- `Bootsplash::stop(self, graphics_manager)`:
-  Acquires the graphics manager lock.
-  Deletes all registered callbacks (`intro_callback`, `first_cycle_callback`, `cycle_callback`) from the logo object via `lv_anim_delete`.
+- `Bootsplash::new(graphics_manager)` acquires the graphics manager lock. It retrieves the screen dimensions and computes the logo scaling factor (`Logo::get_factor(screen_size.scale(0.3)).max(1)`). It instantiates `Logo` and centers it on the active screen (`lv_align_t_LV_ALIGN_CENTER`). It initializes an LVGL animation (`lv_anim_t`) with `intro_callback` and starts the intro timeline. When the intro completes (`intro_completed`), it transitions to `first_cycle_callback` and then to `cycle_callback`. `cycle_callback` loops until stopped.
+- `Bootsplash::stop(self, graphics_manager)` acquires the graphics manager lock. It deletes all registered callbacks (`intro_callback`, `first_cycle_callback`, `cycle_callback`) from the logo object via `lv_anim_delete`.
 
 The following diagram shows the animation state transitions from startup initialization to the looping ripple and final stop:
 
@@ -66,13 +59,13 @@ stateDiagram-v2
     Ripple --> [*]: stop
 ```
 
-`Bootsplash::new` begins the intro phase, fading the central square before sliding each arm inward clockwise. Once complete, it enters a continuous loop where each arm pulses outward in turn. When the desktop shell or graphical user interface is ready, calling `Bootsplash::stop` deletes the active animations and dismisses the bootsplash.
+`Bootsplash::new` begins the intro phase. The central square fades in, then each arm slides inward in clockwise order. When the intro completes, the animation enters a loop in which each arm pulses outward in turn. When the desktop shell or graphical user interface is ready, `Bootsplash::stop` deletes the active animations and dismisses the bootsplash.
 
 ## Design choices and trade-offs
 
-- Dedicated animation crate: Isolates LVGL C ABI animation descriptors and unsafe C callbacks from general shell and graphics components.
-- Responsive geometric scaling: Automatically adapts logo size to 30% of the screen dimension, ensuring consistent presentation across different display resolutions.
-- Deterministic timeline: Animation progress uses fixed-point mathematical functions (`ArmState`), allowing unit testing without a display server.
+- Dedicated animation crate: The crate isolates LVGL C ABI animation descriptors and unsafe C callbacks from the shell and graphics components.
+- Responsive geometric scaling: The logo scales to 30% of the screen dimension. The presentation stays consistent across display resolutions.
+- Deterministic timeline: Animation progress uses fixed-point mathematics (`ArmState`). Unit tests can run without a display server.
 
 ## Limits
 

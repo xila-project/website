@@ -7,11 +7,11 @@ description: "Executable contracts, execution context, standard streams, and tas
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `executable` crate defines Xila's execution contracts, execution context, standard streams, and task launching facilities. It lives in the Core repository under `libraries/executable/` and is exposed by the `xila` facade crate.
+The `executable` crate defines Xila's execution contracts, execution context, standard streams, and task launching facilities. It lives in the Core repository under `libraries/executable/`. The `xila` facade crate exposes it.
 
 ## Context
 
-In Xila, applications and system utilities execute as cooperative asynchronous tasks. Rather than relying on preemptive kernel processes or dynamic ELF linkers, Xila represents executables as virtual file system nodes. The `executable` library provides the bridge between file system nodes, task execution, access control, and standard I/O streams. Subsystems such as the shell and test runners depend on `executable` to launch programs, while applications implement its trait contract.
+In Xila, applications and system utilities run as cooperative asynchronous tasks. Xila does not use preemptive kernel processes or dynamic ELF linkers. It represents executables as virtual file system (VFS) nodes. The `executable` library bridges file system nodes, task execution, access control, and standard I/O streams. Subsystems such as the shell and test runners use `executable` to launch programs. Applications implement its trait contract.
 
 ## How it works
 
@@ -25,15 +25,15 @@ pub trait ExecutableTrait: 'static + Send + Sync {
 }
 ```
 
-The future returns `Result<(), NonZeroUsize>` wrapped in a pinned box. To integrate with the virtual file system (VFS), an executable is wrapped in `ExecutableWrapper<T: ExecutableTrait>`. The wrapper implements `DirectCharacterDevice` and `DirectBaseOperations`. When the VFS sends the control command `GET_MAIN_FUNCTION`, the wrapper returns a closure that constructs `MainFuture` using the passed standard streams and argument vector.
+The future returns `Result<(), NonZeroUsize>` in a pinned box. `ExecutableWrapper<T: ExecutableTrait>` integrates an executable with the virtual file system (VFS). The wrapper implements `DirectCharacterDevice` and `DirectBaseOperations`. When the VFS sends the `GET_MAIN_FUNCTION` control command, the wrapper returns a closure. The closure constructs `MainFuture` from the passed standard streams and argument vector.
 
 ### Mount executables in the file system
 
-Executables are mounted into the VFS path hierarchy—typically under `/applications/executables/<name>`—using the <HostReference crate="executable" kind="macro" symbol="mount_executables" /> macro. The macro wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
+Executables mount into the VFS path hierarchy, typically under `/applications/executables/<name>`. The <HostReference crate="executable" kind="macro" symbol="mount_executables" /> macro performs the mount. It wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
 
 ### Execution context and capabilities
 
-The <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /> carries shared system manager references required during task execution:
+The <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /> struct carries the system manager references required during task execution:
 
 - `task_manager`: static reference to the task manager.
 - `users_manager`: static reference to the users manager.
@@ -44,20 +44,20 @@ The <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /
 
 ### Standard streams
 
-The <HostReference crate="executable" kind="struct" symbol="Standard" /> struct encapsulates three VFS file descriptors: `standard_in`, `standard_out`, and `standard_error`, alongside a static reference to the `ExecutableContext`. It provides helpers such as `read_line` for reading from standard input, `split` for extracting individual streams, and `duplicate` for cloning descriptors across tasks.
+The <HostReference crate="executable" kind="struct" symbol="Standard" /> struct holds three VFS file descriptors, `standard_in`, `standard_out`, and `standard_error`, and a static reference to the `ExecutableContext`. Helpers include `read_line` for reading standard input, `split` for extracting individual streams, and `duplicate` for cloning descriptors across tasks.
 
 ### Launching an executable
 
 The <HostReference crate="executable" kind="fn" symbol="execute" /> function coordinates execution:
 
-1. Checks execute permissions using `is_execute_allowed` against file statistics, the current task user, and group memberships.
-2. Opens the target executable file in the virtual file system.
-3. Checks for set-user-identifier overrides with `get_overridden_user`.
-4. Sends the `GET_MAIN_FUNCTION` control command to retrieve the executable entrypoint.
-5. Calls `task_manager.spawn` with the executable file name.
-6. Inside the spawned task, switches the active user if overridden, then invokes the main entrypoint.
-7. Maps success to exit code 0 and errors to negative non-zero values.
-8. Returns a `JoinHandle<isize>` to the caller.
+1. Check execute permissions with `is_execute_allowed` against file statistics, the current task user, and group memberships.
+2. Open the target executable file in the virtual file system.
+3. Check for set-user-identifier overrides with `get_overridden_user`.
+4. Send the `GET_MAIN_FUNCTION` control command to retrieve the executable entrypoint.
+5. Call `task_manager.spawn` with the executable file name.
+6. Inside the spawned task, switch the active user if overridden, then invoke the main entrypoint.
+7. Map success to exit code 0 and errors to negative non-zero values.
+8. Return a `JoinHandle<isize>` to the caller.
 
 The following diagram shows the sequence of steps when launching an executable in Xila:
 
@@ -84,13 +84,13 @@ sequenceDiagram
     NewTask->>NewTask: main(context, standard, inputs)
 ```
 
-The sequence begins when the caller passes an execution context, target path, arguments, standard streams, and an optional spawner identifier. The launcher checks file execute permissions and opens the file in the virtual file system. It retrieves the entrypoint closure via the `GET_MAIN_FUNCTION` control command. The launcher spawns a new task on the task scheduler, and returns the join handle to the caller while the spawned task executes `main`.
+The caller passes an execution context, target path, arguments, standard streams, and an optional spawner identifier. The launcher checks the file execute permissions and opens the file in the VFS. It retrieves the entrypoint closure with the `GET_MAIN_FUNCTION` control command. It spawns a new task on the task scheduler and returns the join handle. The spawned task then executes `main`.
 
 ## Design choices and trade-offs
 
-- Executables as VFS character devices: Enables uniform permission checking, path discovery, and namespace routing without introducing a specialized binary loader in the kernel.
-- Explicit capability passing: `ExecutableContext` passes system managers directly, avoiding ambient global state and making subsystem requirements transparent.
-- Cooperative async futures: Executables run as futures scheduled on Xila's cooperative task executor. This minimizes stack and RAM overhead on microcontrollers, but requires tasks to yield cooperatively.
+- Executables as VFS character devices: Uniform permission checking, path discovery, and namespace routing work without a specialized binary loader in the kernel.
+- Explicit capability passing: `ExecutableContext` passes system managers directly. This avoids ambient global state and makes subsystem requirements visible.
+- Cooperative async futures: Executables run as futures on Xila's cooperative task executor. This minimizes stack and RAM use on microcontrollers. Tasks must yield cooperatively.
 
 ## Limits
 

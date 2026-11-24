@@ -11,13 +11,13 @@ The `debug_protocol` crate defines typed data contracts, validation rules, and p
 
 ## Context
 
-Test runners, diagnostic tools, and automation clients (such as `xila-debug`) require a consistent, portable protocol to inspect system state, capture framebuffers, and simulate user input. The `debug_protocol` library defines this wire format independently of network or transport layers, allowing headless testing across desktop environments, CI pipelines, and embedded targets.
+Test runners, diagnostic tools, and automation clients such as `xila-debug` inspect system state, capture framebuffers, and simulate user input. They need a consistent, portable protocol. The `debug_protocol` library defines this wire format independently of the network and transport layers. Headless testing then works across desktop environments, continuous integration pipelines, and embedded targets.
 
 ## How it works
 
 ### Request model and wire format
 
-Requests are modeled by the <HostReference crate="debug_protocol" kind="enum" symbol="Request" /> enum, serialized as JSON with `#[serde(tag = "op", rename_all = "snake_case")]`. The supported operations include:
+Requests are modeled by the <HostReference crate="debug_protocol" kind="enum" symbol="Request" /> enum and serialized as JSON with `#[serde(tag = "op", rename_all = "snake_case")]`. The supported operations include:
 
 - `Diagnostics`: Query runtime diagnostic statistics.
 - `Capabilities`: Query supported driver capabilities.
@@ -58,23 +58,22 @@ The crate defines explicit upper bounds for all incoming and outgoing frames:
 Validation functions reject malformed or oversized payloads before execution:
 
 - <HostReference crate="debug_protocol" kind="fn" symbol="validate_request" />:
-  Ensures injected text does not exceed `MAX_TEXT_BYTES`. Ensures screenshot
-  paths are non-empty. For `Click` requests, verifies that at least one selector
-  field is present, and rejects any selector string that is empty or exceeds 512
-  bytes.
+  Ensure injected text does not exceed `MAX_TEXT_BYTES` and screenshot paths are
+  non-empty. For `Click` requests, verify that at least one selector field is
+  present. Reject any selector string that is empty or exceeds 512 bytes.
 - <HostReference
     crate="debug_protocol"
     kind="fn"
     symbol="validate_screenshot_metadata"
   />
-  : Takes a
+  : Take a
   <HostReference
     crate="debug_protocol"
     kind="struct"
     symbol="ScreenshotMetadata"
   />
-  record. Ensures width and height are non-zero, verifies that `payload_bytes`
-  exactly equals `width * height * 4`, and checks that the size does not exceed
+  record. Ensure width and height are non-zero. Verify that `payload_bytes`
+  equals `width * height * 4`. Check that the size does not exceed
   `MAX_SCREENSHOT_BYTES`.
 
 Failures return <HostReference crate="debug_protocol" kind="enum" symbol="ProtocolError" />. The `code()` method produces stable string error identifiers (such as `invalid_selector`, `text_too_large`, `empty_screenshot_path`, and `invalid_screenshot_frame`).
@@ -97,13 +96,13 @@ sequenceDiagram
     Device-->>Client: JSON response (status: "ok")
 ```
 
-The client transmits a serialized JSON request. The receiving device runs `validate_request` to check bounds and selectors. Once validated, the device forwards the command to the graphics subsystem, executes the UI interaction, and sends a JSON response back to the client.
+The client sends a serialized JSON request. The receiving device runs `validate_request` to check bounds and selectors. The device then forwards the command to the graphics subsystem, executes the UI interaction, and sends a JSON response to the client.
 
 ## Design choices and trade-offs
 
-- Sans-I/O architecture: Protocol validation and message structures are decoupled from underlying transport sockets, pipes, and serial connections.
-- Strict resource bounds: Explicit limits on buffer sizes and screenshot dimensions guard against denial-of-service and memory exhaustion on memory-constrained devices.
-- JSON wire format: Facilitates inspection, debugging, and tooling integration from external scripts without requiring custom binary decoders.
+- Sans-I/O architecture: Protocol validation and message structures are decoupled from transport sockets, pipes, and serial connections.
+- Strict resource bounds: Limits on buffer sizes and screenshot dimensions guard against denial-of-service and memory exhaustion on memory-constrained devices.
+- JSON wire format: External scripts can inspect and debug the traffic without custom binary decoders.
 
 ## Limits
 
