@@ -1,0 +1,224 @@
+/*
+ * Diagrams. Both build-time renderers (D2 and Mermaid) produce inline SVG
+ * inside an element with the class "diagram". The renderers only choose the
+ * shapes and the layout. This file sets every colour, stroke and font from
+ * the variables of the site theme, so that the diagrams follow the theme
+ * toggle without a second render and without a layout shift.
+ *
+ * Visual vocabulary (one shape always means the same kind of thing):
+ *   rectangle       component, crate, step
+ *   filled          integration point (class "focus")
+ *   cylinder        stored data, file system
+ *   document        signed record or document
+ *   hexagon         hardware or driver
+ *   oval            cryptographic key
+ *   diamond         decision
+ *   parallelogram   input or output
+ *   dashed frame    boundary (trust, ownership, optional part)
+ *   solid frame     layer or group
+ *   thick arrow     signs or authenticates
+ *   dashed arrow    optional or returned value
+ */
+
+.diagram {
+  --diagram-stroke: var(--foreground);
+  --diagram-fill: var(--background);
+  --diagram-muted: var(--muted-foreground);
+  --diagram-thin: 1px;
+  --diagram-thick: 2.5px;
+  margin-block: 1rem;
+  overflow-x: auto;
+}
+
+.diagram svg {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/* On a narrow screen a wide diagram scrolls instead of shrinking its text. */
+@media (max-width: 50rem) {
+  .diagram svg {
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
+/* ---- D2 ---- */
+
+.diagram .d2-svg > rect {
+  fill: transparent !important;
+}
+
+.diagram .d2-svg text {
+  fill: var(--diagram-stroke) !important;
+  font-family: var(--sl-font) !important;
+  font-style: normal !important;
+}
+
+.diagram .d2-svg .shape :is(rect, path, polygon, ellipse) {
+  fill: var(--diagram-fill) !important;
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+}
+
+.diagram .d2-svg :is(.layer, .boundary) .shape :is(rect, path) {
+  fill: transparent !important;
+}
+
+.diagram .d2-svg :is(.layer, .boundary) > text {
+  fill: var(--diagram-muted) !important;
+}
+
+.diagram .d2-svg .focus .shape :is(rect, path, polygon) {
+  fill: var(--diagram-stroke) !important;
+}
+
+.diagram .d2-svg .focus > text {
+  fill: var(--diagram-fill) !important;
+  font-weight: 600;
+}
+
+.diagram .d2-svg path.connection {
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+}
+
+.diagram .d2-svg .trust path.connection {
+  stroke-width: var(--diagram-thick) !important;
+}
+
+.diagram .d2-svg marker path,
+.diagram .d2-svg marker polygon {
+  fill: var(--diagram-stroke) !important;
+  stroke: var(--diagram-stroke) !important;
+}
+
+.diagram .d2-svg .text-italic {
+  fill: var(--diagram-muted) !important;
+}
+
+/* ---- Mermaid ---- */
+
+.diagram svg[id^="mermaid"] {
+  font-family: var(--sl-font) !important;
+  font-size: 14px !important;
+}
+
+/* The text of the page content (margins, sizes) must not reach the labels. */
+.diagram svg[id^="mermaid"] foreignObject :is(div, span, p) {
+  margin: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.diagram svg[id^="mermaid"] :is(.nodeLabel, .edgeLabel, .label, text) {
+  font-family: var(--sl-font) !important;
+  color: var(--diagram-stroke) !important;
+  fill: var(--diagram-stroke) !important;
+}
+
+.diagram svg[id^="mermaid"] .node :is(rect, polygon, path, circle, ellipse) {
+  fill: var(--diagram-fill) !important;
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+  rx: 0 !important;
+  ry: 0 !important;
+}
+
+/* A key is a rounded rectangle: the stadium shape of Mermaid adds about 40 KB
+   of path data to each node. */
+.diagram svg[id^="mermaid"] .node.key rect {
+  rx: 20px !important;
+  ry: 20px !important;
+}
+
+.diagram svg[id^="mermaid"] .node.focus :is(rect, polygon, path) {
+  fill: var(--diagram-stroke) !important;
+}
+
+.diagram svg[id^="mermaid"] .node.focus :is(.nodeLabel, .label, text, p) {
+  color: var(--diagram-fill) !important;
+  fill: var(--diagram-fill) !important;
+}
+
+.diagram svg[id^="mermaid"] .cluster rect {
+  fill: transparent !important;
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+  rx: 0 !important;
+  ry: 0 !important;
+}
+
+.diagram svg[id^="mermaid"] .cluster.boundary rect {
+  stroke-dasharray: 4 !important;
+}
+
+.diagram svg[id^="mermaid"] .cluster :is(.nodeLabel, .label, text, span, p) {
+  color: var(--diagram-muted) !important;
+  fill: var(--diagram-muted) !important;
+  font-size: 12px !important;
+}
+
+.diagram svg[id^="mermaid"] :is(.flowchart-link, .messageLine0, .messageLine1) {
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+}
+
+.diagram svg[id^="mermaid"] .edge-thickness-thick {
+  stroke-width: var(--diagram-thick) !important;
+}
+
+.diagram svg[id^="mermaid"] .edge-pattern-dotted {
+  stroke-dasharray: 3 !important;
+}
+
+.diagram svg[id^="mermaid"] marker :is(path, polygon) {
+  fill: var(--diagram-stroke) !important;
+  stroke: var(--diagram-stroke) !important;
+}
+
+.diagram svg[id^="mermaid"] .edgeLabel,
+.diagram svg[id^="mermaid"] .edgeLabel :is(rect, p, span) {
+  background-color: var(--diagram-fill) !important;
+  color: var(--diagram-muted) !important;
+  fill: var(--diagram-muted) !important;
+  font-size: 12px !important;
+}
+
+.diagram svg[id^="mermaid"] .edgeLabel rect {
+  fill: var(--diagram-fill) !important;
+  opacity: 1 !important;
+}
+
+/* ---- Trial page layout ---- */
+
+.diagram-trial-options {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Three columns only when the screen is wide enough to keep the text legible. */
+@media (min-width: 100rem) {
+  .diagram-trial-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(96rem, calc(100vw - 4rem));
+    margin-inline: calc(50% - min(48rem, 50vw - 2rem));
+  }
+}
+
+.diagram-trial-options > section {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+}
+
+.diagram-trial-options > section > p:first-child {
+  margin: 0 0 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

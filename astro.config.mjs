@@ -1,8 +1,14 @@
 import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
+import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
+import { remarkMermaidStatic } from "./scripts/remark-mermaid-static.mjs";
+import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
+import { rehypeMermaidStatic } from "./scripts/rehype-mermaid-static.mjs";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
 import sitemap from "@astrojs/sitemap";
+import astroD2 from "astro-d2";
+import { pathToFileURL } from "node:url";
 
 const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
@@ -148,9 +154,61 @@ const sidebar = [
 export default defineConfig({
   site: "https://www.xila.dev",
   trailingSlash: "ignore",
-  markdown: { remarkPlugins: [remarkMermaid] },
+  markdown: {
+    remarkPlugins: [remarkMermaid, remarkMermaidStatic, remarkD2Preamble],
+    rehypePlugins: [
+      [
+        rehypeMermaidStatic,
+        {
+          strategy: "inline-svg",
+          // The headless browser loads the site font, so that Mermaid
+          // measures the labels with Montserrat.
+          css: pathToFileURL("public/fonts/montserrat.css"),
+          mermaidConfig: {
+            theme: "base",
+            fontFamily: "Montserrat, Arial, Helvetica, sans-serif",
+            securityLevel: "strict",
+            flowchart: {
+              curve: "linear",
+              padding: 12,
+              subGraphTitleMargin: { top: 6, bottom: 14 },
+            },
+            themeVariables: {
+              fontSize: "14px",
+              primaryColor: "#ffffff",
+              primaryTextColor: "#0a0a0a",
+              primaryBorderColor: "#0a0a0a",
+              lineColor: "#0a0a0a",
+              secondaryColor: "#ffffff",
+              tertiaryColor: "#ffffff",
+              clusterBkg: "#ffffff",
+              clusterBorder: "#0a0a0a",
+              edgeLabelBackground: "#ffffff",
+            },
+          },
+        },
+      ],
+      rehypeDiagramSvg,
+    ],
+  },
   integrations: [
-    sitemap(),
+    sitemap({ filter: (page) => !page.endsWith("/diagram-trial/") }),
+    // Diagram trial: D2 renders the code fences with the language `d2` to
+    // inline SVG at build time. D2.js runs D2 as WebAssembly, so the build
+    // needs no `d2` binary. The fonts only serve the measurement of labels.
+    astroD2({
+      inline: true,
+      layout: "elk",
+      pad: 8,
+      theme: { default: "0", dark: false },
+      experimental: { useD2js: true },
+      fonts: {
+        regular: "src/diagrams/fonts/Montserrat-regular.ttf",
+        italic: "src/diagrams/fonts/Montserrat-italic.ttf",
+        bold: "src/diagrams/fonts/Montserrat-bold.ttf",
+        semibold: "src/diagrams/fonts/Montserrat-semibold.ttf",
+      },
+    }),
     starlight({
       title: "Xila",
       description: "An open-source operating system for embedded world",
@@ -179,7 +237,11 @@ export default defineConfig({
           ],
         }),
       ],
-      customCss: ["./src/styles/xila.css", "./src/styles/page-icons.css"],
+      customCss: [
+        "./src/styles/xila.css",
+        "./src/styles/page-icons.css",
+        "./src/styles/diagrams.css",
+      ],
       lastUpdated: true,
       // Plain code frames: shell blocks get no terminal title bar.
       expressiveCode: { defaultProps: { frame: "code" } },
