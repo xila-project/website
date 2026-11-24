@@ -4,12 +4,12 @@ docType: how-to
 description: "Create, switch, or permanently delete browser-hosted Xila disk images in OPFS."
 ---
 
-This guide shows how to create fresh Xila disk images, switch between saved disks, and permanently delete storage in the browser demonstration. Use these steps to manage testing environments or reset corrupt disk state.
+This guide shows how to create, switch and permanently delete Xila disk images in the browser demonstration. Use it to manage test disks or to reset a corrupt disk.
 
 ## Before you begin
 
 - Open the browser demonstration at [platforms.xila.dev](https://platforms.xila.dev/) or your local Trunk development server.
-- Ensure your browser supports the Origin-Private File System (OPFS) and the Web Locks API.
+- A browser that supports the Origin Private File System (OPFS) and the Web Locks API.
 - Back up any important files before deleting a disk.
 
 :::caution[Deleting a disk causes irreversible data loss]
@@ -23,7 +23,7 @@ Removing a disk permanently deletes its OPFS file and all files, configuration, 
 1. Open the **Xila Help** sidebar panel located on the left edge of the browser demonstration.
 2. In the disk actions toolbar below **Available disks**, click **New disk**.
 3. When the browser confirmation dialog asks `Save and restart Xila using xila_YYYY-MM-DD.img?`, click **OK**.
-4. The runtime stops active writes, commits pending changes to the current disk, releases the Web Lock, and reloads on the fresh disk image initialized from the prebuilt seed.
+4. The runtime stops active writes and commits pending changes to the current disk. It releases the Web Lock and reloads on the fresh disk image, initialized from the prebuilt seed.
 
 ### Switch between saved disks
 
@@ -64,7 +64,7 @@ await root.removeEntry("xila_drive.img");
 2. Open the **Xila Help** sidebar.
 3. Confirm that **Available disks** displays the expected disk list and that the target image was removed or loaded.
 4. On a freshly created or reset disk, log in with the default administrator credentials:
-   - **Username**: `administrator`
+   - **User name**: `administrator`
    - **Password**: (leave blank)
 
 ## Troubleshooting
