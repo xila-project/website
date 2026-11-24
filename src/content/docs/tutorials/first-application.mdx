@@ -1,0 +1,234 @@
+---
+title: "Build and package your first application"
+docType: tutorial
+description: "Create a Wasm application from the template, run it in Xila, package it as a signed .xpk file, and prepare it for the registry."
+---
+
+In this tutorial, you create a WebAssembly (Wasm) application from the Xila template, run it in Xila's headless runtime, and package it as a signed `.xpk` file. At the end, you have a signed package and the steps to publish it in the Xila registry.
+
+The following diagram shows the files that you create in each stage.
+
+```mermaid
+flowchart TD
+    Project["Your Rust project"] -->|"cargo build"| Guest["hello-xila.wasm"]
+    Guest -->|"docker run"| Runtime["Xila headless runtime"]
+    Guest -->|"xila-package bundle build"| Bundle["Signed bundle"]
+    Bundle -->|"xila-package bundle archive"| Archive["HelloXila.xpk"]
+    Archive -->|"release and submission"| Registry["Registry entry"]
+```
+
+The project builds a guest. The runtime runs the guest in developer mode. The package tool signs the guest into a bundle and an archive. The registry lists the released archive.
+
+## Before you begin
+
+- An x86-64 Linux computer. The tutorial commands ran on Linux.
+- [Git](https://git-scm.com/) and [Rustup](https://www.rust-lang.org/tools/install). Rustup reads the `rust-toolchain.toml` file of the template. It installs Rust 1.97.0 and the `wasm32-wasip1` target.
+- [Docker](https://docs.docker.com/engine/install/), set up so that you can start containers. Docker runs Xila's headless runtime.
+- A network connection. The first build downloads the Xila guest library from GitHub.
+- A GitHub account, for the last stage only.
+
+:::note
+This tutorial builds a Wasm application. The Xila project also has a [Rust native template](https://github.com/xila-project/native_rust_application_template) and a [C native template](https://github.com/xila-project/native_c_application_template). No released Xila build runs native executables yet. See [Platforms issue 115](https://github.com/xila-project/platforms/issues/115).
+:::
+
+## Create the project
+
+1. In a host shell, clone the [Wasm application template](https://github.com/xila-project/wasm_application_template) into a new directory and enter it:
+
+   ```sh
+   git clone https://github.com/xila-project/wasm_application_template.git hello-xila
+   cd hello-xila
+   ```
+
+   You can also select **Use this template** on GitHub and clone your new repository.
+
+2. In the project directory, open `Cargo.toml` and change the package name:
+
+   ```toml
+   name = "hello-xila"
+   ```
+
+3. In the project directory, open `src/main.rs`. Change the greeting in the function that has the `wasm32` condition:
+
+   ```rust
+   #[cfg(target_arch = "wasm32")]
+   fn main() {
+       println!("Hello from my first Xila application!");
+   }
+   ```
+
+The project now has your name and your greeting. The second `main` function runs when you build for another target. Leave it unchanged.
+
+## Build the application
+
+1. In the project directory, build the release version for the `wasm32-wasip1` target:
+
+   ```sh
+   cargo build --release --target wasm32-wasip1
+   ```
+
+   Rustup first installs the toolchain of the template. Cargo then downloads and builds the Xila guest library. The last line is similar to this one:
+
+   ```text
+   Finished `release` profile [optimized] target(s) in 11.55s
+   ```
+
+2. In the same directory, check the result:
+
+   ```sh
+   file target/wasm32-wasip1/release/hello-xila.wasm
+   ```
+
+   The output is:
+
+   ```text
+   target/wasm32-wasip1/release/hello-xila.wasm: WebAssembly (wasm) binary module version 0x1 (MVP)
+   ```
+
+The file `target/wasm32-wasip1/release/hello-xila.wasm` is your application. The `build.rs` file of the template links it with a 32 KiB stack and byte-sized memory pages, as the Xila applications do.
+
+## Run the application in Xila
+
+The browser demonstration runs only guests that are already on its disk, so this stage uses the headless runtime. This runtime is the native Xila runtime in a Docker image. It starts a command, prints its output and exits.
+
+1. In a host shell, download the image and create a volume. The volume keeps the Xila disk between runs.
+
+   ```sh
+   docker pull ghcr.io/xila-project/xila-runtime:latest
+   docker volume create xila-first-application
+   ```
+
+2. In the project directory, run the application. The first `--mount` option gives the container read access to the build directory. The second `--mount` option, after `run`, makes that directory visible to Xila as `/guest`.
+
+   ```sh
+   docker run --rm --network none --read-only \
+     --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+     --mount type=volume,src=xila-first-application,dst=/var/lib/xila \
+     --mount "type=bind,src=$PWD/target/wasm32-wasip1/release,dst=/mnt/xila/guest,readonly" \
+     ghcr.io/xila-project/xila-runtime:latest run --network=none \
+     --mount host=/mnt/xila/guest,xila=/guest,ro \
+     -- /applications/executables/wasm --developer-mode /guest/hello-xila.wasm
+   ```
+
+   The runtime prints a warning and your greeting. The warning has colors in a terminal:
+
+   ```text
+    W  | wasm::host::main | Running unverified WebAssembly executable /guest/hello-xila.wasm in developer mode
+   Hello from my first Xila application!
+   ```
+
+3. In the same shell, check the exit status:
+
+   ```sh
+   echo $?
+   ```
+
+   The output is `0`.
+
+Xila runs only guests from an installed package. The `--developer-mode` option allows an unverified guest, and the warning says so. The next stage creates the package that you distribute. See [Run a guest application](/how-to/run-guest/) to start a guest from Xila's own terminal.
+
+## Package the application
+
+1. In a host shell, install the `xila-package` tool:
+
+   ```sh
+   cargo install --locked --git https://github.com/xila-project/package_manager xila-package-builder
+   ```
+
+   Cargo installs the `xila-package` command in `~/.cargo/bin`. The `xila package` command of the [Xila tools](https://github.com/xila-project/tools) runs the same code with the same subcommands.
+
+2. In the project directory, create the package source directory. Replace `example` in the identifier with your GitHub account name in lowercase. The identifier must have at least three parts. The registry gives a package identifier only to the developer key that holds its namespace.
+
+   ```sh
+   xila-package bundle init ./package io.github.example.hello-xila 0.1.0 wasm32-wasip1 \
+     --xila-version 0.1 \
+     --entrypoint executables/hello-xila.wasm \
+     --display-name "Hello Xila"
+   ```
+
+   The command creates `package/xila-package.json` and the directories `package/executables` and `package/resources`.
+
+3. In the project directory, copy the application into the package source:
+
+   ```sh
+   cp target/wasm32-wasip1/release/hello-xila.wasm package/executables/
+   ```
+
+4. Open `package/xila-package.json`. Replace `"metadata":null` with the description of your package. The registry copies this text into its entry. Replace the source URL with the URL of your repository.
+
+   ```json
+   "metadata": {
+     "summary": "Prints a greeting.",
+     "license": "MIT",
+     "source": "https://github.com/example/hello-xila",
+     "homepage": null
+   }
+   ```
+
+5. In the project directory, create a signing key pair outside the project. The command creates the files `private.seed` and `public.key`.
+
+   ```sh
+   mkdir ../hello-xila-keys
+   xila-package key generate ../hello-xila-keys/private.seed ../hello-xila-keys/public.key
+   ```
+
+   :::caution
+   Keep `private.seed` out of Git and make a backup of it. Anyone who has this file can sign packages as you. The command never overwrites an existing key file.
+   :::
+
+6. In the project directory, build and sign the bundle:
+
+   ```sh
+   xila-package bundle build ./package ./target/HelloXila.app \
+     --signing-key ../hello-xila-keys/private.seed
+   ```
+
+   The command prints nothing. The directory `target/HelloXila.app` has the files `.xila/manifest.json`, `.xila/manifest.sig` and `executables/hello-xila.wasm`. The manifest lists the size and the SHA-256 hash of every file. The signature covers the manifest.
+
+7. In the same directory, verify the bundle with your public key. Then create the archive and verify it:
+
+   ```sh
+   xila-package bundle verify ./target/HelloXila.app --public-key ../hello-xila-keys/public.key
+   xila-package bundle archive ./target/HelloXila.app ./target/HelloXila.xpk
+   xila-package verify ./target/HelloXila.xpk ../hello-xila-keys/public.key
+   ```
+
+   Each command prints nothing and exits with status `0`. The file `target/HelloXila.xpk` is your package. It has the same three files as the bundle, and the manifest comes first.
+
+## Publish the package
+
+The registry lists a package by its download address. You must therefore publish the `.xpk` file first. The registry stores only the metadata of each version, and published versions cannot change.
+
+1. Push your project to a public GitHub repository. Its URL must be the `source` value of your package metadata.
+2. In the project directory, create a GitHub release that has the package as an asset:
+
+   ```sh
+   gh release create v0.1.0 target/HelloXila.xpk --title "Hello Xila 0.1.0" --notes "First release."
+   ```
+
+3. Submit the released package to the registry. Follow [Submit a package](/how-to/submit-package/). You need your public key as base64 text:
+
+   ```sh
+   base64 -w0 ../hello-xila-keys/public.key
+   ```
+
+The submission then appears as a pull request in the [registry repository](https://github.com/xila-project/registry). The registry checks the signature, the hashes and the metadata of the archive. A guide for the registry's submission form is planned.
+
+## Check your result
+
+You created the project `hello-xila` from the template. You built `hello-xila.wasm`, and Xila's headless runtime printed its greeting. You also have the signed package `target/HelloXila.xpk`, and your public key verifies it.
+
+To remove the Docker volume of this tutorial, run:
+
+```sh
+docker volume rm xila-first-application
+```
+
+Your signing keys stay in `../hello-xila-keys`. Keep them if you want to publish new versions.
+
+## Next steps
+
+- [Add a launcher shortcut](/how-to/add-shortcut/) so that the graphical shell lists your application.
+- [Package an application](/how-to/package-application/) for the package options in detail.
+- [Guest API](/reference/guest/) to read what a guest can call.
+- [Package management](/explanation/package-management/) to learn how the registry and the signing keys work together.
