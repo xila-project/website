@@ -1,0 +1,34 @@
+# Xila visual vocabulary: one shape always means the same kind of thing.
+# Colours come from the site stylesheet, which targets the class names below.
+vars: {
+  node: {
+    style: {
+      border-radius: 0
+      font-size: 14
+      bold: false
+    }
+  }
+  group: {
+    style: {
+      border-radius: 0
+      font-size: 12
+      bold: false
+    }
+    label.near: bottom-left
+  }
+}
+classes: {
+  component: { ...${node} }
+  focus: { ...${node}; style.bold: true }
+  stored: { ...${node}; shape: cylinder }
+  record: { ...${node}; shape: document }
+  hardware: { ...${node}; shape: hexagon }
+  key: { ...${node}; shape: oval }
+  decision: { ...${node}; shape: diamond }
+  io: { ...${node}; shape: parallelogram }
+  layer: { ...${group} }
+  boundary: { ...${group}; style.stroke-dash: 4 }
+  trust: { style.stroke-width: 3 }
+  optional: { style.stroke-dash: 3 }
+}
+(** -> **)[*].style.font-size: 12

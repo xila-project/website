@@ -1,8 +1,11 @@
 import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
+import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
+import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
 import sitemap from "@astrojs/sitemap";
+import astroD2 from "astro-d2";
 
 const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
@@ -151,9 +154,28 @@ const sidebar = [
 export default defineConfig({
   site: "https://www.xila.dev",
   trailingSlash: "ignore",
-  markdown: { remarkPlugins: [remarkMermaid] },
+  markdown: {
+    remarkPlugins: [remarkMermaid, remarkD2Preamble],
+    rehypePlugins: [rehypeDiagramSvg],
+  },
   integrations: [
     sitemap(),
+    // D2 renders the code fences with the language `d2` to inline SVG at
+    // build time. D2.js runs D2 as WebAssembly, so the build needs no `d2`
+    // binary. The fonts only serve the measurement of the labels.
+    astroD2({
+      inline: true,
+      layout: "elk",
+      pad: 8,
+      theme: { default: "0", dark: false },
+      experimental: { useD2js: true },
+      fonts: {
+        regular: "src/diagrams/fonts/Montserrat-regular.ttf",
+        italic: "src/diagrams/fonts/Montserrat-italic.ttf",
+        bold: "src/diagrams/fonts/Montserrat-bold.ttf",
+        semibold: "src/diagrams/fonts/Montserrat-semibold.ttf",
+      },
+    }),
     starlight({
       title: "Xila",
       description: "An open-source operating system for embedded world",
@@ -186,7 +208,11 @@ export default defineConfig({
           ],
         }),
       ],
-      customCss: ["./src/styles/xila.css", "./src/styles/page-icons.css"],
+      customCss: [
+        "./src/styles/xila.css",
+        "./src/styles/page-icons.css",
+        "./src/styles/diagrams.css",
+      ],
       lastUpdated: true,
       // Plain code frames: shell blocks get no terminal title bar.
       expressiveCode: { defaultProps: { frame: "code" } },

@@ -1,0 +1,107 @@
+/*
+ * Diagrams. D2 renders every `d2` code fence to inline SVG at build time,
+ * inside an element with the class "diagram". The renderer only chooses the
+ * shapes and the layout. This file sets every colour, stroke and font from
+ * the variables of the site theme, so that the diagrams follow the theme
+ * toggle without a second render and without a layout shift.
+ *
+ * Visual vocabulary (one shape always means the same kind of thing):
+ *   rectangle       component, crate, step
+ *   filled          integration point (class "focus")
+ *   cylinder        stored data, file system
+ *   document        signed record or document
+ *   hexagon         hardware or driver
+ *   oval            cryptographic key
+ *   diamond         decision
+ *   parallelogram   input or output
+ *   dashed frame    boundary (trust, ownership, optional part)
+ *   solid frame     layer or group
+ *   thick arrow     signs or authenticates
+ *   dashed arrow    optional or returned value
+ */
+
+.diagram {
+  --diagram-stroke: var(--foreground);
+  --diagram-fill: var(--background);
+  --diagram-muted: var(--muted-foreground);
+  --diagram-thin: 1px;
+  --diagram-thick: 2.5px;
+  margin-block: 1rem;
+  overflow-x: auto;
+}
+
+.diagram svg {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+/*
+ * On a narrow screen a wide diagram keeps at least 75 percent of its natural
+ * size, so that its text stays legible, and the container scrolls sideways.
+ */
+@media (max-width: 50rem) {
+  .diagram svg {
+    max-width: none;
+    margin-inline: 0;
+    width: min(
+      var(--diagram-width, 100%),
+      max(100%, calc(var(--diagram-width, 100%) * 0.75))
+    );
+  }
+}
+
+/* ---- D2 ---- */
+
+.diagram .d2-svg > rect {
+  fill: transparent !important;
+}
+
+.diagram .d2-svg text {
+  fill: var(--diagram-stroke) !important;
+  font-family: var(--sl-font) !important;
+  font-style: normal !important;
+}
+
+.diagram .d2-svg .shape :is(rect, path, polygon, ellipse) {
+  fill: var(--diagram-fill) !important;
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+}
+
+.diagram .d2-svg :is(.layer, .boundary) .shape :is(rect, path) {
+  fill: transparent !important;
+}
+
+.diagram .d2-svg :is(.layer, .boundary) > text {
+  fill: var(--diagram-muted) !important;
+}
+
+.diagram .d2-svg .focus .shape :is(rect, path, polygon) {
+  fill: var(--diagram-stroke) !important;
+}
+
+.diagram .d2-svg .focus > text {
+  fill: var(--diagram-fill) !important;
+  font-weight: 600;
+}
+
+.diagram .d2-svg path.connection {
+  stroke: var(--diagram-stroke) !important;
+  stroke-width: var(--diagram-thin) !important;
+}
+
+.diagram .d2-svg .trust path.connection {
+  stroke-width: var(--diagram-thick) !important;
+}
+
+.diagram .d2-svg marker path,
+.diagram .d2-svg marker polygon {
+  fill: var(--diagram-stroke) !important;
+  stroke: var(--diagram-stroke) !important;
+}
+
+.diagram .d2-svg .text-italic {
+  fill: var(--diagram-muted) !important;
+}
