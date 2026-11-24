@@ -175,9 +175,17 @@ const initial = DEMONSTRATION_LOCALES.find(
     font: inherit;
   }
 
+  /* The hint takes the free space of the toolbar and never wraps: a second
+     toolbar line would resize the frame each time the focus enters or
+     leaves it. */
   .leave-hint {
+    flex: 1 1 0;
+    min-width: 0;
     margin: 0;
+    overflow: hidden;
     color: var(--muted-foreground);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .full-screen,
