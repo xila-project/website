@@ -3,6 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { applyShell, writeShellAssets } from "./api-shell.mjs";
 import { sourceEnvironmentKey } from "./source-checkouts.mjs";
 
 const defaultRoot = path.resolve(
@@ -68,6 +69,7 @@ function stage(source, destination, crate) {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
   fs.cpSync(source, destination, { recursive: true });
+  applyShell(destination);
 }
 
 function buildOne(architecture, { root, output, environment, strict }) {
@@ -112,9 +114,11 @@ function buildOne(architecture, { root, output, environment, strict }) {
   return "built";
 }
 
+// The API pages are staged in public/api/: Astro copies them into the site
+// at build time, and the development server serves them.
 export function buildRustdoc({
   root = defaultRoot,
-  output = path.join(root, "dist", "rustdoc"),
+  output = path.join(root, "public", "api"),
   environment = process.env,
 } = {}) {
   const options = {
@@ -123,10 +127,13 @@ export function buildRustdoc({
     environment,
     strict: environment.XILA_STRICT_RUSTDOC === "1",
   };
-  return {
+  const result = {
     host: buildOne("host", options),
     guest: buildOne("guest", options),
   };
+  if (Object.values(result).some((status) => status !== "skipped"))
+    writeShellAssets(output);
+  return result;
 }
 
 function main() {

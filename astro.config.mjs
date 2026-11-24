@@ -85,6 +85,7 @@ const sidebar = [
     label: "Reference",
     items: [
       page("Overview", "/reference/"),
+      page("API reference", "/reference/api/"),
       {
         label: "Run Xila",
         collapsed: true,

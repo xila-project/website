@@ -89,7 +89,7 @@ Write every page in the style of ASD-STE100 Simplified Technical English. Apply 
 
 Substantive pages under `src/content/docs/tutorials/`, `src/content/docs/how-to/`, `src/content/docs/reference/`, and `src/content/docs/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
 
-Put the page heading in the `title` frontmatter field; Starlight renders it as the page `<h1>`, so do not repeat it as a `#` heading in the body. Use `template: splash` only for pages that intentionally drop the sidebar, such as the home page or an API/reference viewer.
+Put the page heading in the `title` frontmatter field; Starlight renders it as the page `<h1>`, so do not repeat it as a `#` heading in the body. Use `template: splash` only for pages that intentionally drop the sidebar, such as the home page or the API reference frame.
 
 ### Navigation and links
 

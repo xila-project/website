@@ -1,7 +1,7 @@
 ---
 import {
+  getApiHref,
   getReferenceTargetPath,
-  getReferenceViewerHref,
 } from "../../scripts/reference-path.mjs";
 import { getExternalCrateHref } from "../../scripts/source-reference.mjs";
 const {
@@ -12,11 +12,11 @@ const {
   symbol,
   member,
 } = Astro.props;
-const usesViewer =
+const usesApi =
   repo === "core" ||
   (architecture === "guest" && repo === "applications" && crate === "wasm");
-const href = usesViewer
-  ? getReferenceViewerHref(
+const href = usesApi
+  ? getApiHref(
       architecture,
       getReferenceTargetPath(crate, kind, symbol, member),
     )

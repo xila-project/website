@@ -11,7 +11,7 @@ import ReferenceViewer from "@/components/ReferenceViewer.astro";
 
 The host Rustdoc documents the Rust crates in the Core workspace. Core's `docs:host` mise task compiles the documentation for the `x86_64-unknown-linux-gnu` target. Run `mise run docs:host -- --no-deps` in the Core repository. The website stages the documentation into the build with `npm run docs:rustdoc` (or `mise run documentation:rustdoc` in the website repository). See `scripts/build-rustdoc.mjs` and `mise.toml`.
 
-Browse crates, modules, traits, structures, and functions in the embedded viewer below:
+Browse crates, modules, traits, structures, and functions in the API reference:
 
 <ReferenceViewer architecture="host" />
 
@@ -92,7 +92,7 @@ This site does not publish Rust API documentation for host crates in the Applica
 
 Core's `docs:host` mise task generates the host Rustdoc. Run `mise run docs:host -- --no-deps`; the task is defined in <CodeReference path="mise.toml" />. It invokes `cargo doc --workspace` for the target `x86_64-unknown-linux-gnu` with the features `xila/graphics`, `xila/graphics_rendering_xrgb8888`, `xila/audio`, `xila/neural_network`, `xila/bootsplash`, and `xila-testing/graphics`.
 
-When `CARGO_TARGET_DIR` is unset, Cargo writes the HTML output to `target/x86_64-unknown-linux-gnu/doc/xila/index.html`, relative to the Core repository root. The website stages this output into `dist/rustdoc/host/` with `npm run docs:rustdoc` (`mise run documentation:rustdoc` in the website repository). See `scripts/build-rustdoc.mjs` and `mise.toml`.
+When `CARGO_TARGET_DIR` is unset, Cargo writes the HTML output to `target/x86_64-unknown-linux-gnu/doc/xila/index.html`, relative to the Core repository root. The website stages this output into `public/api/host/`, published under `/api/host/`, with `npm run docs:rustdoc` (`mise run documentation:rustdoc` in the website repository). The API reference page shows these pages in a frame under the site header. See `scripts/build-rustdoc.mjs` and `mise.toml`.
 
 For the complete list of development tasks, see [Development commands](/reference/development-commands/).
 

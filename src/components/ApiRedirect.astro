@@ -1,0 +1,21 @@
+---
+/*
+ * Sends links of the former embedded API viewer,
+ * `/reference/<architecture>/?path=<rustdoc path>`, to the frame page of the
+ * site that shows the API page, `/reference/api/?path=<architecture>/<path>`.
+ * The script is inline so that it runs before the page is painted.
+ */
+import { getApiFrameHref } from "../../scripts/reference-path.mjs";
+
+interface Props {
+  architecture: "host" | "guest";
+}
+
+const { architecture } = Astro.props;
+if (architecture !== "host" && architecture !== "guest")
+  throw new Error(`Unsupported API architecture: ${architecture}`);
+
+const script = `{const href=(${getApiFrameHref})(${JSON.stringify(architecture)},new URLSearchParams(location.search).get("path"));if(href)location.replace(href);}`;
+---
+
+<script is:inline set:html={script} />

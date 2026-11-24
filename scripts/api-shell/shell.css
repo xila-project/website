@@ -1,0 +1,100 @@
+/*
+ * The style sheet that the build adds to every rustdoc page: the site palette
+ * and typeface applied to rustdoc. Rustdoc sets `data-theme` on the root
+ * element to "light", "dark" or "ayu". The "ayu" theme is left as rustdoc
+ * draws it.
+ *
+ * The neutral colours are those of starlight-theme-black (Tailwind neutral
+ * scale). The colours of item kinds (types, traits, functions, macros) and
+ * of syntax highlighting are kept: they tell the item kinds apart.
+ */
+
+:root {
+  --xila-font: "Montserrat", Arial, Helvetica, sans-serif;
+}
+
+:root[data-theme="light"],
+:root:not([data-theme]) {
+  --xila-foreground: oklch(14.5% 0 0);
+  --xila-background: oklch(100% 0 0);
+  --xila-muted: oklch(97% 0 0);
+  --xila-hover: oklch(92.2% 0 0);
+  --xila-border: oklch(87% 0 0);
+  --xila-muted-foreground: oklch(55.6% 0 0);
+}
+
+:root[data-theme="dark"] {
+  --xila-foreground: oklch(98.5% 0 0);
+  --xila-background: oklch(14.5% 0 0);
+  --xila-muted: oklch(20.5% 0 0);
+  --xila-hover: oklch(26.9% 0 0);
+  --xila-border: oklch(26.9% 0 0);
+  --xila-muted-foreground: oklch(70.8% 0 0);
+}
+
+:root[data-theme="ayu"] {
+  --xila-foreground: var(--main-color);
+  --xila-background: var(--main-background-color);
+  --xila-border: var(--border-color);
+}
+
+:root:root[data-theme="light"],
+:root:root:not([data-theme]),
+:root:root[data-theme="dark"] {
+  --main-background-color: var(--xila-background);
+  --main-color: var(--xila-foreground);
+  --sidebar-background-color: var(--xila-muted);
+  --sidebar-background-color-hover: var(--xila-hover);
+  --sidebar-border-color: var(--xila-border);
+  --sidebar-current-link-background-color: var(--xila-background);
+  --sidebar-link-color: var(--xila-foreground);
+  --border-color: var(--xila-border);
+  --headings-border-bottom-color: var(--xila-border);
+  --code-block-background-color: var(--xila-muted);
+  --codeblock-link-background: var(--xila-hover);
+  --table-alt-row-background-color: var(--xila-muted);
+  --button-background-color: var(--xila-background);
+  --right-side-color: var(--xila-muted-foreground);
+  --link-color: var(--xila-foreground);
+  --mod-link-color: var(--xila-foreground);
+  --settings-input-color: var(--xila-foreground);
+  --settings-input-border-color: var(--xila-muted-foreground);
+  --settings-button-border-focus: var(--xila-foreground);
+  --search-input-focused-border-color: var(--xila-foreground);
+  --search-result-link-focus-background-color: var(--xila-hover);
+  --search-error-code-background-color: var(--xila-hover);
+  --search-tab-button-not-selected-background: var(--xila-muted);
+  --search-tab-button-not-selected-border-top-color: var(--xila-muted);
+  --search-tab-button-selected-background: var(--xila-background);
+  --search-tab-button-selected-border-top-color: var(--xila-foreground);
+  --src-sidebar-background-selected: var(--xila-background);
+  --src-sidebar-background-hover: var(--xila-hover);
+  --target-background-color: var(--xila-muted);
+  --target-border-color: var(--xila-foreground);
+  --sidebar-resizer-hover: var(--xila-muted-foreground);
+  --sidebar-resizer-active: var(--xila-foreground);
+  --scrollbar-color: var(--xila-border) transparent;
+}
+
+/* Headings and navigation use the site typeface; code stays monospace. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.sidebar,
+rustdoc-topbar,
+.rustdoc-breadcrumbs,
+.sub-heading,
+rustdoc-toolbar,
+.search-switcher,
+#search-tabs {
+  font-family: var(--xila-font);
+}
+
+/* Montserrat is wider than rustdoc's font: keep the toolbar labels on one line. */
+rustdoc-toolbar .label,
+#toggle-all-docs {
+  white-space: nowrap;
+}

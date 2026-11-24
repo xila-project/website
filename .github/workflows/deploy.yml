@@ -63,12 +63,14 @@ jobs:
       - name: "Publish | Configure Pages"
         uses: actions/configure-pages@v6
 
-      - name: "Build | Validate documentation"
-        run: mise exec -- npm run check
+      # Rustdoc is staged in public/api/ before the site build, which copies
+      # it into dist/api/ and validates the links to it.
       - name: "Build | Generate Host and Guest Rustdoc"
         env:
           XILA_STRICT_RUSTDOC: "1"
         run: mise run documentation:rustdoc
+      - name: "Build | Validate documentation"
+        run: mise exec -- npm run check
       - name: "Publish | Upload Pages artifact"
         uses: actions/upload-pages-artifact@v5
         with:

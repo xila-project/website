@@ -3,4 +3,5 @@ node_modules/
 dist/
 .reference-checkouts/
 target/
+public/api/
 public/d2/

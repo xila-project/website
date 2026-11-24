@@ -17,6 +17,10 @@ function writeFile(file, contents) {
   fs.writeFileSync(file, contents);
 }
 
+// The smallest page that the shell recognises as rustdoc output.
+const page = (name) =>
+  `<html><head><meta charset="utf-8"><meta name="rustdoc-vars"></head><body>${name}</body></html>`;
+
 // Point both checkouts at missing directories so the fixture never picks up a
 // real sibling checkout of Core or Applications.
 function missingCheckouts(root) {
@@ -30,8 +34,8 @@ test("stages prebuilt host and guest Rustdoc into separate directories", (t) => 
   const root = createRoot(t);
   const host = path.join(root, "host-doc");
   const guest = path.join(root, "guest-doc");
-  writeFile(path.join(host, "xila", "index.html"), "host");
-  writeFile(path.join(guest, "wasm", "index.html"), "guest");
+  writeFile(path.join(host, "xila", "index.html"), page("host"));
+  writeFile(path.join(guest, "wasm", "index.html"), page("guest"));
   const output = path.join(root, "dist", "rustdoc");
   writeFile(path.join(output, "host", "stale.html"), "stale");
 
@@ -46,13 +50,13 @@ test("stages prebuilt host and guest Rustdoc into separate directories", (t) => 
   });
 
   assert.deepEqual(result, { host: "copied", guest: "copied" });
-  assert.equal(
+  assert.match(
     fs.readFileSync(path.join(output, "host", "xila", "index.html"), "utf8"),
-    "host",
+    /<script src="\/api\/xila-shell\/shell\.js"><\/script>.*>host<\/body>/,
   );
-  assert.equal(
+  assert.match(
     fs.readFileSync(path.join(output, "guest", "wasm", "index.html"), "utf8"),
-    "guest",
+    /<script src="\/api\/xila-shell\/shell\.js"><\/script>.*>guest<\/body>/,
   );
   assert.equal(fs.existsSync(path.join(output, "host", "stale.html")), false);
 });
