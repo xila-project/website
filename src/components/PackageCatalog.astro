@@ -12,8 +12,9 @@ import { Icon } from "@astrojs/starlight/components";
     >
       registry.xila.dev
     </a>
-    . This catalog is for browsing and does not verify signatures; devices
-    verify repository, developer, and archive signatures at install time.
+    . This catalog does not verify signatures. The
+    <code>package</code> command on the device verifies the registry and the
+    package signatures before it installs a package.
   </p>
 
   <section class="catalog-list-view" data-list-view>
@@ -83,6 +84,11 @@ import { Icon } from "@astrojs/starlight/components";
       </button>
     </div>
 
+    <details class="catalog-warning" data-skipped-state hidden>
+      <summary data-skipped-summary></summary>
+      <ul data-skipped-list></ul>
+    </details>
+
     <div class="catalog-empty" data-empty-state hidden>
       <p>No packages match the current search and filter selection.</p>
       <button
@@ -148,6 +154,13 @@ import { Icon } from "@astrojs/starlight/components";
       "[data-empty-clear-button]",
     );
     const grid = root.querySelector<HTMLElement>("[data-package-grid]");
+    const skippedState = root.querySelector<HTMLDetailsElement>(
+      "[data-skipped-state]",
+    );
+    const skippedSummary = root.querySelector<HTMLElement>(
+      "[data-skipped-summary]",
+    );
+    const skippedList = root.querySelector<HTMLElement>("[data-skipped-list]");
 
     if (
       !listView ||
@@ -163,7 +176,10 @@ import { Icon } from "@astrojs/starlight/components";
       !retryButton ||
       !emptyState ||
       !emptyClearButton ||
-      !grid
+      !grid ||
+      !skippedState ||
+      !skippedSummary ||
+      !skippedList
     ) {
       continue;
     }
@@ -226,6 +242,7 @@ import { Icon } from "@astrojs/starlight/components";
       isLatest = true,
       push = true,
     ) => {
+      const previousPackage = selectedState.packageName;
       selectedState = { packageName, version };
       const nextUrl = buildCatalogUrl(
         window.location.pathname,
@@ -237,8 +254,18 @@ import { Icon } from "@astrojs/starlight/components";
         window.history.pushState(selectedState, "", nextUrl);
       }
       render();
+      // Move the focus into the view that replaced the activated control, so
+      // that keyboard and screen reader users continue from there.
       if (packageName) {
         window.scrollTo({ top: 0 });
+        detailView
+          .querySelector<HTMLElement>("[data-detail-heading]")
+          ?.focus({ preventScroll: true });
+      } else {
+        const card = [
+          ...grid.querySelectorAll<HTMLElement>("[data-package-name]"),
+        ].find((element) => element.dataset.packageName === previousPackage);
+        (card ?? queryInput).focus();
       }
     };
 
@@ -254,6 +281,7 @@ import { Icon } from "@astrojs/starlight/components";
         pkg.displayName,
       );
       titleLink.href = buildCatalogUrl(window.location.pathname, pkg.name);
+      titleLink.dataset.packageName = pkg.name;
       titleLink.addEventListener("click", (event) => {
         if (
           event.metaKey ||
@@ -352,7 +380,11 @@ import { Icon } from "@astrojs/starlight/components";
         visible.length === totalCount
           ? `${totalCount} ${totalCount === 1 ? "package" : "packages"}`
           : `${visible.length} of ${totalCount} packages`;
-      statusText.textContent = `${countText} · Registry index v${catalog.index.version}`;
+      // The index version is its signing time in Unix seconds.
+      const indexDate = new Date(catalog.index.version * 1000)
+        .toISOString()
+        .slice(0, 10);
+      statusText.textContent = `${countText} · Registry index of ${indexDate}`;
 
       if (visible.length === 0) {
         grid.hidden = true;
@@ -416,6 +448,8 @@ import { Icon } from "@astrojs/starlight/components";
       const header = createElement("div", "detail-header");
       const titleWrap = createElement("div", "detail-title-wrap");
       const title = createElement("h2", "detail-title", pkg.displayName);
+      title.tabIndex = -1;
+      title.dataset.detailHeading = "";
       const idBadge = createElement("code", "package-id", pkg.name);
       titleWrap.append(title, idBadge);
 
@@ -475,7 +509,15 @@ import { Icon } from "@astrojs/starlight/components";
       const installNote = createElement(
         "p",
         "detail-note",
-        "Run in the Xila shell as root. Seeded images configure the official xila repository; on an unconfigured disk, run package repository add xila https://registry.xila.dev first.",
+        "Run the command in the Xila shell as root or as a member of the administrator group. Seeded images configure the official xila repository. On a device without it, run ",
+      );
+      installNote.append(
+        createElement(
+          "code",
+          undefined,
+          "package repository add xila https://registry.xila.dev",
+        ),
+        document.createTextNode(" first."),
       );
       installSection.append(commandRow, installNote);
       detailView.append(installSection);
@@ -640,6 +682,7 @@ import { Icon } from "@astrojs/starlight/components";
 
       loadingState.hidden = false;
       errorState.hidden = true;
+      skippedState.hidden = true;
       emptyState.hidden = true;
       grid.hidden = true;
       detailView.hidden = true;
@@ -659,6 +702,22 @@ import { Icon } from "@astrojs/starlight/components";
           ...new Set(catalog.entries.map((entry) => entry.publisher)),
         ].sort((a, b) => a.localeCompare(b, "en"));
 
+        const skipped = catalog.skippedEntries;
+        skippedState.hidden = skipped.length === 0;
+        skippedSummary.textContent = `${skipped.length} registry ${
+          skipped.length === 1 ? "entry is" : "entries are"
+        } not shown because ${skipped.length === 1 ? "it" : "they"} could not be loaded or read.`;
+        skippedList.replaceChildren(
+          ...skipped.map(({ entryPath, reason }) => {
+            const item = createElement("li");
+            item.append(
+              createElement("code", undefined, entryPath),
+              document.createTextNode(`: ${reason}`),
+            );
+            return item;
+          }),
+        );
+
         populateSelect(targetSelect, targets, "All targets");
         populateSelect(publisherSelect, publishers, "All publishers");
 
@@ -671,8 +730,9 @@ import { Icon } from "@astrojs/starlight/components";
         loadingState.hidden = true;
         errorState.hidden = false;
         statusText.textContent = "Failed to load registry.";
-        errorMessage.textContent =
-          error instanceof Error ? error.message : String(error);
+        errorMessage.textContent = `Check the network connection, then retry. Details: ${
+          error instanceof Error ? error.message : String(error)
+        }`;
       }
     };
 
@@ -800,7 +860,7 @@ import { Icon } from "@astrojs/starlight/components";
     color: var(--foreground);
   }
 
-  .package-catalog :is(input, select, button, a):focus-visible {
+  .package-catalog :is(input, select, button, a, summary):focus-visible {
     outline: 2px solid var(--foreground);
     outline-offset: 2px;
   }
@@ -914,6 +974,30 @@ import { Icon } from "@astrojs/starlight/components";
     border-radius: var(--radius);
     background-color: var(--sl-color-red-low);
     color: var(--sl-color-red-high);
+  }
+
+  /* The heading receives the focus only to move the reading position. */
+  .detail-title:focus {
+    outline: none;
+  }
+
+  .catalog-warning {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--sl-color-orange);
+    border-radius: var(--radius);
+    background-color: var(--sl-color-orange-low);
+    color: var(--sl-color-orange-high);
+    font-size: 0.875rem;
+  }
+
+  .catalog-warning summary {
+    cursor: pointer;
+  }
+
+  .catalog-warning ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+    overflow-wrap: anywhere;
   }
 
   .alert-copy {
