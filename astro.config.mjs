@@ -1,5 +1,6 @@
 import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
 import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
+import { remarkLikeC4 } from "./scripts/remark-likec4.mjs";
 import { remarkMermaidStatic } from "./scripts/remark-mermaid-static.mjs";
 import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
 import { rehypeMermaidStatic } from "./scripts/rehype-mermaid-static.mjs";
@@ -155,7 +156,12 @@ export default defineConfig({
   site: "https://www.xila.dev",
   trailingSlash: "ignore",
   markdown: {
-    remarkPlugins: [remarkMermaid, remarkMermaidStatic, remarkD2Preamble],
+    remarkPlugins: [
+      remarkMermaid,
+      remarkMermaidStatic,
+      remarkD2Preamble,
+      remarkLikeC4,
+    ],
     rehypePlugins: [
       [
         rehypeMermaidStatic,
@@ -168,6 +174,33 @@ export default defineConfig({
             theme: "base",
             fontFamily: "Montserrat, Arial, Helvetica, sans-serif",
             securityLevel: "strict",
+            // Mermaid C4 diagrams measure their text with their own fonts.
+            c4: {
+              c4ShapeMargin: 40,
+              personFontFamily: "Montserrat",
+              external_personFontFamily: "Montserrat",
+              systemFontFamily: "Montserrat",
+              external_systemFontFamily: "Montserrat",
+              system_dbFontFamily: "Montserrat",
+              external_system_dbFontFamily: "Montserrat",
+              system_queueFontFamily: "Montserrat",
+              external_system_queueFontFamily: "Montserrat",
+              containerFontFamily: "Montserrat",
+              external_containerFontFamily: "Montserrat",
+              container_dbFontFamily: "Montserrat",
+              external_container_dbFontFamily: "Montserrat",
+              container_queueFontFamily: "Montserrat",
+              external_container_queueFontFamily: "Montserrat",
+              componentFontFamily: "Montserrat",
+              external_componentFontFamily: "Montserrat",
+              component_dbFontFamily: "Montserrat",
+              external_component_dbFontFamily: "Montserrat",
+              component_queueFontFamily: "Montserrat",
+              external_component_queueFontFamily: "Montserrat",
+              boundaryFontFamily: "Montserrat",
+              messageFontFamily: "Montserrat",
+              messageFontSize: 12,
+            },
             flowchart: {
               curve: "linear",
               padding: 12,

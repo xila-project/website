@@ -1,0 +1,35 @@
+{
+  "$schema": "https://likec4.dev/schemas/config.json",
+  "name": "xila",
+  "styles": {
+    "defaults": {
+      "view": {
+        "routing": "spline"
+      }
+    },
+    "theme": {
+      "sizes": {
+        "xs": {
+          "width": 160,
+          "height": 60
+        },
+        "sm": {
+          "width": 200,
+          "height": 80
+        },
+        "md": {
+          "width": 240,
+          "height": 96
+        },
+        "lg": {
+          "width": 300,
+          "height": 120
+        },
+        "xl": {
+          "width": 360,
+          "height": 140
+        }
+      }
+    }
+  }
+}

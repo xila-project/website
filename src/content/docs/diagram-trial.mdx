@@ -342,3 +342,259 @@ package.signature -> package.hashes
 </div>
 </section>
 </div>
+
+## Round 2: C4 views from one model
+
+The views below come from one LikeC4 model, `src/diagrams/model/xila.c4`. Names and relationships come from the code of the workspace submodules (revisions in the header of the model file). Each view sits in a mock documentation section, the way it would appear in a real page.
+
+LikeC4 reads the model and computes the layout at build time. LikeC4 draws a view only in the browser, with React. This trial draws the computed layout as static SVG with `scripts/likec4-svg.mjs`, so a reader needs no JavaScript. The same style sheet themes it. Mermaid has its own C4 diagram types (`C4Context`, `C4Container`, `C4Dynamic`). The first section compares both, and the D2 version of round 1.
+
+What the style sheet can theme, by renderer:
+
+|                                                              | LikeC4 (static SVG of this trial) | Mermaid C4                                                                                                          | D2                      |
+| ------------------------------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Colours, strokes, fonts from the theme variables             | Yes                               | Only with `UpdateElementStyle` and `UpdateRelStyle` on every element and relationship, with CSS variables as values | Yes                     |
+| Light and dark from one render                               | Yes                               | Yes, with those calls                                                                                               | Yes                     |
+| Square corners                                               | Yes                               | No: the radius is an inline `!important` style                                                                      | Yes                     |
+| Own shape for each kind of element (hexagon, document, oval) | Yes, in the drawing script        | No: person, system, container, component, database, queue                                                           | Yes, 20 built-in shapes |
+| Orthogonal or curved routes                                  | Both, from the layout             | Straight lines                                                                                                      | Orthogonal with ELK     |
+| Layout quality                                               | Good (Graphviz)                   | Poor: fixed grid, labels overlap                                                                                    | Good (ELK)              |
+
+### Repository layering
+
+Xila is split across six repositories. Each arrow points from a repository to a repository it depends on, as the Cargo manifests declare. Core and package_manager depend on no other Xila repository. The registry holds signed metadata and no code. Platforms is the integration point.
+
+<div className="diagram-trial-options">
+<section>
+
+LikeC4, static SVG
+
+<div className="diagram">
+
+```likec4 view="repositories"
+
+```
+
+</div>
+</section>
+<section>
+
+Mermaid C4, build time
+
+<div className="diagram">
+
+```mermaid-static
+C4Context
+    accTitle: Repository layering
+    accDescr: Platforms depends on Applications, Core, package_manager and tools. Applications and tools depend on Core and package_manager. Core and package_manager depend on no other Xila repository. The registry holds signed metadata and has no dependency.
+    System(platforms, "Platforms", "Target drivers, examples and firmware")
+    System(applications, "Applications", "Executables, guest API and the package installer")
+    System(tools, "tools", "The xila command line and the image engine")
+    System(core, "Core", "Kernel subsystems and reusable libraries")
+    System(package_manager, "package_manager", "Package format, signing and verification")
+    SystemDb(registry, "registry", "Signed metadata of published packages")
+
+    Rel(platforms, applications, " ")
+    Rel(platforms, tools, " ")
+    Rel(platforms, core, " ")
+    Rel(platforms, package_manager, " ")
+    Rel(applications, core, " ")
+    Rel(applications, package_manager, " ")
+    Rel(tools, core, " ")
+    Rel(tools, package_manager, " ")
+    UpdateElementStyle(platforms, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(applications, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(tools, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(core, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(package_manager, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(registry, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateRelStyle(platforms, applications, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(platforms, tools, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(platforms, core, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(platforms, package_manager, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(applications, core, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(applications, package_manager, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(tools, core, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(tools, package_manager, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+</div>
+</section>
+<section>
+
+D2, build time
+
+<div className="diagram">
+
+```d2 title="Repository layering"
+direction: down
+
+platforms: "Platforms\n(drivers, target assembly)" { class: focus }
+applications: "Applications\n(executables, guest API)" { class: component }
+tools: "tools\n(command line, image engine)" { class: component }
+leaf: No dependency on another Xila repository { class: boundary
+  core: "Core\n(subsystems and libraries)" { class: component }
+  package_manager: "package_manager\n(leaf packaging logic)" { class: component }
+}
+registry: "registry\n(signed metadata)" { class: stored }
+
+platforms -> applications
+platforms -> tools
+platforms -> leaf.core
+platforms -> leaf.package_manager
+applications -> leaf.core
+applications -> leaf.package_manager
+tools -> leaf.core
+tools -> leaf.package_manager
+```
+
+</div>
+</section>
+</div>
+
+### Core subsystems
+
+Core subsystems own runtime state. The virtual file system sits in the middle: graphics, network and lifecycle build on it, and it builds on the file system library, the task, time, users and log subsystems. The diagram shows the dependencies that the Cargo manifests of the Core crates declare. It leaves out the other dependencies between these crates, to stay legible.
+
+<div className="diagram">
+
+```likec4 view="subsystems"
+
+```
+
+</div>
+
+### Mounting the root file system
+
+On a desktop, the native example opens a disk image file as a block device. The Little FS library reads the partition table and mounts the Xila partition. The virtual file system takes the result as its root file system. Steps 1 and 5 are calls of the entry point, steps 3 and 4 happen inside `mount_disk`. The numbers give the order in `platforms/examples/native/src/main.rs`. The Nano 33 BLE firmware does the same with its internal flash instead of a disk image. The repository has no SD card driver, so this section shows the two block devices that exist.
+
+<div className="diagram-trial-options">
+<section>
+
+LikeC4, static SVG
+
+<div className="diagram">
+
+```likec4 view="mounting"
+
+```
+
+</div>
+</section>
+<section>
+
+Mermaid C4, build time
+
+<div className="diagram">
+
+```mermaid-static
+C4Dynamic
+    accTitle: Mounting the root file system
+    accDescr: The native example opens the disk image, calls mount_disk of Little FS, which reads the partition table with the File system library and reads the blocks of the partition. The native example then initializes the virtual file system with the file system as root and mounts the memory file system at /devices.
+    ContainerDb(disk_image, "Disk image file", "host file", "Block device of the native example")
+    Container(native_example, "Native example", "Platforms", "Entry point on a desktop")
+    Container(little_fs, "Little FS", "Core", "File system on littlefs")
+    Container(file_system, "File system", "Core", "Contracts, block devices, MBR")
+    Container(vfs, "Virtual file system", "Core", "One path namespace")
+    Container(memory_file_system, "Memory file system", "Core", "")
+
+    Rel(native_example, disk_image, "opens the disk image")
+    Rel(native_example, little_fs, "mount_disk(drive)")
+    Rel(little_fs, file_system, "reads the MBR, builds the partition")
+    Rel(little_fs, disk_image, "reads blocks")
+    Rel(native_example, vfs, "initialize with the root file system")
+    Rel(native_example, memory_file_system, "mounts it at /devices")
+    UpdateElementStyle(disk_image, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(native_example, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(little_fs, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(file_system, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(vfs, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(memory_file_system, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateRelStyle(native_example, disk_image, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(native_example, little_fs, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(little_fs, file_system, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(little_fs, disk_image, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(native_example, vfs, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(native_example, memory_file_system, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+</div>
+</section>
+</div>
+
+### Installing a package
+
+The `package` executable installs a package from a repository. The device pins the root key of the repository. The HTTPS client does not authenticate the server, so nothing that the installer fetches is trusted on its own. The installer verifies each file from the root key, then checks the archive size and SHA-256 digest, stages the files and renames them into `/applications`. The numbers give the order of the steps in `applications/executables/package/src/repository.rs`.
+
+<div className="diagram-trial-options">
+<section>
+
+LikeC4, static SVG
+
+<div className="diagram">
+
+```likec4 view="installing"
+
+```
+
+</div>
+</section>
+<section>
+
+Mermaid C4, build time
+
+<div className="diagram">
+
+```mermaid-static
+C4Dynamic
+    accTitle: Installing a package
+    accDescr: The package installer reads the pinned root key, fetches root.json, index.json, the registry entry and the developer key file from the registry, verifies each one, downloads the archive from the project release, then verifies it, stages it and renames it into the applications directory.
+    Container(package, "Package installer", "Applications", "Installs packages from repositories")
+    Container(vfs, "Virtual file system", "Core", "")
+    ContainerDb(root_record, "root.json", "registry", "")
+    ContainerDb(index_record, "index.json", "registry", "")
+    ContainerDb(entry_record, "Registry entry", "registry", "")
+    ContainerDb(developer_record, "Developer key file", "registry", "")
+    ContainerDb(release, "Project release", "GitHub release", "Hosts the package archive")
+
+    Rel(package, vfs, "reads the repository and its pinned root key")
+    Rel(package, root_record, "fetches root.json and its signature")
+    Rel(package, index_record, "fetches index.json and its signature")
+    Rel(package, entry_record, "fetches the entry, checks it")
+    Rel(package, developer_record, "fetches the developer key, checks it")
+    Rel(package, release, "downloads the archive")
+    Rel(package, vfs, "verifies, stages, renames")
+    UpdateElementStyle(package, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(vfs, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(root_record, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(index_record, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(entry_record, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(developer_record, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateElementStyle(release, $bgColor="var(--background)", $fontColor="var(--foreground)", $borderColor="var(--foreground)")
+    UpdateRelStyle(package, vfs, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, root_record, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, index_record, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, entry_record, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, developer_record, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, release, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateRelStyle(package, vfs, $textColor="var(--foreground)", $lineColor="var(--foreground)")
+    UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+</div>
+</section>
+</div>
+
+### Package trust chain
+
+Three roles, each with its own Ed25519 key. The root key stays offline and signs `root.json`, which names the repository keys. The repository key signs the index, every registry entry and every developer key file. The developer key signs the package manifest. The device pins the root key and verifies the chain down to the file hashes. A thick arrow means that one object signs another.
+
+<div className="diagram">
+
+```likec4 view="trust"
+
+```
+
+</div>

@@ -19,7 +19,9 @@ export function rehypeDiagramSvg() {
         if ((isD2 || isMermaid) && viewBox.length === 4) {
           node.properties.width = String(Math.ceil(Number(viewBox[2])));
           node.properties.height = String(Math.ceil(Number(viewBox[3])));
-          delete node.properties.style;
+          // The style sheet uses the natural width to scale a wide diagram
+          // on a narrow screen. Mermaid writes its own maximum width.
+          node.properties.style = `--diagram-width:${node.properties.width}px`;
         }
       }
       if (node.type === "element" && node.tagName === "style") {

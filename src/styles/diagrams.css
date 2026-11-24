@@ -37,11 +37,18 @@
   margin-inline: auto;
 }
 
-/* On a narrow screen a wide diagram scrolls instead of shrinking its text. */
+/*
+ * On a narrow screen a wide diagram keeps at least 75 percent of its natural
+ * size, so that its text stays legible, and the container scrolls sideways.
+ */
 @media (max-width: 50rem) {
   .diagram svg {
     max-width: none;
     margin-inline: 0;
+    width: min(
+      var(--diagram-width, 100%),
+      max(100%, calc(var(--diagram-width, 100%) * 0.75))
+    );
   }
 }
 
@@ -190,6 +197,89 @@
 .diagram svg[id^="mermaid"] .edgeLabel rect {
   fill: var(--diagram-fill) !important;
   opacity: 1 !important;
+}
+
+/* ---- LikeC4 (drawn by scripts/likec4-svg.mjs) ---- */
+
+.diagram .likec4-svg text {
+  fill: var(--diagram-stroke);
+  font-family: var(--sl-font);
+}
+
+.diagram .likec4-svg .outline {
+  fill: var(--diagram-fill);
+  stroke: var(--diagram-stroke);
+  stroke-width: var(--diagram-thin);
+}
+
+.diagram .likec4-svg .frame .outline {
+  fill: transparent;
+}
+
+.diagram .likec4-svg .frame.boundary .outline {
+  stroke-dasharray: 4;
+}
+
+.diagram .likec4-svg .frame-title,
+.diagram .likec4-svg .technology,
+.diagram .likec4-svg .description,
+.diagram .likec4-svg .label {
+  fill: var(--diagram-muted);
+}
+
+.diagram .likec4-svg .title {
+  font-weight: 600;
+}
+
+.diagram .likec4-svg .focus .outline {
+  fill: var(--diagram-stroke);
+}
+
+.diagram .likec4-svg .focus text {
+  fill: var(--diagram-fill);
+}
+
+.diagram .likec4-svg .focus .technology,
+.diagram .likec4-svg .focus .description {
+  fill: var(--diagram-fill);
+  opacity: 0.75;
+}
+
+.diagram .likec4-svg .line {
+  fill: none;
+  stroke: var(--diagram-stroke);
+  stroke-width: var(--diagram-thin);
+}
+
+.diagram .likec4-svg .signs .line {
+  stroke-width: var(--diagram-thick);
+}
+
+.diagram .likec4-svg .returns .line {
+  stroke-dasharray: 3;
+}
+
+.diagram .likec4-svg .lifeline {
+  stroke: var(--diagram-muted);
+  stroke-dasharray: 3 4;
+  stroke-width: var(--diagram-thin);
+}
+
+.diagram .likec4-svg .arrow path {
+  fill: var(--diagram-stroke);
+}
+
+.diagram .likec4-svg .label-background {
+  fill: var(--diagram-fill);
+}
+
+.diagram .likec4-svg .badge {
+  fill: var(--diagram-stroke);
+}
+
+.diagram .likec4-svg .badge-number {
+  fill: var(--diagram-fill);
+  font-weight: 600;
 }
 
 /* ---- Trial page layout ---- */

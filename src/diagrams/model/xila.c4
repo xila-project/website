@@ -1,0 +1,343 @@
+// Model of Xila for the documentation diagrams.
+//
+// Names and relationships come from the code at these revisions of the
+// workspace submodules: core 3615823, applications 7af96c8, platforms
+// ed24277, package_manager 00fa5bf, registry 3e22a30, tools b95be23.
+//
+// - Repository relationships: the `[dependencies]` of each Cargo.toml.
+// - Core relationships: the `[dependencies]` of each Core crate (`cargo
+//   metadata` reports the same edges).
+// - Mounting: platforms/examples/native/src/main.rs and
+//   core/libraries/little_fs/src/file_system.rs (`mount_disk`).
+// - Installing: applications/executables/package/src/repository.rs and
+//   install.rs.
+// - Trust: package_manager/crates/manifest/src/trust.rs.
+
+specification {
+  // Software
+  element repository
+  element subsystem {
+    style {
+      size small
+    }
+  }
+  element library {
+    style {
+      size small
+    }
+  }
+  element executable
+  element application
+  element driver
+  // Things outside the software
+  element hardware
+  element storage
+  element record {
+    style {
+      size small
+    }
+  }
+  element key {
+    style {
+      size small
+    }
+  }
+
+  relationship depends
+  relationship signs
+  relationship returns
+}
+
+model {
+  // ---- Repositories ----------------------------------------------------
+
+  core = repository 'Core' {
+    description 'Kernel subsystems and reusable libraries'
+    technology 'Rust workspace'
+
+    // Subsystems (core/subsystems): own runtime state.
+    task = subsystem 'Task' {
+      description 'Cooperative tasks on Embassy spawners'
+    }
+    memory = subsystem 'Memory' {
+      description 'Allocator and memory accounting'
+    }
+    vfs = subsystem 'Virtual file system' {
+      description 'One path namespace for files, devices and pipes'
+    }
+    graphics = subsystem 'Graphics' {
+      description 'LVGL based user interface'
+    }
+    network = subsystem 'Network'
+    time = subsystem 'Time'
+    users = subsystem 'Users' {
+      description 'Users, groups and permissions'
+    }
+    log = subsystem 'Log'
+    lifecycle = subsystem 'Lifecycle'
+
+    // Libraries (core/libraries, core/devices).
+    file_system = library 'File system' {
+      description 'File system contracts, block devices, MBR'
+    }
+    little_fs = library 'Little FS' {
+      description 'File system on littlefs'
+    }
+    memory_file_system = library 'Memory file system'
+    authentication = library 'Authentication'
+    executable = library 'Executable'
+    http = library 'HTTP' {
+      description 'Bounded HTTP/1 framing'
+    }
+    device = library 'Device' {
+      description 'Device traits and typed control commands'
+    }
+
+    // Drivers of Core (core/drivers).
+    drivers_core = driver 'Core drivers'
+    drivers_peripherals = driver 'Peripheral drivers'
+  }
+
+  applications = repository 'Applications' {
+    description 'Executables, guest API and the package installer'
+    technology 'Rust workspace'
+
+    wasm = executable 'WebAssembly runtime' {
+      description 'Host that runs guest applications'
+      technology 'wasmi'
+    }
+    package = executable 'Package installer' {
+      description 'Installs packages from repositories'
+    }
+    shell = executable 'Shell'
+    calculator = application 'Calculator' {
+      technology 'wasm32-wasip1'
+    }
+    clock = application 'Clock' {
+      technology 'wasm32-wasip1'
+    }
+    pixel_painter = application 'Pixel Painter' {
+      technology 'wasm32-wasip1'
+    }
+  }
+
+  platforms = repository 'Platforms' {
+    description 'Target drivers, examples and firmware'
+    technology 'Rust workspace'
+    style {
+      // In the Xila theme, amber means the integration point: it is drawn
+      // as a filled rectangle.
+      color amber
+    }
+
+    drivers_std = driver 'Native drivers' {
+      description 'Disk image file, console, network'
+    }
+    drivers_nordic = driver 'Nordic drivers' {
+      description 'Internal flash, USB console'
+    }
+    drivers_espressif = driver 'Espressif drivers'
+    drivers_wasm = driver 'Browser drivers'
+    drivers_shared = driver 'Shared drivers' {
+      description 'HTTPS client, display, touch, terminal'
+    }
+    native_example = executable 'Native example' {
+      description 'Entry point on a desktop'
+    }
+    firmware_nano = executable 'Nano 33 BLE firmware' {
+      description 'Entry point on the board'
+    }
+  }
+
+  package_manager = repository 'package_manager' {
+    description 'Package format, signing and verification'
+    technology 'Rust workspace, no_std'
+
+    manifest = library 'Manifest' {
+      description 'Manifest, registry and trust formats'
+    }
+    verification = library 'Verification' {
+      description 'Signature and digest checks'
+    }
+    builder = library 'Builder'
+  }
+
+  registry = repository 'registry' {
+    description 'Signed metadata of published packages'
+    technology 'Git repository, no code'
+
+    root_record = record 'root.json' {
+      description 'Names the root and repository keys'
+    }
+    index_record = record 'index.json' {
+      description 'Lists every signed file'
+    }
+    entry_record = record 'Registry entry' {
+      description 'Version, publisher, archive digest and size'
+    }
+    developer_record = record 'Developer key file'
+  }
+
+  tools = repository 'tools' {
+    description 'The xila command line and the image engine'
+    technology 'Rust workspace'
+
+    image = library 'Image engine'
+  }
+
+  // ---- Things outside the repositories --------------------------------
+
+  root_key = key 'Root key' {
+    description 'Offline, pinned by the device'
+  }
+  repository_key = key 'Repository key' {
+    description 'Online, signs the registry'
+  }
+  developer_key = key 'Developer key' {
+    description 'Signs package manifests'
+  }
+
+  release = storage 'Project release' {
+    description 'Hosts the signed package archive'
+    technology 'GitHub release'
+  }
+  archive = record 'Package archive' {
+    description '.xpk: manifest, signature, files'
+  }
+
+  disk_image = storage 'Disk image file' {
+    description 'Block device of the native example'
+    technology 'host file'
+  }
+  internal_flash = hardware 'Internal flash' {
+    description 'Storage region of the board'
+    technology 'nRF52840'
+  }
+
+  // ---- Repository relationships ----------------------------------------
+  // From the Cargo manifests. Core and package_manager depend on no other
+  // Xila repository.
+
+  applications -[depends]-> core
+  applications -[depends]-> package_manager
+  platforms -[depends]-> core
+  platforms -[depends]-> applications
+  platforms -[depends]-> package_manager
+  platforms -[depends]-> tools
+  tools -[depends]-> core
+  tools -[depends]-> package_manager
+
+  // ---- Core relationships (Cargo dependencies) ------------------------
+
+  core.vfs -[depends]-> core.file_system
+  core.vfs -[depends]-> core.task
+  core.vfs -[depends]-> core.time
+  core.vfs -[depends]-> core.users
+  core.vfs -[depends]-> core.log
+  core.graphics -[depends]-> core.vfs
+  core.graphics -[depends]-> core.device
+  core.graphics -[depends]-> core.memory
+  core.graphics -[depends]-> core.task
+  core.graphics -[depends]-> core.time
+  core.graphics -[depends]-> core.log
+  core.network -[depends]-> core.vfs
+  core.network -[depends]-> core.device
+  core.network -[depends]-> core.task
+  core.network -[depends]-> core.time
+  core.network -[depends]-> core.users
+  core.network -[depends]-> core.log
+  core.lifecycle -[depends]-> core.vfs
+  core.lifecycle -[depends]-> core.device
+  core.lifecycle -[depends]-> core.task
+  core.lifecycle -[depends]-> core.time
+  core.task -[depends]-> core.users
+  core.time -[depends]-> core.file_system
+  core.time -[depends]-> core.log
+  core.file_system -[depends]-> core.task
+  core.file_system -[depends]-> core.users
+  core.little_fs -[depends]-> core.file_system
+  core.memory_file_system -[depends]-> core.file_system
+  core.device -[depends]-> core.file_system
+  core.drivers_core -[depends]-> core.file_system
+  core.drivers_core -[depends]-> core.network
+  core.drivers_peripherals -[depends]-> core.device
+  core.drivers_peripherals -[depends]-> core.vfs
+
+  // ---- Platforms --------------------------------------------------------
+
+  platforms.drivers_shared -[depends]-> core.device
+  platforms.drivers_shared -[depends]-> core.network
+  platforms.drivers_std -[depends]-> core.file_system
+
+  // ---- Trust chain ------------------------------------------------------
+  // Three roles, each with its own Ed25519 key (trust.rs).
+
+  root_key -[signs]-> registry.root_record
+  registry.root_record -[depends]-> repository_key 'names'
+  repository_key -[signs]-> registry.index_record
+  repository_key -[signs]-> registry.entry_record
+  repository_key -[signs]-> registry.developer_record
+  registry.entry_record -[depends]-> developer_key 'authorizes'
+  registry.developer_record -[depends]-> developer_key 'holds'
+  developer_key -[signs]-> archive 'manifest'
+  release -[depends]-> archive 'hosts'
+}
+
+views {
+  // ---- Repository layering ---------------------------------------------
+  view repositories {
+    title 'Repository layering'
+    include core, applications, platforms, package_manager, registry, tools
+  }
+
+  // ---- Core subsystems around the virtual file system ------------------
+  // The Cargo manifests declare more dependencies between these crates. The
+  // view keeps the ones that touch the virtual file system, to stay legible.
+  view subsystems {
+    title 'The virtual file system and its neighbours'
+    autoLayout LeftRight
+    include core, core.vfs, core.graphics, core.network, core.lifecycle,
+      core.file_system, core.task, core.time, core.users, core.log
+    exclude core.graphics -> core.task, core.graphics -> core.time,
+      core.graphics -> core.log, core.network -> core.task,
+      core.network -> core.time, core.network -> core.users,
+      core.network -> core.log, core.lifecycle -> core.task,
+      core.lifecycle -> core.time, core.task -> core.users,
+      core.time -> core.file_system, core.time -> core.log,
+      core.file_system -> core.task, core.file_system -> core.users
+  }
+
+  // ---- Mounting the root file system (native example) ------------------
+  dynamic view mounting {
+    title 'Mounting the root file system'
+    variant sequence
+
+    platforms.native_example -> disk_image 'opens the disk image (open_existing)'
+    platforms.native_example -> core.little_fs 'mount_disk(drive)'
+    core.little_fs -> core.file_system 'reads the MBR and builds the partition device'
+    core.little_fs -> disk_image 'reads the blocks of the partition'
+    platforms.native_example -> core.vfs 'initialize(..., file_system): the root file system'
+  }
+
+  // ---- Installing a package --------------------------------------------
+  dynamic view installing {
+    title 'Installing a package'
+    variant sequence
+
+    applications.package -> core.vfs 'reads the configured repository and its pinned root key'
+    applications.package -> registry 'fetches root.json and its signature, then verifies them from the root key'
+    applications.package -> registry 'fetches index.json and its signature, then verifies them'
+    applications.package -> registry 'fetches the registry entry and checks it against the index'
+    applications.package -> registry 'fetches the developer key file and checks it'
+    applications.package -> release 'downloads the archive'
+    applications.package -> core.vfs 'verifies size and SHA-256, stages, then renames into /applications'
+  }
+
+  // ---- Package trust chain ---------------------------------------------
+  view trust {
+    title 'Package trust chain'
+    include root_key, repository_key, developer_key, archive, registry,
+      registry.root_record, registry.index_record, registry.entry_record,
+      registry.developer_record
+  }
+}
