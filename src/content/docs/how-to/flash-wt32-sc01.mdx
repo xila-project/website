@@ -70,17 +70,15 @@ This guide flashes the ELF file. The merged image writes the whole flash from of
    ls -l /dev/serial/by-id/
    ```
 
-   The Plus has the USB identifier `303a:1001` (the USB Serial/JTAG controller of the chip). It is usually `/dev/ttyACM0`. The WT32-SC01 has a CP210x USB-to-UART bridge. It is usually `/dev/ttyUSB0`.
+   The Plus has the USB identifier `303a:1001` (the USB Serial/JTAG controller of the chip). Its link points to a `ttyACM` device. The WT32-SC01 has a CP210x USB-to-UART bridge. Its link points to a `ttyUSB` device.
 
-3. In the same shell, store the path of the port:
+3. In the same shell, store the `/dev/serial/by-id/` path of your board. Replace `BOARD-NAME` with the name of the link that points to your board:
 
    ```sh
-   export FLASH_PORT=/dev/ttyACM0
+   export FLASH_PORT=/dev/serial/by-id/BOARD-NAME
    ```
 
-   Use the path of your board. A path in `/dev/serial/by-id/` stays the same when other devices connect.
-
-Name the port in every `espflash` command. Other boards on the same computer can change their port numbers, so do not let `espflash` choose a port.
+Do not use `/dev/ttyACM0` or `/dev/ttyUSB0`. The `ttyACM` number of the Plus can change after you flash it, and other boards on the same computer can take a number. The `/dev/serial/by-id/` path stays the same. Name the port in every `espflash` command, so that `espflash` does not choose a port.
 
 ### Seed the storage
 
