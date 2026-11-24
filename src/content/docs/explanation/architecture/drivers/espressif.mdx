@@ -7,7 +7,7 @@ description: "The scope and current build limits of the Espressif driver source.
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Platforms `drivers_espressif` crate contains Espressif-specific source, including pin mappings for the ESP32 family chips.
+The Platforms `drivers_espressif` crate contains Espressif-specific source, including GPIO line tables for ESP32, ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2, ESP32-P4, ESP32-S2, ESP32-S3 and ESP32-S31.
 
 ## Context
 
@@ -17,9 +17,9 @@ This source is separate from the native and browser runtime drivers. Its crate i
 
 The chip source lists GPIO pin numbers and delegates mounting to shared pin code. The crate is gated out on host targets, so host builds do not exercise that code.
 
-The shared Espressif firmware mounts the GPIO controller on both WT32-SC01 boards. Each pin of the user connectors appears as `/devices/gpio/pin<number>`. The firmware withholds every pin that the board itself uses, so a device cannot reconfigure the display, touch panel, console, flash, microSD slot or RS-485 transceiver. The board READMEs list the exposed pins.
+The shared Espressif firmware mounts a GPIO device `/devices/gpio/pin<number>` for each connector pin that the board does not use itself. The WT32-SC01 exposes 12 pins of its two expansion connectors. The WT32-SC01 Plus exposes the six pins of its Extended IO connector. The firmware withholds every other pin, so a device cannot reconfigure the display, the touch panel, the console, the flash or the PSRAM of either board. On the WT32-SC01 Plus, the firmware also withholds the pins of the microSD slot and the RS-485 transceiver. The board READMEs list the exposed pins.
 
-On the WT32-SC01 Plus, a microSD card in the slot appears as the block device `/devices/storage/sd_card`. A card that holds LittleFS is mounted at `/media/sd_card`. The firmware never formats a card by itself: a root shell writes `erase` to `/configuration/system/format_sd_card` and reboots to format the card, or writes `test` to `/configuration/system/test_sd_card` to run a write and read-back test at the next boot.
+On the WT32-SC01 Plus, a microSD card in the slot appears as the block device `/devices/storage/sd_card`. A card that holds LittleFS is mounted at `/media/sd_card`. The firmware never formats a card by itself. A card that does not hold LittleFS stays unmounted. To format the card, a root shell writes `erase` to `/configuration/system/format_sd_card` and reboots. The next boot erases everything on the card and formats it with LittleFS. To run a write and read-back test of the mounted card, a root shell writes `test` to `/configuration/system/test_sd_card` and reboots. The firmware removes each request file at the next boot.
 
 ## Design choices and trade-offs
 
