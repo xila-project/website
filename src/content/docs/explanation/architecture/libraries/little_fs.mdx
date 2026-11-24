@@ -41,7 +41,7 @@ LittleFS issues synchronous C callbacks for media operations. The `callbacks` mo
 
 - `read_callback`: Translate `(block, offset)` into an absolute byte position (`block * block_size + offset`) and call `device.read_sync`.
 - `programm_callback`: Translate `(block, offset)` into an absolute byte position and call `device.write_sync`.
-- `erase_callback`: Compute the block start position and call `device.erase(position, block_size)`. If the device returns `Error::UnsupportedOperation`, for example on rewritable RAM or file-backed disks, the callback clears the sector with `write_pattern_sync(&[0x00], block_size, position)`.
+- `erase_callback`: Compute the block start position and call `device.erase(position, block_size)`. If the device returns `Error::UnsupportedOperation`, for example on rewritable RAM or file-backed disks, clear the sector with `write_pattern_sync(&[0x00], block_size, position)`.
 - `flush_callback`: Call `device.flush_sync` so buffered writes reach the hardware.
 
 The following flowchart illustrates how LittleFS callbacks interact with device contracts:

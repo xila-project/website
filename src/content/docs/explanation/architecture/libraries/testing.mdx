@@ -96,7 +96,7 @@ The initializer formats an in-memory LittleFS instance and creates the default d
 ## Design choices and trade-offs
 
 - Pure in-memory execution: LittleFS runs in memory and the display buffer is an offscreen bitmap. Tests run quickly, do not modify host files, and do not open host windows.
-- Deterministic tests: Core testing is decoupled from platform audio hardware, Wi-Fi adapters, and display servers.
+- Deterministic CI tests: Core tests do not depend on platform audio hardware, Wi-Fi adapters, or display servers.
 - Fast-fail assertions: `initialize` uses explicit assertions and unwraps. It reports misconfigurations immediately during test bootstrap.
 
 ## Limits

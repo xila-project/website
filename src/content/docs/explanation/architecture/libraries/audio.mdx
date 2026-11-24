@@ -66,7 +66,7 @@ The system mixes active streams to **48 kHz stereo interleaved F32**. It must be
 1. `open_stream()`: Reserve an input slot and return a `StreamHandle`.
 2. `open_output()`: Reserve an output sink and return an `OutputReservation`.
 3. `mix_next_block()`: Consume frames from all active streams. Mix them into a `MIX_FRAMES` buffer using `nanoaudio::Mixer` and copy the result to each registered output sink. Paused or empty streams contribute silence.
-4. If an output sink is full, drop the block and increment `dropped_blocks()`. Other sinks are not delayed.
+4. Drop the block and increment `dropped_blocks()` if an output sink is full. This does not delay other sinks.
 
 ### Virtual file system integration
 
