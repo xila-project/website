@@ -27,10 +27,14 @@ This guide shows how to publish a package version in the registry from your brow
 
 The workflow verifies the archive signature, generates the registry entry, validates the registry and opens a pull request that closes the issue. It comments one of these results:
 
-- **Published:** the publisher and its key are already registered, the key may publish the package identifier and kind, the version is new, and the archive is a GitHub release asset of the package's source repository. The workflow merged the pull request and published the registry. The version is at `https://registry.xila.dev/packages/<identifier, dots as />/<version>.json`.
-- **Waits for a maintainer review:** a new publisher, a new namespace, an archive outside the source repository, or another case that needs a person. The pull request is published after a maintainer merges it.
-- **Already in the registry:** published versions are immutable. Release a new version and submit it.
-- **Refused:** the comment quotes the error, for example a signature made by another key or a namespace that the key may not publish.
+- **Published:** The workflow merged the pull request and published the registry. The version is at `https://registry.xila.dev/packages/<identifier, dots as />/<version>.json`. This result needs all of these conditions:
+  - The publisher and its key are already registered.
+  - The key may publish the package identifier and the package kind.
+  - The version is new.
+  - The archive is a GitHub release asset of the package's source repository.
+- **Waits for a maintainer review:** The submission is a new publisher, a new namespace, an archive outside the source repository, or another case that needs a person. The registry publishes the version after a maintainer merges the pull request.
+- **Already in the registry:** Published versions are immutable. Release a new version and submit it.
+- **Refused:** The comment quotes the error, for example a signature made by another key or a namespace that the key may not publish.
 
 ## Troubleshooting
 
