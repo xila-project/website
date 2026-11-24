@@ -114,6 +114,22 @@ test("syncs the wrapper URL and title when framed", () => {
   assert.equal(calls.replaceState.length, 2);
 });
 
+test("opens links that leave the API in the top window", () => {
+  const { fire } = run({ framed: true });
+  const click = (href, target = "") => {
+    const url = new URL(href, "https://www.xila.dev/api/host/xila/index.html");
+    const link = { origin: url.origin, pathname: url.pathname, target };
+    fire("click", { target: { closest: () => link } });
+    return link.target;
+  };
+  assert.equal(click("https://doc.rust-lang.org/std/index.html"), "_top");
+  assert.equal(click("/reference/"), "_top");
+  assert.equal(click("../src/xila/lib.rs.html#1-10"), "");
+  assert.equal(click("../task/index.html"), "");
+  assert.equal(click("https://doc.rust-lang.org/", "_blank"), "_blank");
+  assert.doesNotThrow(() => fire("click", { target: { closest: () => null } }));
+});
+
 test("copies an explicit site theme to rustdoc", () => {
   const { storage } = run({ storage: { "starlight-theme": "dark" } });
   assert.equal(storage["rustdoc-use-system-theme"], "false");

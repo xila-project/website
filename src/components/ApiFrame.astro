@@ -43,6 +43,32 @@ import { getApiRootHref } from "../../scripts/reference-path.mjs";
   if (requested && !requested.includes("#")) requested += location.hash;
   frame.src =
     (requested && getApiFrameSource(requested)) || getApiRootHref("host");
+
+  // A page that is not an API page, for example the "not found" page of the
+  // site for a path that does not exist, opens in place of this page: in the
+  // frame it would show a second site header. A re-export page of rustdoc
+  // has no API script but redirects to its target with a refresh element.
+  // The script path follows SHELL_DIRECTORY of scripts/api-shell.mjs.
+  frame.addEventListener("load", () => {
+    let page;
+    try {
+      page = frame.contentWindow!.location;
+      if (page.href === "about:blank") return;
+      const document = frame.contentDocument!;
+      if (
+        page.pathname.startsWith("/api/") &&
+        document.querySelector(
+          'script[src$="/xila-shell/shell.js"], meta[http-equiv="refresh"]',
+        )
+      )
+        return;
+    } catch {
+      // A page of another origin: the API script sends its links to the
+      // top window, so only a typed or scripted address can lead here.
+      return;
+    }
+    location.replace(page.href);
+  });
 </script>
 
 <style>

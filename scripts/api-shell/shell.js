@@ -80,6 +80,23 @@
     sync();
     addEventListener("hashchange", sync);
     addEventListener("pageshow", sync);
+
+    // A link that leaves the API, for example to the standard library
+    // documentation, opens in the top window: in the frame, the address bar
+    // would keep the last API page.
+    addEventListener(
+      "click",
+      function (event) {
+        var link = event.target.closest && event.target.closest("a[href]");
+        if (!link || link.target) return;
+        if (
+          link.origin !== location.origin ||
+          !link.pathname.startsWith(API_ROOT)
+        )
+          link.target = "_top";
+      },
+      true,
+    );
   }
 
   function siteMode() {
