@@ -8,13 +8,13 @@ import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The network subsystem coordinates TCP/IP networking across physical and virtual interfaces using smoltcp. It exposes socket endpoints, asynchronous DNS resolution, and interface management through virtual file system device nodes.
+The network subsystem coordinates TCP/IP networking across physical and virtual interfaces. It uses smoltcp. It exposes socket endpoints, asynchronous DNS resolution, and interface management through virtual file system (VFS) device nodes.
 
 ## Context
 
-Embedded systems need an efficient, deterministic networking stack that operates without standard library socket primitives. The <HostReference crate="network" /> crate integrates <DocsRsReference crate="smoltcp" /> to provide IPv4/IPv6 networking, DHCP, TCP, UDP, and ICMP support in `no_std` environments.
+Embedded systems need an efficient, deterministic networking stack that operates without standard library socket primitives. The <HostReference crate="network" /> crate integrates <DocsRsReference crate="smoltcp" /> to provide IPv4 and IPv6 networking, DHCP, TCP, UDP, and ICMP support in `no_std` environments.
 
-Network interfaces appear as device files in the virtual file system, allowing applications to configure addresses and routes through typed control commands while socket abstractions provide asynchronous network I/O.
+Network interfaces appear as device files in the VFS. Applications configure addresses and routes through typed control commands. Socket abstractions provide asynchronous network I/O.
 
 ## How it works
 
@@ -51,7 +51,7 @@ Applications interact with network connections through high-level socket structu
 
 ### Interface configuration via control commands
 
-Network interfaces are configured by sending typed control commands to their `/devices/network/<name>` device nodes in the virtual file system:
+Network interfaces are configured by sending typed control commands to their `/devices/network/<name>` device nodes in the VFS:
 
 - `ADD_IP_ADDRESS` and `REMOVE_IP_ADDRESS`: configure IPv4 and IPv6 Classless Inter-Domain Routing (CIDR) addresses.
 - `ADD_ROUTE` and `REMOVE_ROUTE`: manage gateway routing entries.
@@ -67,21 +67,21 @@ default = ["network"]
 network = ["dep:network", "executable/network"]
 ```
 
-The feature is enabled by default in the root `xila` crate. Platforms choose whether to activate it:
+The root `xila` crate enables the feature by default. Platforms choose whether to activate it:
 
 - Microcontroller targets with constrained flash can disable default features to omit the entire networking subsystem and smoltcp dependency.
-- On desktop platforms, runtime networking is activated using command-line flags (such as `--networking` in `examples/native`). When enabled, the platform creates a host TUN/TAP interface, mounts it as `tunnel0`, and configures standard IP addresses, routes, and DNS servers.
+- On desktop platforms, command-line flags activate runtime networking (such as `--networking` in `examples/native`). When enabled, the platform creates a host TUN/TAP interface, mounts it as `tunnel0`, and configures the standard IP addresses, routes, and DNS servers.
 
 ## Design choices and trade-offs
 
-- **smoltcp in no_std**: smoltcp operates without heap allocations for packet buffers if desired, making it safe for microcontrollers without virtual memory.
+- **smoltcp in no_std**: smoltcp can operate without heap-allocated packet buffers, which makes it safe for microcontrollers without virtual memory.
 - **Virtual file system interface**: managing network interfaces as files maintains architectural consistency with standard devices.
 - **Asynchronous runner**: packet polling runs as an independent cooperative task, preventing network I/O from blocking user interface threads.
 
 ## Limits
 
 - Socket sets use fixed capacities per interface stack to bound memory consumption.
-- Domain name resolution requires at least one configured and reachable DNS server; local hosts file resolution is not supported.
+- Domain name resolution requires at least one configured and reachable DNS server. Local hosts file resolution is not supported.
 
 ## API reference
 

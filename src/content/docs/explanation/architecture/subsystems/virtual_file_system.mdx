@@ -11,7 +11,7 @@ The virtual file system (VFS) gives every Xila component one unified path namesp
 
 ## Context
 
-Applications and system services interact with files, hardware peripherals, and inter-task communications through a single path namespace. Rather than exposing separate APIs for storage blocks, UARTs, and network sockets, the <HostReference crate="virtual_file_system" /> crate provides standard file operations across all resources.
+Applications and system services interact with files, hardware peripherals, and inter-task communication through a single path namespace. The <HostReference crate="virtual_file_system" /> crate provides standard file operations across all these resources, instead of separate APIs for storage blocks, UARTs, and network sockets.
 
 The VFS manages path resolution, mounting tables, and access control policies. Concrete storage driver contracts and filesystem operations are defined separately by the [file_system](/explanation/architecture/libraries/file_system/) library.
 
