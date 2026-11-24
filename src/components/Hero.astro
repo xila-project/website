@@ -146,9 +146,12 @@ if (hero && actions.length > 0) {
    * Same motion as the device boot splash: the centre appears, then each arm
    * slides in along its diagonal, clockwise from the top left. The entry plays
    * once. Then the arms ripple outward in turn, as the splash does while
-   * loading, once per `--ripple-period`. Hover does not change the animation:
-   * a change of the `animation` property restarts it, so the entry played
-   * again when the pointer left the logo.
+   * loading, once per `--ripple-period`. The animation does not depend on
+   * hover.
+   *
+   * Both animations change `transform` and `opacity`, so they must not
+   * overlap: the last entry ends at 990 ms (510 + 480), before the first
+   * ripple at 1500 ms.
    */
   .logo-center,
   .logo-arm {
@@ -163,14 +166,14 @@ if (hero && actions.length > 0) {
   .logo-arm {
     --out-x: 1;
     --out-y: 1;
-    /* One ripple of about 800 ms in each period: the 13% stop of the keyframes. */
+    /* One ripple of 780 ms in each period: the 13% stop of the keyframes. */
     --ripple-period: 6s;
     animation:
       logo-arm-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards,
       logo-arm-ripple var(--ripple-period) ease-in-out infinite;
   }
 
-  /* Entry delay, then the first ripple after the entry, 200 ms apart. */
+  /* Entry delays are 120 ms apart. First ripple delays are 200 ms apart. */
   .logo-arm-top-left {
     --out-x: -1;
     --out-y: -1;
@@ -206,7 +209,7 @@ if (hero && actions.length > 0) {
     }
   }
 
-  /* The ripple takes the first 13% of the period (about 800 ms of 6 s). */
+  /* The ripple takes the first 13% of the period (780 ms of 6 s). */
   @keyframes logo-arm-ripple {
     0%,
     13%,
