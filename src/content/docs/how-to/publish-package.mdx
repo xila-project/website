@@ -1,0 +1,52 @@
+---
+title: "Publish a package"
+docType: how-to
+description: "Publish a released, signed package version in the Xila registry with an issue form, without a fork or local tools."
+---
+
+This guide shows how to publish a package version in the registry from your browser. To prepare the registry entry yourself, see [Submit a package](/how-to/submit-package/).
+
+## Before you begin
+
+- Build a signed package and keep its developer public key. See [Package an application](/how-to/package-application/).
+- Release the `.xpk` at an HTTPS URL. The archive can be at most 16 MiB. To get an automatic publication, attach it to a GitHub release of the repository that the package names as its source (`metadata.source` in `xila-package.json`).
+- Have a GitHub account.
+- For your first package, have your publisher identifier (lowercase letters, digits and hyphens) and your raw 32-byte Ed25519 public key in base64 (for example `base64 -w0 developer.pub`).
+
+## Steps
+
+1. Open the [Submit a package](https://github.com/xila-project/registry/issues/new?template=submit-package.yml) form in the registry repository.
+2. In **Archive URL**, give the HTTPS URL of the `.xpk`.
+3. Optional: in **Archive SHA-256**, give the SHA-256 of the archive, or the URL of its `.sha256` file. The registry refuses the archive if it differs.
+4. In **Publisher identifier**, give the identifier of your developer key.
+5. For your first package only, fill **Developer public key** and **Author name**. A new key may publish WebAssembly (Wasm) packages only. A maintainer grants native packages in a separate review.
+6. Confirm that you control the developer key, and submit the issue.
+7. Wait for the comment of the **Package submission** workflow on the issue. If it refused the submission, correct the issue description: the workflow runs again.
+
+## Verify the result
+
+The workflow verifies the archive signature, generates the registry entry, validates the registry and opens a pull request that closes the issue. It comments one of these results:
+
+- **Published:** The workflow merged the pull request and published the registry. The version is at `https://registry.xila.dev/packages/<identifier, dots as />/<version>.json`. This result needs all of these conditions:
+  - The publisher and its key are already registered.
+  - The key may publish the package identifier and the package kind.
+  - The version is new.
+  - The archive is a GitHub release asset of the package's source repository.
+- **Waits for a maintainer review:** The submission is a new publisher, a new namespace, an archive outside the source repository, or another case that needs a person. The registry publishes the version after a maintainer merges the pull request.
+- **Already in the registry:** Published versions are immutable. Release a new version and submit it.
+- **Refused:** The comment quotes the error, for example a signature made by another key or a namespace that the key may not publish.
+
+## Troubleshooting
+
+| Symptom                                          | Cause                                                                            | Fix                                                                                                                                                                          |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "no namespace file covers"                       | The package identifier is in a reverse-DNS namespace that has no namespace file. | Use an `io.github.<your account>` identifier and submit from that account, or add the namespace with a manual pull request. See [Submit a package](/how-to/submit-package/). |
+| "the public key differs from the registered key" | The publisher identifier belongs to another key.                                 | Leave **Developer public key** empty to use the registered key. A key change needs a manual pull request.                                                                    |
+| "not authorized for native"                      | The key may publish Wasm packages only.                                          | Ask a maintainer for a native grant in a pull request that edits the key file.                                                                                               |
+
+## Related
+
+- [Submit a package](/how-to/submit-package/)
+- [Package an application](/how-to/package-application/)
+- [Package management](/explanation/package-management/)
+- [Registry README](https://github.com/xila-project/registry#publishing-a-version)
