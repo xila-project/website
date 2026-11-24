@@ -33,6 +33,7 @@ const sidebar = [
       page("Overview", "/how-to/"),
       page("Set up development", "/how-to/setup-development/"),
       page("Run Xila on the Nano 33 BLE", "/how-to/run-nano-33-ble/"),
+      page("Flash Xila on WT32-SC01 boards", "/how-to/flash-wt32-sc01/"),
       page("Integrate a host application", "/how-to/integrate-host/"),
       page("Build a guest", "/how-to/build-guest/"),
       page("Add a launcher shortcut", "/how-to/add-shortcut/"),
