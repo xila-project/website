@@ -7,29 +7,29 @@ description: "Graphical session shell managing user login, desktop layout, the a
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The graphical shell executable (<HostReference repo="applications" crate="graphical_shell" />) manages the interactive desktop session in Xila. It oversees user authentication, global screen layout and status indicators, dynamic shortcut discovery from application bundles, and graphical application launching.
+The graphical shell executable (<HostReference repo="applications" crate="graphical_shell" />) manages the interactive desktop session in Xila. It handles user login, the screen layout and status indicators, shortcut discovery from application bundles, and application launching.
 
 ## Context
 
-Interactive embedded systems and graphical workstations need a cohesive session supervisor to transition from a secure login screen to a multitasking desktop. This environment must integrate system-level status indicators with application launchers without requiring applications to hardcode desktop dependencies.
+Interactive embedded systems and graphical workstations need a session manager that moves from a login screen to a multitasking desktop. The session integrates status indicators and application launchers, so applications do not need desktop-specific code.
 
-The graphical shell fulfills this role:
+The graphical shell provides:
 
-- It provides a centralized login interface backed by the Core authentication subsystem.
-- It displays a persistent top status bar reporting system time and network connectivity.
-- It organizes running windows within a bottom application dock and window menu.
-- It scans both system-wide shortcut directories and installed application bundles to populate an on-screen application drawer.
-- It executes selected applications through the Core executable runtime.
+- A centralized login interface backed by the Core authentication subsystem.
+- A persistent top status bar reporting system time and network connectivity.
+- A bottom application dock and window menu that organize the running windows.
+- Scanning of system-wide shortcut directories and installed application bundles to fill the on-screen application drawer.
+- Execution of selected applications through the Core executable runtime.
 
 ## How it works
 
 ### Session lifecycle and login transition
 
-When Xila boots into a graphical environment, the runtime launches the graphical shell executable. Startup follows a clear sequence:
+When Xila boots into a graphical environment, the runtime starts the graphical shell. Startup follows these steps:
 
-1. **Argument parsing**: The shell checks for optional CLI flags, such as `--show-keyboard`, which mounts an on-screen virtual keyboard for touch-only devices.
-2. **Layout creation**: Initializes the root display layout, allocating the top status bar and reserving space for active windows.
-3. **Login view**: Displays a centered login card with username and password input fields. When the user submits credentials, the shell calls into <HostReference crate="authentication" /> to verify the password.
+1. **Argument parsing**: The shell reads optional command-line flags. `--show-keyboard` mounts an on-screen keyboard for touch-only devices.
+2. **Layout creation**: Creates the root display layout with the top status bar and space for active windows.
+3. **Login view**: Shows a centered login card with username and password fields. On submit, the shell calls <HostReference crate="authentication" /> to verify the password.
 4. **Session initialization**: Upon successful authentication:
    - Sets the active user on the shell task via <HostReference crate="task" kind="struct" symbol="Manager" /> and updates the `User` environment variable.
    - Restores user-specific theme and palette preferences from `/users/<username>/configuration/graphics/appearance.json`.
@@ -40,12 +40,12 @@ When Xila boots into a graphical environment, the runtime launches the graphical
 The shell layout maintains persistent interface elements around the primary window workspace:
 
 - **Top status bar**: Displays a digital clock formatted via `DateTimeFormatter` (`%H:%M`), an active network interface indicator, and an optional battery level icon.
-- **Application dock**: Sits along the bottom edge of the screen, featuring a main launcher button and icons representing each currently open window.
-- **Window management menu**: Clicking a window's dock icon brings that window to the foreground, while secondary actions permit minimizing, maximizing, or closing the window.
+- **Application dock**: Lies along the bottom edge of the screen. It has a main launcher button and one icon per open window.
+- **Window management menu**: Clicking a dock icon brings that window to the front. Secondary actions minimize, maximize, or close the window.
 
 ### Shortcut discovery and launcher integration
 
-The following diagram illustrates how the graphical shell discovers shortcuts and launches applications.
+The following diagram shows how the graphical shell discovers shortcuts and launches applications.
 
 ```mermaid
 flowchart TD
@@ -77,26 +77,26 @@ flowchart TD
     Exec --> Spawn
 ```
 
-When the user opens the application drawer by clicking the main dock button, the desktop scans the filesystem to populate the launcher:
+When the user opens the application drawer, the shell scans the file system to fill the launcher:
 
-1. **Static shortcuts**: Reads pre-seeded native shortcuts in `/configuration/shared/applications/shortcuts/`, such as Terminal, Settings, and File Manager.
-2. **Bundle shortcuts**: Scans the `/applications/bundles` directory. For every subdirectory that does not begin with a period (skipping staging directories such as `.incoming-1`), it reads `shortcut.json`.
-3. **Bundle path resolution**: When reading bundle shortcuts, the parser resolves any argument or command starting with the `@bundle/` prefix. It replaces the prefix with the canonical path of the containing bundle (for example, `@bundle/executables/app.wasm` becomes `/applications/bundles/example.xila.app/executables/app.wasm`).
-4. **Drawer rendering**: Populates the drawer grid with the application's icon string and configured color palette.
-5. **Launch dispatch**: When an icon is clicked, the shell calls <HostReference crate="executable" kind="fn" symbol="execute" />, which starts the target executable with its configured arguments.
+1. **Static shortcuts**: Reads the pre-seeded native shortcuts in `/configuration/shared/applications/shortcuts/`, such as Terminal, Settings, and File manager.
+2. **Bundle shortcuts**: Scans `/applications/bundles`. For each subdirectory that does not start with a period, it reads `shortcut.json`. This skips staging directories such as `.incoming-1`.
+3. **Bundle path resolution**: For bundle shortcuts, the parser resolves arguments and commands that start with `@bundle/`. It replaces the prefix with the path of the containing bundle. For example, `@bundle/executables/app.wasm` becomes `/applications/bundles/example.xila.app/executables/app.wasm`.
+4. **Drawer rendering**: Fills the drawer grid with the icon and color palette of each application.
+5. **Launch dispatch**: When the user clicks an icon, the shell calls <HostReference crate="executable" kind="fn" symbol="execute" />. This starts the target executable with its configured arguments.
 
 For instructions on formatting shortcut descriptors and adding new applications, see [Add a launcher shortcut](/how-to/add-shortcut/).
 
 ## Design choices and trade-offs
 
-- **Fresh directory scan on drawer opening**: Scanning bundles when the drawer opens ensures newly installed packages appear immediately without requiring a shell reload or background filesystem watcher.
-- **Lightweight shortcut descriptors**: Reading lightweight `shortcut.json` files decoupled from package archive manifests avoids parsing cryptographic package metadata during UI layout.
-- **Per-user appearance restoration**: Applying appearance preferences immediately after login allows each user to retain custom themes and color palettes across sessions.
+- **Fresh scan on drawer open**: Scanning bundles when the drawer opens makes newly installed packages appear immediately. No shell reload or background file watcher is needed.
+- **Lightweight shortcut descriptors**: Reading `shortcut.json` files instead of package archive manifests avoids parsing cryptographic package metadata during UI layout.
+- **Per-user appearance**: Applying the saved appearance right after login lets each user keep custom themes and palettes across sessions.
 
 ## Limits
 
-- **Single active desktop session**: The graphical shell supports one active logged-in graphical user session at a time; concurrent multi-seat desktop sessions are not supported.
-- **No shortcut customization in UI**: Users cannot reorder or group application drawer icons directly in the graphical interface.
+- **Single active desktop session**: The shell supports one logged-in graphical session at a time. Multi-seat desktop sessions are not supported.
+- **No shortcut customization in UI**: Users cannot reorder or group application drawer icons in the graphical interface.
 
 ## API reference
 
