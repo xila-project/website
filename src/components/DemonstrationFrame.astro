@@ -52,8 +52,12 @@ const initial = DEMONSTRATION_LOCALES.find(
         }
       </select>
     </label>
-    <p class="leave-hint" role="status" data-leave-hint hidden>
-      Press Tab to leave the demonstration. The Escape key does not leave it.
+    <p
+      class="leave-hint"
+      role="status"
+      data-leave-hint
+      data-message="Press Tab to leave the demonstration. The Escape key does not leave it."
+    >
     </p>
     <a class="full-screen" href={initial.href} data-full-screen>
       Open in full screen
@@ -125,12 +129,17 @@ const initial = DEMONSTRATION_LOCALES.find(
   });
 
   // The page does not receive key events from the frame. Focus in the frame
-  // blurs the window, so that is the moment to tell how to leave it.
+  // blurs the window, so that is the moment to tell how to leave it. The
+  // status region stays in the page and only its text changes: screen
+  // readers do not reliably announce a region that appears.
+  function showHint(visible: boolean) {
+    hint.textContent = visible ? hint.dataset.message! : "";
+  }
   window.addEventListener("blur", () => {
-    hint.hidden = document.activeElement !== frame;
+    showHint(document.activeElement === frame);
   });
   window.addEventListener("focus", () => {
-    hint.hidden = true;
+    showHint(false);
   });
 
   leave.addEventListener("click", (event) => {
@@ -218,19 +227,17 @@ const initial = DEMONSTRATION_LOCALES.find(
   }
 
   /* No room for the language name, the hint and the link on one line. The
-     select keeps its label for assistive technology. */
+     select keeps its label, and the hint stays available to assistive
+     technology. */
   @media (max-width: 47.99rem) {
-    .language-label {
+    .language-label,
+    .leave-hint {
       position: absolute;
       width: 1px;
       height: 1px;
       overflow: hidden;
       clip-path: inset(50%);
       white-space: nowrap;
-    }
-
-    .leave-hint {
-      display: none;
     }
   }
 
