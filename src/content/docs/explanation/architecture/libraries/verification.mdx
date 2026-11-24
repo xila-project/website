@@ -10,33 +10,33 @@ The package manager's `xila-package-verification` library supplies `no_std` SHA-
 
 ## Context
 
-Package tools and the Applications installer need the same cryptographic checks without depending on a host file system. The library supplies primitives; its callers decide which key to trust and what bytes to verify.
+Package tools and the Applications installer need the same cryptographic checks without a host file system. The library supplies the primitives. Callers decide which key to trust and which bytes to verify.
 
 ## How it works
 
-A content verifier incrementally hashes bytes and checks their expected length and digest. A public key verifies an Ed25519 signature over a message. Package manifest and reader code define the signed message and check the inventory using these primitives.
+A content verifier hashes bytes incrementally. It checks the expected length and the digest. A public key verifies an Ed25519 signature over a message. The package manifest and reader code define the signed message, and they check the file inventory with these primitives.
 
 ## Design choices and trade-offs
 
-The library supports incremental hashing and `no_std` consumers. Cryptographic validity alone does not authorize a developer key; repository metadata or a directly trusted key supplies that decision.
+The library supports incremental hashing and `no_std` consumers. A valid signature alone does not authorize a developer key. Repository metadata or a directly trusted key provides that decision.
 
 ## API reference
 
 - <CodeReference repo="package_manager" path="crates/verification/src/hash.rs">
     Hash verification
   </CodeReference>
-  — incremental SHA-256 and length checks.
+  : incremental SHA-256 and length checks.
 - <CodeReference
     repo="package_manager"
     path="crates/verification/src/signature.rs"
   >
     Signature verification
   </CodeReference>
-  — public keys and strict Ed25519 verification.
+  : public keys and strict Ed25519 verification.
 - <CodeReference repo="package_manager" path="crates/reader/src/stream.rs">
     Streaming package reader
   </CodeReference>
-  — package verification consumer.
+  : package verification consumer.
 
 ## Related
 

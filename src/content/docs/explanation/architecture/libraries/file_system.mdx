@@ -8,19 +8,19 @@ import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The <HostReference crate="file_system" /> crate provides the architectural contract layer for storage, files, directories, and hardware devices in Xila. It defines standardized operation traits consumed by the virtual file system (VFS) and implemented by concrete storage engines and device drivers.
+The <HostReference crate="file_system" /> crate provides the architectural contract layer for storage, files, directories, and hardware devices in Xila. It defines standardized operation traits. The virtual file system (VFS) consumes these traits. Concrete storage engines and device drivers implement them.
 
 ## Context
 
 Storage hardware in embedded and desktop systems varies from raw NOR/NAND flash memory and SD cards to memory-backed virtual disks. The `file_system` crate abstracts these differences into uniform interfaces: character devices for stream-oriented data, block devices for fixed-size sector access, and file system operations for hierarchical directory trees.
 
-Higher-level subsystems such as the [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) rely on `file_system` traits to resolve paths and dispatch control commands without depending on concrete hardware drivers. Concrete storage engines such as [Little FS](/explanation/architecture/libraries/little_fs/) implement these traits to provide persistent file storage.
+Higher-level subsystems such as the [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) use `file_system` traits to resolve paths and dispatch control commands without depending on concrete hardware drivers. Concrete storage engines such as [Little FS](/explanation/architecture/libraries/little_fs/) implement these traits for persistent file storage.
 
 ## How it works
 
 ### Device abstractions and the polling model
 
-The crate defines two primary categories of hardware devices:
+The crate defines two categories of hardware devices:
 
 - <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
   stream-oriented devices such as serial ports, sensors, and pipes. They
@@ -67,10 +67,10 @@ Block devices expose standardized geometry commands defined through the <HostRef
   structure.
 
 :::caution[Block erasure causes irreversible data loss]
-Sending the `ERASE` control command or formatting a block device resets the specified block range. On raw flash media, erased blocks read back unspecified data and must be rewritten before use.
+Sending the `ERASE` control command or formatting a block device resets the specified block range. On raw flash media, erased blocks read back unspecified data. Rewrite them before use.
 :::
 
-Device read and write operations return `core::task::Poll<file_system::Result<T>>`. When an operation cannot complete immediately, the driver registers a waker and returns `Poll::Pending`. Synchronous helper methods attempt an operation once and return `Error::RessourceBusy` instead of busy-spinning if the underlying driver reports pending status.
+Device read and write operations return `core::task::Poll<file_system::Result<T>>`. When an operation cannot complete immediately, the driver registers a waker and returns `Poll::Pending`. The synchronous helpers attempt the operation once. They return `Error::RessourceBusy` instead of busy-spinning when the driver reports a pending status.
 
 ### Master Boot Record handling
 
@@ -109,9 +109,9 @@ flowchart TD
 
 When a runtime boots:
 
-1. The platform driver opens the underlying physical block storage (such as `FileDriveDevice` on Linux or `DriveDevice` in the browser).
+1. The platform driver opens the underlying physical block storage, such as `FileDriveDevice` on Linux or `DriveDevice` in the browser.
 2. The runtime reads the MBR partition table and validates `XILA_DISK_SIGNATURE` and partition boundaries.
-3. A `PartitionDevice` wraps the physical block device, translating partition-relative offsets and preventing operations outside partition limits.
+3. A `PartitionDevice` wraps the physical block device. It translates partition-relative offsets and prevents operations outside partition limits.
 4. `LittleFS` initializes its filesystem structures on top of the `PartitionDevice`.
 5. The VFS mounts the filesystem instance as the root filesystem `/`.
 
@@ -119,7 +119,7 @@ For mounting details and runtime control flow, see the [Virtual file system](/ex
 
 ### In-memory simulation
 
-For automated testing and development without physical hardware, the crate provides <HostReference crate="file_system" kind="struct" symbol="MemoryDevice" />. It implements `DirectBlockDevice` over an in-memory byte buffer guarded by a synchronization lock, with the block size specified by a const generic parameter:
+For automated testing and development without physical hardware, the crate provides <HostReference crate="file_system" kind="struct" symbol="MemoryDevice" />. It implements `DirectBlockDevice` over an in-memory byte buffer guarded by a synchronization lock. The block size is a const generic parameter:
 
 ```rust
 use file_system::{DirectBaseOperations, MemoryDevice};
@@ -133,8 +133,8 @@ assert_eq!(written, data.len());
 ## Design choices and trade-offs
 
 - **Separation of contracts and policy**: `file_system` specifies operation traits, geometry commands, and partition structures. Namespace mounting, caller permissions, and path routing belong strictly to the VFS.
-- **`no_std` compatibility**: the entire crate compiles in `no_std` environments, allowing identical trait contracts across microcontroller firmware, WebAssembly runtimes, and desktop platforms.
-- **Non-blocking direct attempts**: synchronous device wrappers make a single attempt and cancel registration on pending status, preventing hidden retries and thread deadlocks on the executor.
+- **`no_std` compatibility**: the whole crate compiles in `no_std` environments. Microcontroller firmware, WebAssembly runtimes, and desktop platforms share the same trait contracts.
+- **Non-blocking direct attempts**: the synchronous wrappers make a single attempt and cancel registration on pending status. This prevents hidden retries and thread deadlocks on the executor.
 
 ## Limits
 
@@ -144,23 +144,23 @@ assert_eq!(written, data.len());
 
 ## API reference
 
-- <HostReference crate="file_system" /> — crate root and fundamental types.
-- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" /> —
-  block device abstraction.
-- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" /> —
+- <HostReference crate="file_system" />: crate root and fundamental types.
+- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" />: block
+  device abstraction.
+- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
   character device abstraction.
 - <HostReference
     crate="file_system"
     kind="trait"
     symbol="FileSystemOperations"
   />
-  — file system backend contract.
-- <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" /> —
+  : file system backend contract.
+- <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" />:
   partition boundary wrapper.
 - <HostReference crate="file_system/mbr" kind="struct" symbol="Mbr">
     <code>file_system::mbr::Mbr</code>
   </HostReference>
-  — MBR partition table parser and validator.
+  : MBR partition table parser and validator.
 
 ## Related
 

@@ -11,7 +11,7 @@ The `testing` crate provides minimal `std` test infrastructure for Xila unit and
 
 ## Context
 
-Testing operating system components such as the virtual file system, task manager, and executables on host developer machines requires real OS abstractions (time, randomness, storage, console streams, and cryptography) without binding to physical target peripherals or desktop window managers. The `testing` crate provides mock devices and a complete in-memory environment bootstrap that runs tests quickly and deterministically in CI pipelines.
+Testing operating system components such as the virtual file system, the task manager, and executables on host developer machines requires real operating system abstractions: time, randomness, storage, console streams, and cryptography. These must work without binding to physical target peripherals or desktop window managers. The `testing` crate provides mock devices and a complete in-memory environment. Tests run quickly and deterministically in continuous integration pipelines.
 
 ## How it works
 
@@ -20,20 +20,20 @@ Testing operating system components such as the virtual file system, task manage
 The crate provides lightweight, deterministic character devices:
 
 - <HostReference crate="testing" kind="struct" symbol="TimeDevice" />: Mock
-  clock implementing `DirectCharacterDevice`. Responds to `GET_SYSTEM_TIME`
-  control commands and reads microsecond timestamps from host system time.
+  clock implementing `DirectCharacterDevice`. It responds to `GET_SYSTEM_TIME`
+  control commands and reads microsecond timestamps from the host system time.
 - <HostReference crate="testing" kind="struct" symbol="RandomDevice" />: Entropy
-  source implementing `DirectCharacterDevice`. Fills byte buffers using the host
-  `getrandom` crate.
+  source implementing `DirectCharacterDevice`. It fills byte buffers using the
+  host `getrandom` crate.
 - <HostReference crate="testing" kind="enum" symbol="ConsoleDevice" />:
   Implements `DirectCharacterDevice` with `Input`, `Output`, and `Error`
-  variants, routing standard I/O through host standard input, output, and error
-  streams.
+  variants. It routes standard I/O through the host standard input, output, and
+  error streams.
 - <HostReference crate="testing" kind="struct" symbol="HashDevice" />:
-  Cryptographic hash device implementing `DirectCharacterDevice`. Handles the
-  `SET_ALGORITHM` control command (supporting SHA-256 and SHA-512 via the `sha2`
-  crate), streams input data into the internal hash state, and outputs the
-  digest upon read.
+  Cryptographic hash device implementing `DirectCharacterDevice`. It handles the
+  `SET_ALGORITHM` control command with SHA-256 and SHA-512 via the `sha2` crate.
+  It streams input data into the internal hash state and outputs the digest on
+  read.
 - <HostReference crate="testing" kind="struct" symbol="Logger" />: Simple logger
   implementing the `log::Log` trait.
 - <HostReference crate="testing" kind="struct" symbol="MemoryManager" />:
@@ -53,14 +53,14 @@ pub async fn initialize(
 ) -> Standard<'static>
 ```
 
-The bootstrap procedure executes sequentially:
+The bootstrap runs these steps in order:
 
-1. Initializes logging with `Logger`.
-2. Creates task manager, users manager, and time manager instances.
-3. If `graphics_enabled` is true, constructs a `HeadlessScreenDevice` (800×600) and spawns the background graphics loop task.
-4. Formats an in-memory LittleFS file system on a `MemoryDevice::<512>::new_static(1024 * 512)` (512 KiB block device with 256-byte blocks) and initializes the virtual file system.
-5. Populates the default directory hierarchy via `create_default_hierarchy`.
-6. Mounts mock character devices into the VFS:
+1. Initialize logging with `Logger`.
+2. Create task manager, users manager, and time manager instances.
+3. If `graphics_enabled` is true, construct a `HeadlessScreenDevice` (800×600) and spawn the background graphics loop task.
+4. Format an in-memory LittleFS file system on a `MemoryDevice::<512>::new_static(1024 * 512)` (512 KiB block device with 256-byte blocks) and initialize the virtual file system.
+5. Populate the default directory hierarchy via `create_default_hierarchy`.
+6. Mount mock character devices into the VFS:
    - `/devices/random/source` (`RandomDevice`)
    - `/devices/standard_io/input` (`ConsoleDevice::Input`)
    - `/devices/standard_io/output` (`ConsoleDevice::Output`)
@@ -68,10 +68,10 @@ The bootstrap procedure executes sequentially:
    - `/devices/time/clock` (`TimeDevice`)
    - `/devices/standard_io/null` (`drivers_core::NullDevice`)
    - `/devices/compute/hasher` (`HashDevice`)
-7. If `network_enabled` is true, initializes the network manager without physical network interfaces or active HTTP clients.
-8. Seeds the default `administrator` group and user (identifier 1000) with an empty password.
-9. Sets default environment variables `Paths` = `/` and `Host` = `xila`.
-10. Opens and returns `Standard<'static>` streams bound to `/devices/standard_io/*`.
+7. If `network_enabled` is true, initialize the network manager without physical network interfaces or active HTTP clients.
+8. Seed the default `administrator` group and user (identifier 1000) with an empty password.
+9. Set the default environment variables `Paths` = `/` and `Host` = `xila`.
+10. Open and return `Standard<'static>` streams bound to `/devices/standard_io/*`.
 
 ### Host file injection
 
@@ -91,13 +91,13 @@ flowchart TD
     Init --> StdStreams["Standard<'static> streams"]
 ```
 
-The initializer formats an in-memory LittleFS instance, constructs standard directory structures, mounts mock hardware devices under `/devices/`, provisions the initial administrator account under `/system/accounts/`, and opens standard streams for caller execution.
+The initializer formats an in-memory LittleFS instance and creates the default directory hierarchy. It mounts mock devices under `/devices/`, seeds the administrator account under `/system/accounts/`, and opens the standard streams.
 
 ## Design choices and trade-offs
 
-- Pure in-memory execution: LittleFS runs in memory and the display buffer is an offscreen bitmap, ensuring tests execute quickly and without modifying host files or opening host windows.
-- Deterministic CI tests: Decouples core testing from platform audio hardware, Wi-Fi adapters, or display servers.
-- Fast-fail assertions: `initialize` uses explicit assertions and unwraps to report misconfigurations immediately during test bootstrap.
+- Pure in-memory execution: LittleFS runs in memory and the display buffer is an offscreen bitmap. Tests run quickly, do not modify host files, and do not open host windows.
+- Deterministic CI tests: Core tests do not depend on platform audio hardware, Wi-Fi adapters, or display servers.
+- Fast-fail assertions: `initialize` uses explicit assertions and unwraps. It reports misconfigurations immediately during test bootstrap.
 
 ## Limits
 

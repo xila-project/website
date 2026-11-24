@@ -7,7 +7,7 @@ description: "Hardware controller traits, VFS peripheral adapters, GPIO line con
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The <HostReference crate="peripherals" /> library defines hardware-facing controller contracts, while <HostReference crate="drivers_peripherals" /> adapts these traits into character devices mounted in the virtual file system (VFS).
+The <HostReference crate="peripherals" /> library defines hardware-facing controller contracts. <HostReference crate="drivers_peripherals" /> adapts these traits into character devices mounted in the virtual file system (VFS).
 
 ## Context
 
@@ -15,7 +15,7 @@ Microcontrollers provide hardware peripherals such as GPIO pins, ADCs, I2C buses
 
 Xila decouples peripheral operations into two architectural layers:
 
-1. **Controller traits** (<HostReference crate="peripherals" />): pure Rust trait contracts built on standard `embedded-hal` and `embedded-io` interfaces, paired with deterministic in-memory test mocks.
+1. **Controller traits** (<HostReference crate="peripherals" />): pure Rust contracts based on the standard `embedded-hal` and `embedded-io` interfaces, with deterministic in-memory mocks for tests.
 2. **VFS device adapters** (<HostReference crate="drivers_peripherals" />): character-device wrappers that expose peripheral controllers under the `/devices/` path namespace for applications and command-line utilities.
 
 ## How it works
@@ -47,24 +47,24 @@ flowchart TD
     Handle --> Controller["Hardware controller (GpioController / Mock)"]
 ```
 
-The adapter pipeline consists of two primary constructs:
+The adapter pipeline consists of two constructs:
 
 1. <HostReference
      crate="drivers_peripherals"
      kind="trait"
      symbol="PeripheralHandle"
    />
-   : implemented by peripheral classes. Each method represents a single
-   synchronous attempt. If an operation would block, it returns
-   `Error::RessourceBusy` instead of yielding or holding caller buffers.
+   : implemented by peripheral classes. Each method is a single synchronous
+   attempt. If an operation would block, it returns `Error::RessourceBusy`
+   instead of yielding or holding caller buffers.
 2. <HostReference
      crate="drivers_peripherals"
      kind="struct"
      symbol="PeripheralDevice"
    />
    : wraps a `PeripheralHandle` into a VFS character device. Opening is
-   exclusive: while one file handle holds a peripheral open, subsequent `open`
-   calls return `Error::RessourceBusy` until the owning handle is closed.
+   exclusive. While one file handle holds the peripheral open, other `open`
+   calls return `Error::RessourceBusy` until the owning handle closes.
 
 Mount helpers such as <HostReference crate="drivers_peripherals" kind="fn" symbol="mount_peripheral" /> and `mount_gpio` mount adapters under standard paths such as `/devices/gpio/<name>`.
 
@@ -72,8 +72,8 @@ Mount helpers such as <HostReference crate="drivers_peripherals" kind="fn" symbo
 
 A mounted GPIO character device supports both binary I/O and typed control commands:
 
-- **Core binary adapter** (<CodeReference path="drivers/peripherals/src/gpio.rs" />): `GpioHandle` exposes a single line handle. `read` writes a single byte (`0` for low, `1` for high) to the caller buffer, returning `Error::NotInitialized` if the pin has not been configured. `write` accepts a single byte (`0` or `1`), rejecting inputs if the pin is configured as input (`Error::UnsupportedOperation`) or if any other byte value is provided (`Error::InvalidParameter`).
-- **Interactive shell text adapter** (such as `drivers_nordic` on the Arduino Nano 33 BLE): reads format the pin level as text `0\n` or `1\n` followed by an end-of-file condition so shell utilities like `cat` terminate cleanly. Writes accept ASCII `0` or `1` with optional surrounding whitespace (`\r`, `\n`, spaces), or binary bytes `0` and `1`. Unconfigured pins auto-configure as input on read or push-pull output on write.
+- **Core binary adapter** (<CodeReference path="drivers/peripherals/src/gpio.rs" />): `GpioHandle` exposes a single line handle. `read` writes one byte (`0` for low, `1` for high) to the caller buffer. It returns `Error::NotInitialized` if the pin is not configured. `write` accepts one byte (`0` or `1`). It rejects other byte values with `Error::InvalidParameter`, and it rejects writes on an input pin with `Error::UnsupportedOperation`.
+- **Interactive shell text adapter** (such as `drivers_nordic` on the Arduino Nano 33 BLE): reads format the pin level as text `0\n` or `1\n` followed by an end-of-file condition, so shell utilities like `cat` terminate cleanly. Writes accept ASCII `0` or `1` with optional surrounding whitespace (`\r`, `\n`, spaces), or binary bytes `0` and `1`. Unconfigured pins auto-configure as input on read or push-pull output on write.
 
 ```text
 # Read the current digital level:
@@ -88,8 +88,8 @@ Typed control commands for pin reservation, direction, pull resistors, and elect
 
 ## Design choices and trade-offs
 
-- **Exclusive device ownership**: only one task may hold an open handle to a peripheral device at a time, preventing race conditions and pin contention without complex scheduling locks.
-- **Borrowed controller handles**: controller trait methods borrow the controller and yield scoped handles. Dropping a handle automatically releases the line back to high-impedance state.
+- **Exclusive device ownership**: only one task may hold an open handle to a peripheral device at a time. This prevents race conditions and pin contention without complex scheduling locks.
+- **Borrowed controller handles**: controller trait methods borrow the controller and return scoped handles. Dropping a handle automatically releases the line back to the high-impedance state.
 - **Immediate non-blocking execution**: peripheral methods run directly on the executor and never yield `Poll::Pending`. If a hardware bus or FIFO is unavailable, callers receive `Error::RessourceBusy` and manage retries.
 
 ## Limits
@@ -99,26 +99,26 @@ Typed control commands for pin reservation, direction, pull resistors, and elect
 
 ## API reference
 
-- <HostReference crate="peripherals" /> — hardware controller traits and mocks.
-- <HostReference crate="drivers_peripherals" /> — VFS peripheral adapters.
+- <HostReference crate="peripherals" />: hardware controller traits and mocks.
+- <HostReference crate="drivers_peripherals" />: VFS peripheral adapters.
 - <HostReference
     crate="drivers_peripherals"
     kind="trait"
     symbol="PeripheralHandle"
   />
-  — synchronous peripheral handle contract.
+  : synchronous peripheral handle contract.
 - <HostReference
     crate="drivers_peripherals"
     kind="struct"
     symbol="PeripheralDevice"
   />
-  — exclusive-access VFS device wrapper.
+  : exclusive-access VFS device wrapper.
 - <HostReference
     crate="drivers_peripherals"
     kind="fn"
     symbol="mount_peripheral"
   />
-  — peripheral node mounting helper.
+  : peripheral node mounting helper.
 
 ## Related
 

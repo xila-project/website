@@ -7,11 +7,11 @@ description: "Build-time locale selection, catalog structure, and embedded-i18n 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 
-Xila uses the external <DocsRsReference crate="embedded-i18n" /> dependency for build-time localization. Core re-exports it as `xila::internationalization`. It provides compile-time string extraction, plural formatting, and catalog verification without requiring a dynamic runtime dictionary.
+Xila uses the external <DocsRsReference crate="embedded-i18n" /> dependency for build-time localization. Core re-exports it as `xila::internationalization`. It extracts strings at compile time, formats plurals, and verifies catalogs. It needs no dynamic runtime dictionary.
 
 ## Context
 
-Embedded microcontrollers cannot afford the RAM and storage overhead of loading runtime translation files from disk. Instead, Xila compiles localized strings directly into binaries at build time. Subsystems, libraries, and applications share a single compile-time localization system that produces zero-allocation, statically verified UI strings.
+Microcontrollers cannot afford the RAM and storage cost of loading runtime translation files from disk. Xila compiles localized strings into the binary at build time. Subsystems, libraries, and applications share one compile-time localization system. It produces zero-allocation, statically verified UI strings.
 
 ## How it works
 
@@ -33,18 +33,18 @@ At the crate root, the macro declares the translation catalog path:
 embedded_i18n::i18n!("locales");
 ```
 
-Source files retrieve translated strings using the `t!` macro:
+Source files retrieve translated strings with the `t!` macro:
 
 ```rust
 let label = xila::internationalization::t!("alarm.controls.delete");
 let message = xila::internationalization::t!("stopwatch.laps.recorded", count = count);
 ```
 
-The `locale!()` macro returns the active compiled locale identifier as a string literal. C-string literals can be created at compile time via `t!(c"...")`, returning a statically allocated `&'static CStr`.
+The `locale!()` macro returns the active compiled locale identifier as a string literal. `t!(c"...")` creates a C-string literal at compile time and returns a statically allocated `&'static CStr`.
 
 ### Build-time locale selection
 
-The build locale is selected by the `EMBEDDED_I18N_LOCALE` environment variable:
+The `EMBEDDED_I18N_LOCALE` environment variable selects the build locale:
 
 ```sh
 export EMBEDDED_I18N_LOCALE="fr"
@@ -62,7 +62,7 @@ The default locale in `.cargo/config.toml` is `en`. Core and Applications ship c
 - Japanese (`ja`)
 - Simplified Chinese (`zh-CN`)
 
-Because translations are compiled into each target, host binaries, guest WebAssembly modules, and seeded disk images must be built for the same locale to match.
+Translations compile into each target. Host binaries, guest WebAssembly modules, and seeded disk images must therefore use the same locale.
 
 ### Catalog structure and Tolgee integration
 
@@ -80,7 +80,7 @@ Translation catalogs live in per-crate `locales/<locale>.json` files using neste
 
 Keys are stable dotted semantic identifiers (`feature.component.purpose`) rather than English text. For pluralized text, CLDR categories (`one`, `few`, `many`, `other`) form the leaf nodes of the hierarchy.
 
-Tolgee configuration is defined in `tolgee.config.ts` in Core and Applications. It specifies `format: "JSON_C"` with `pull.delimiter: "."` to export structured nested JSON. The extractor in `tolgee.extractor.mjs` scans Rust source files for macro invocations.
+Core and Applications define the Tolgee configuration in `tolgee.config.ts`. It sets `format: "JSON_C"` and `pull.delimiter: "."` to export structured nested JSON. The extractor in `tolgee.extractor.mjs` scans Rust source files for macro invocations.
 
 The following diagram shows how translation catalogs are extracted, synchronized, and compiled into Xila binaries:
 
@@ -94,13 +94,13 @@ flowchart LR
     Macros --> Binary["Compiled binary\n(Host or Wasm guest)"]
 ```
 
-Rust source files containing `t!` macro invocations are processed by the Tolgee extractor to synchronize keys with the translation server. The resulting JSON catalogs are compiled alongside the Rust source by `embedded-i18n` procedural macros, producing final host binaries and guest WebAssembly executables with embedded translations.
+The Tolgee extractor processes the `t!` macro invocations in the Rust source and synchronizes the keys with the translation server. The `embedded-i18n` procedural macros compile the resulting JSON catalogs with the Rust source. The build produces host binaries and guest WebAssembly executables with embedded translations.
 
 ## Design choices and trade-offs
 
-- Zero runtime overhead: Translations are embedded at compile time, eliminating file system I/O, string parsing, and heap allocation for static text.
-- Build-time selection: Language selection requires building and running an image targeting that locale; there is no dynamic language switching service at runtime.
-- Strict compile-time checks: Strict checking rejects missing translation keys, mismatched format placeholders, or absent plural categories during compilation.
+- Zero runtime overhead: Translations are embedded at compile time. This eliminates file system I/O, string parsing, and heap allocation for static text.
+- Build-time selection: Language selection requires building and running an image for that locale. There is no dynamic language switching service at runtime.
+- Strict compile-time checks: Strict checking rejects missing translation keys, mismatched format placeholders, and absent plural categories at compile time.
 
 ## Limits
 

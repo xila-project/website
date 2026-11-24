@@ -27,33 +27,33 @@ stateDiagram-v2
     Ready --> [*]: close
 ```
 
-The descriptor starts in staging. The caller writes model bytes sequentially and sends <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>LOAD</code></HostReference> with a `LoadRequest`. After successful loading, it queries input information, selects an input, seeks to zero and writes tensor bytes. `COMPUTE` runs inference; the caller selects an output, seeks to zero and reads its bytes. Closing releases the model and execution state.
+The descriptor starts in staging. The caller writes model bytes sequentially and sends <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>LOAD</code></HostReference> with a `LoadRequest`. After a successful load, the caller queries input information, selects an input, seeks to zero, and writes tensor bytes. `COMPUTE` runs inference. The caller then selects an output, seeks to zero, and reads its bytes. Closing releases the model and execution state.
 
 The native runtime mounts a CPU loader at `/devices/nn/cpu` when its neural-network feature is enabled. See <CodeReference repo="platforms" path="examples/native/src/main.rs" /> for its registration.
 
 ## Design choices and trade-offs
 
-The backend supplies views directly into execution or model storage; the adapter does not stage tensors. Each loader defines its maximum model size. A fixed-model device can expose an already prepared backend without the loading stage.
+The backend supplies views directly into execution or model storage. The adapter does not stage tensors. Each loader defines its maximum model size. A fixed-model device can expose an already prepared backend without the loading stage.
 
 ## Limits
 
-Inference commands before a successful load and a second load on a ready descriptor return `InvalidContext`. Model writes must be contiguous. The version-one tensor metadata supports a maximum rank of six.
+Inference commands before a successful load return `InvalidContext`. A second load on a ready descriptor also returns `InvalidContext`. Model writes must be contiguous. The version-one tensor metadata supports a maximum rank of six.
 
 ## API reference
 
-- <HostReference crate="neural_network" /> — inference contracts.
+- <HostReference crate="neural_network" />: inference contracts.
 - <HostReference
     crate="drivers_neural_network"
     kind="struct"
     symbol="NeuralNetworkDevice"
   />
-  — fixed-model adapter.
+  : fixed-model adapter.
 - <HostReference
     crate="drivers_neural_network"
     kind="struct"
     symbol="LoaderDevice"
   />
-  — runtime loader adapter.
+  : runtime loader adapter.
 - <HostReference
     crate="device/neural_network"
     kind="struct"
@@ -61,7 +61,7 @@ Inference commands before a successful load and a second load on a ready descrip
   >
     <code>LoadRequest</code>
   </HostReference>
-  — model loading request.
+  : model loading request.
 
 ## Related
 

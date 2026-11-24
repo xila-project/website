@@ -7,11 +7,11 @@ description: "Portable cross-cutting primitives, unit conversions, and layout-ba
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `shared` crate provides cross-cutting foundational types, layout-based type erasure, bidirectional collections, unit conversion utilities, and shared HTTP types across the Xila workspace. It lives in the Core repository under `libraries/shared/` and is exposed by the `xila` facade crate.
+The `shared` crate provides cross-cutting foundational types, layout-based type erasure, bidirectional collections, unit conversion utilities, and shared HTTP types across the Xila workspace. It lives in the Core repository under `libraries/shared/`. The `xila` facade crate exposes it.
 
 ## Context
 
-Subsystems, drivers, and libraries need shared primitives for type erasure across C-compatible boundaries, physical unit formatting, and bidirectional lookups. Rather than duplicating these utilities or creating circular dependencies between higher-level crates, `shared` sits near the bottom of the dependency graph as a reusable, dependency-light foundation.
+Subsystems, drivers, and libraries need shared primitives for type erasure across C-compatible boundaries, physical unit formatting, and bidirectional lookups. Instead of duplicating these utilities or creating circular dependencies, `shared` sits near the bottom of the dependency graph as a reusable, dependency-light foundation.
 
 ## How it works
 
@@ -26,10 +26,10 @@ let recovered = any.cast::<u32>()?;
 ```
 
 - `from(&value)` and `from_mutable(&mut value)`: Wrap live Rust references into an `AnyByLayout`.
-- `cast::<T>()` and `cast_mutable::<T>()`: Verify that the layout size and pointer alignment match `T`, returning a typed reference.
-- `from_raw_parts`: Constructs a wrapper from a raw pointer, size, and alignment.
+- `cast::<T>()` and `cast_mutable::<T>()`: Verify that the layout size and pointer alignment match `T`. Return a typed reference.
+- `from_raw_parts`: Construct a wrapper from a raw pointer, size, and alignment.
 
-`AnyByLayout` forms the foundation of device control commands across the virtual file system (VFS), allowing drivers to exchange typed command inputs and outputs through a uniform signature without dynamic memory allocation or runtime type reflection.
+`AnyByLayout` underlies device control commands across the virtual file system (VFS). Drivers exchange typed command inputs and outputs through one uniform signature, without dynamic allocation or runtime type reflection.
 
 ### Bidirectional collections
 
@@ -42,14 +42,14 @@ assert_eq!(map.get_value(&"name"), Some(&100));
 assert_eq!(map.get_key(&100), Some(&"name"));
 ```
 
-Both forward and reverse lookups run in logarithmic time, ensuring consistent bi-directional state tracking without separate lookup tables.
+Forward and reverse lookups both run in logarithmic time. They track state consistently in both directions, so no separate lookup tables are needed.
 
 ### Units, calendar, and slice utilities
 
 The library provides several focused utility modules:
 
 - Measurement units: The <HostReference crate="shared" kind="struct" symbol="Unit" /> struct handles quantities with metric and binary prefixes (`PREFIXES`, `BYTES_SUFFIX`, `BITS_SUFFIX`, `FREQUENCY_SUFFIX`).
-- Calendar and time: Functions such as <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" /> convert Unix timestamps into calendar dates, accounting for leap years via `is_leap_year` and month day counts via `days_in_month`.
+- Calendar and time: Functions such as <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" /> convert Unix timestamps into calendar dates. They account for leap years via `is_leap_year` and month day counts via `days_in_month`.
 - Slice operations: Utilities such as <HostReference crate="shared" kind="fn" symbol="align_slice_to" /> align raw memory slices to requested boundary constraints.
 - UTF-8 handling: `utf8_chunks` provides safe iteration over segmented UTF-8 byte streams.
 - HTTP re-exports: Re-exports request and response builders and parsers from the `xila_http` crate.
@@ -66,13 +66,13 @@ flowchart LR
     CastOut --> Output["Caller: Typed output O"]
 ```
 
-The caller constructs an `AnyByLayout` wrapping a typed payload. The virtual file system passes the layout reference to the driver's `control` handler. The driver verifies size and alignment via `cast`, processes the command, and writes the typed result into the output buffer.
+The caller wraps a typed payload in an `AnyByLayout`. The virtual file system passes the layout reference to the driver's `control` handler. The driver verifies size and alignment via `cast`, processes the command, and writes the typed result into the output buffer.
 
 ## Design choices and trade-offs
 
-- Layout-based type erasure: `AnyByLayout` avoids `core::any::Any`, eliminating `'static` lifetime restrictions and compiler RTTI requirements while allowing safe borrowed memory passing.
+- Layout-based type erasure: `AnyByLayout` avoids `core::any::Any`. This removes `'static` lifetime restrictions and compiler RTTI requirements, while still allowing safe borrowed memory passing.
 - Dependency-light design: The crate depends only on `num`, `log`, and `xila_http`, minimizing compilation overhead.
-- `no_std` with `alloc`: Operates in bare-metal and microcontroller targets while utilizing heap collections where necessary.
+- `no_std` with `alloc`: The crate runs on bare-metal and microcontroller targets and uses heap collections where necessary.
 
 ## Limits
 

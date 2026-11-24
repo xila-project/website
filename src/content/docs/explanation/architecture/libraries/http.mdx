@@ -11,7 +11,7 @@ The `xila_http` crate provides bounded, `no_std` HTTP/1.1 response parsing, in-p
 
 ## Context
 
-Embedded networking stacks cannot afford arbitrary buffer growth or dynamic heap allocations when communicating with web APIs and remote servers. The `xila_http` library provides sans-I/O response framing and in-place chunk decoding that operate within caller-managed, fixed-size buffers, supporting streaming HTTP exchanges across the virtual file system (VFS).
+Embedded networking stacks cannot afford arbitrary buffer growth or heap allocations. The `xila_http` library parses responses and decodes chunks in place, within caller-managed fixed-size buffers. It supports streaming HTTP exchanges across the virtual file system (VFS).
 
 ## How it works
 
@@ -26,13 +26,13 @@ pub fn parse_response_head<const N: usize>(
 ) -> Result<Option<ResponseHead>, Error>
 ```
 
-It borrows a caller-managed buffer and allocates a stack array of `[httparse::EMPTY_HEADER; N]`. The memory overhead on the stack is exactly `N * size_of::<httparse::Header>()` bytes.
+It borrows a caller-managed buffer and allocates a stack array of `[httparse::EMPTY_HEADER; N]`. Stack overhead is exactly `N * size_of::<httparse::Header>()` bytes.
 
-- If the buffer contains an incomplete head, it returns `Ok(None)`, signaling that more data must be received from the network.
+- If the buffer holds an incomplete head, it returns `Ok(None)`. The caller must receive more data from the network.
 - It parses status codes and headers case-insensitively.
 - Informational responses (1xx), `204 No Content`, `304 Not Modified`, and responses to `HEAD` requests are classified as <HostReference crate="xila_http" kind="enum" symbol="BodyKind" />`::Empty`.
 - Protocol upgrade attempts (`101 Switching Protocols`) are rejected with `Error::UnsupportedUpgrade`.
-- Inspects `Transfer-Encoding` for `chunked` framing and reads `Content-Length`.
+- It inspects `Transfer-Encoding` for `chunked` framing and reads `Content-Length`.
 
 ### Body framing modes
 
@@ -52,10 +52,10 @@ let mut decoder = BodyDecoder::new(head.body);
 let decoded_bytes = decoder.decode(&mut buffer[..read_bytes])?;
 ```
 
-The decoder maintains an internal state machine (`ChunkState`) spanning chunk size parsing, extension stripping, CRLF validation, payload copying, and trailer consumption. As chunk framing metadata is parsed and discarded, payload bytes are shifted forward in the same buffer, compacting decoded data without secondary heap allocations.
+The decoder runs an internal state machine (`ChunkState`) for chunk size parsing, extension stripping, CRLF validation, payload copying, and trailer consumption. As it parses and discards the chunk framing metadata, it shifts payload bytes forward in the same buffer. This compacts the decoded data without secondary heap allocations.
 
-- `is_complete()`: Returns whether the full response body or terminating zero-length chunk has been received.
-- `finish()`: Returns `Ok(())` if the transfer finished cleanly, or `Err(Error::Truncated)` if the stream ended prematurely.
+- `is_complete()`: Return whether the full body or the terminating zero-length chunk has been received.
+- `finish()`: Return `Ok(())` when the transfer finished cleanly, or `Err(Error::Truncated)` when the stream ended prematurely.
 
 The following diagram shows how `BodyDecoder` compacts chunked HTTP transfer frames in-place within a single buffer:
 
@@ -66,7 +66,7 @@ flowchart TD
     Compact --> Output["Decoded buffer: [Payload bytes (compacted)][Unused capacity]"]
 ```
 
-Incoming data contains chunk boundaries, hexadecimal lengths, and carriage-return line-feeds. The decoder state machine strips delimiter tokens and copies payload bytes toward the start of the buffer, leaving valid decoded content ready for application consumption without separate copy buffers.
+Incoming data contains chunk boundaries, hexadecimal lengths, and carriage-return line feeds. The decoder strips the delimiter tokens and copies payload bytes toward the start of the buffer. The decoded content is then ready for the application, without separate copy buffers.
 
 ### Request and response builders
 
@@ -82,9 +82,9 @@ The library also supplies fixed-buffer formatting and parsing abstractions:
 
 ## Design choices and trade-offs
 
-- Sans-I/O architecture: Protocol parsing is isolated from sockets, event loops, and TLS engines. The caller retains complete control over transport scheduling and memory.
-- In-place decoding: Eliminates double-buffering and secondary allocations, allowing streaming HTTP on microcontrollers with constrained RAM.
-- Stack-bounded parsing: The caller configures the maximum header count `N` as a const generic, bounding stack usage deterministically.
+- Sans-I/O architecture: Protocol parsing is isolated from sockets, event loops, and TLS engines. The caller keeps full control over transport scheduling and memory.
+- In-place decoding: Eliminates double-buffering and secondary allocations. Streaming HTTP works on microcontrollers with constrained RAM.
+- Stack-bounded parsing: The caller sets the maximum header count `N` as a const generic. Stack usage is bounded deterministically.
 
 ## Limits
 

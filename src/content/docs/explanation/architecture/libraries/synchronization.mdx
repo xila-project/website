@@ -7,11 +7,11 @@ description: "Synchronization primitives, async locks, and portable reference-co
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `synchronization` crate standardizes synchronization primitives across Xila. It re-exports async synchronization tools from `embassy-sync` and provides portable reference-counted types (`Arc`, `Weak`) with a lock-backed fallback for targets lacking atomic pointer operations. It lives in the Core repository under `libraries/synchronization/` and is exposed by the `xila` facade crate.
+The `synchronization` crate standardizes synchronization primitives across Xila. It re-exports async synchronization tools from `embassy-sync` and provides portable reference-counted types (`Arc`, `Weak`) with a lock-backed fallback for targets lacking atomic pointer operations. It lives in the Core repository under `libraries/synchronization/`. The `xila` facade crate exposes it.
 
 ## Context
 
-Xila runs on a wide range of architectures, from desktop x86_64 and 32-bit ARM Cortex-M processors with hardware atomics to simpler embedded microcontrollers lacking atomic pointer instructions. The `synchronization` library provides a uniform, `#![no_std]` synchronization interface so subsystems and drivers can share state and synchronize tasks across all supported targets.
+Xila runs on architectures from desktop x86_64 and 32-bit ARM Cortex-M processors with hardware atomics to microcontrollers without atomic pointer instructions. The `synchronization` crate provides a uniform `#![no_std]` interface. Subsystems and drivers use it to share state and synchronize tasks on all supported targets.
 
 ## How it works
 
@@ -19,7 +19,7 @@ Xila runs on a wide range of architectures, from desktop x86_64 and 32-bit ARM C
 
 The crate re-exports concurrency tools from `embassy-sync`:
 
-- Async mutexes: <HostReference crate="synchronization/mutex" kind="struct" symbol="Mutex"><code>synchronization::mutex::Mutex</code></HostReference> provides a non-blocking async lock designed for asynchronous tasks.
+- Async mutexes: <HostReference crate="synchronization/mutex" kind="struct" symbol="Mutex"><code>synchronization::mutex::Mutex</code></HostReference> provides a non-blocking async lock for asynchronous tasks.
 - Reader-writer locks: `rwlock::RwLock` allows multiple readers or a single writer across tasks.
 - Channels: `channel::Channel` supplies bounded async queues for inter-task communication.
 - Signals: `signal::Signal` delivers one-shot notifications between producers and consumers.
@@ -30,9 +30,9 @@ The crate re-exports concurrency tools from `embassy-sync`:
 The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types provide target-adapted reference counting:
 
 - When `target_has_atomic = "ptr"`: The crate directly re-exports `alloc::sync::{Arc, Weak}`.
-- When `not(target_has_atomic = "ptr")`: The crate provides a custom fallback implementation. The allocation is stored in an `ArcInner<T>` on the heap, protected by a critical-section raw mutex and interior-mutable reference counters.
+- When `not(target_has_atomic = "ptr")`: The crate provides a custom fallback implementation. The allocation is stored in an `ArcInner<T>` on the heap. A critical-section raw mutex and interior-mutable reference counters protect it.
 
-Both variants expose an identical public API: `Arc::new`, `clone`, `downgrade`, `Weak::upgrade`, `strong_count`, `weak_count`, `get_mut`, and `ptr_eq`. The fallback implementation guards reference count modification against integer overflow with panics.
+Both variants expose the same public API: `Arc::new`, `clone`, `downgrade`, `Weak::upgrade`, `strong_count`, `weak_count`, `get_mut`, and `ptr_eq`. The fallback panics on reference count overflow.
 
 The following diagram shows the categorization of synchronization primitives and the target-gated `Arc` implementation:
 
@@ -47,17 +47,17 @@ flowchart TD
     ArcSelection -- No --> MutexArc["Critical-section\nfallback Arc"]
 ```
 
-Async primitives from `embassy-sync` provide non-blocking coordination across cooperative tasks, while blocking mutexes provide critical section safety. The `Arc` type automatically chooses between atomic reference counting and a critical-section fallback based on target hardware capabilities.
+The `embassy-sync` primitives coordinate cooperative tasks without blocking. The blocking mutexes protect critical sections. `Arc` selects atomic reference counting or the critical-section fallback based on the target hardware.
 
 ## Design choices and trade-offs
 
-- Cooperative async focus: `embassy-sync` primitives do not rely on OS thread preemption or kernel locks, matching Xila's cooperative task executor.
-- Broad target compatibility: The critical-section `Arc` fallback guarantees compilation and runtime safety on microcontrollers lacking atomic pointer instructions without requiring hardware emulation.
+- Cooperative async focus: `embassy-sync` primitives do not rely on OS thread preemption or kernel locks. They match Xila's cooperative task executor.
+- Broad target compatibility: The critical-section `Arc` fallback compiles and runs safely on microcontrollers without atomic pointer instructions. No hardware emulation is required.
 - Unified import path: Subsystems import all concurrency abstractions directly from `xila::synchronization`.
 
 ## Limits
 
-- Async mutexes must not be held across CPU-intensive blocking calculations, as this starves other tasks on the cooperative scheduler.
+- Do not hold an async mutex across CPU-intensive blocking work. This starves other tasks on the cooperative scheduler.
 - On platforms without atomic pointer instructions, cloning or dropping an `Arc` briefly disables interrupts during reference counter modification.
 
 ## API reference
