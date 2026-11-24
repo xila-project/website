@@ -6,19 +6,41 @@
  * are rendered here, after the title, so that the keyboard order follows the
  * visual order. The theme's mobile menu keeps the flat `navLinks` of
  * astro.config.mjs: the section overviews, Packages and the English demo.
+ *
+ * The current item is marked with aria-current and an underline, in the
+ * header and in the mobile menu. The theme renders the mobile menu without
+ * knowledge of the page, so a script marks its items.
  */
 import ThemeSiteTitle from "starlight-theme-black/overrides/SiteTitle.astro";
 import DemoMenu from "./DemoMenu.astro";
 import DocsMenu from "./DocsMenu.astro";
 import { DEMO_URL } from "../data/demo-locales";
+import { navigationState } from "../data/navigation-state";
+
+const packagesState = navigationState(Astro.url.pathname, "/packages/");
 ---
 
 <div class="site-title-with-menus" data-demo-url={DEMO_URL}>
   <ThemeSiteTitle />
   <DocsMenu class="header-menu" />
-  <a class="header-link" href="/packages/">Packages</a>
+  <a class="header-link" href="/packages/" aria-current={packagesState}>
+    Packages
+  </a>
   <DemoMenu class="header-menu" />
 </div>
+
+<script>
+  import { navigationState } from "../data/navigation-state";
+
+  for (const link of document.querySelectorAll<HTMLAnchorElement>(
+    ".mobile-nav a[data-header-link]",
+  )) {
+    const url = new URL(link.href);
+    if (url.origin !== location.origin) continue;
+    const state = navigationState(location.pathname, url.pathname);
+    if (state) link.setAttribute("aria-current", state);
+  }
+</script>
 
 <style>
   .site-title-with-menus {
@@ -48,6 +70,13 @@ import { DEMO_URL } from "../data/demo-locales";
   .site-title-with-menus :global(.header-menu),
   .header-link {
     display: none;
+  }
+
+  /* The current item of the mobile menu: an underline, which does not rely
+     on colour. */
+  .site-title-with-menus :global(.mobile-nav-links a[aria-current]) {
+    text-decoration: underline 2px;
+    text-underline-offset: 0.3em;
   }
 
   @media (min-width: 1024px) {
@@ -91,6 +120,11 @@ import { DEMO_URL } from "../data/demo-locales";
       line-height: 1.25rem;
       text-decoration: none;
       transition: background-color 0.15s;
+    }
+
+    .header-link[aria-current] {
+      text-decoration: underline 2px;
+      text-underline-offset: 0.35em;
     }
 
     .header-link:hover {

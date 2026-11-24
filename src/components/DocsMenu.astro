@@ -1,12 +1,13 @@
 ---
 /*
  * The "Documentation" header menu: one entry for each documentation section.
- * It follows the structure and the styles of DemoMenu. The trigger is marked
- * as active, and the matching item has aria-current, when the visitor is
- * inside one of the sections.
+ * It follows the structure and the styles of DemoMenu. When the visitor is
+ * inside one of the sections, the trigger has aria-current="true" and the
+ * matching item has aria-current ("page" on the overview).
  */
 import { Icon } from "@astrojs/starlight/components";
 import { DOCUMENTATION_SECTIONS } from "../data/documentation-sections";
+import { navigationState } from "../data/navigation-state";
 
 interface Props {
   class?: string;
@@ -14,29 +15,23 @@ interface Props {
 
 const { class: className } = Astro.props;
 
-// The site ignores trailing slashes: compare whole path segments.
-const path = Astro.url.pathname.replace(/\/+$/, "");
-const sections = DOCUMENTATION_SECTIONS.map((section) => {
-  const base = section.href.replace(/\/+$/, "");
-  const inside = path === base || path.startsWith(`${base}/`);
-  return { ...section, inside, exact: path === base };
-});
-const active = sections.some(({ inside }) => inside);
+const sections = DOCUMENTATION_SECTIONS.map((section) => ({
+  ...section,
+  state: navigationState(Astro.url.pathname, section.href),
+}));
+const inside = sections.some(({ state }) => state);
 ---
 
-<details class:list={["docs-menu", className]} data-active={active}>
-  <summary aria-expanded="false">
+<details class:list={["docs-menu", className]}>
+  <summary aria-expanded="false" aria-current={inside ? "true" : undefined}>
     Documentation
     <Icon name="down-caret" size="1rem" class="caret" />
   </summary>
   <ul role="list" aria-label="Documentation sections">
     {
-      sections.map(({ label, description, href, inside, exact }) => (
+      sections.map(({ label, description, href, state }) => (
         <li>
-          <a
-            href={href}
-            aria-current={exact ? "page" : inside ? "true" : undefined}
-          >
+          <a href={href} aria-current={state}>
             <span class="label">{label}</span>
             <span class="description">{description}</span>
           </a>
@@ -132,9 +127,11 @@ const active = sections.some(({ inside }) => inside);
     outline-offset: 2px;
   }
 
-  /* The visitor is inside one of the sections. */
-  .docs-menu[data-active="true"] > summary {
-    background-color: var(--accent);
+  /* The visitor is inside one of the sections: an underline, which does not
+     rely on colour. */
+  summary[aria-current] {
+    text-decoration: underline 2px;
+    text-underline-offset: 0.35em;
   }
 
   .caret {
