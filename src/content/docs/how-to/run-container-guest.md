@@ -8,7 +8,7 @@ This guide shows how to run the Xila shell or a WebAssembly (Wasm) guest in a he
 
 ## Before you begin
 
-- Docker installed, and permission to start containers.
+- Docker, installed so that you can start containers.
 - A published image from [Platforms' runtime workflow](https://github.com/xila-project/platforms/actions/workflows/runtime.yml). The `latest` tag follows `main`. Pin a release tag or a commit-SHA tag for reproducible runs.
 - To run a guest, a compatible `app.wasm` file compiled for `wasm32-wasip1`.
 
