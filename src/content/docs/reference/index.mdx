@@ -7,16 +7,13 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 Look up exact interfaces and constraints on these pages. For instructions, use the [how-to guides](/how-to/).
 
+## Run Xila
+
 <CardGrid>
   <LinkCard
-    title="Host API"
-    href="/reference/host/"
-    description="Xila Core workspace crates, Cargo features, and generated host Rustdoc."
-  />
-  <LinkCard
-    title="Guest API"
-    href="/reference/guest/"
-    description="The xila-wasm guest API, WASI Preview 1 imports, and virtual file system (VFS) device control."
+    title="Supported hardware"
+    href="/reference/supported-hardware/"
+    description="Boards, emulators and host runtimes: display, input, Wi-Fi, storage, GPIO, application support and hardware test results."
   />
   <LinkCard
     title="Shell commands"
@@ -24,19 +21,19 @@ Look up exact interfaces and constraints on these pages. For instructions, use t
     description="Built-in commands, command composition, expansion syntax, and execution limits of the Xila command-line shell."
   />
   <LinkCard
-    title="Supported hardware"
-    href="/reference/supported-hardware/"
-    description="Boards, emulators and host runtimes: display, input, Wi-Fi, storage, GPIO, application support and hardware test results."
+    title="Headless Xila runtime"
+    href="/reference/container-runtime/"
+    description="Shell and guest commands, image defaults, persistence, mounts, and limits of Xila's headless runtime."
   />
+</CardGrid>
+
+## Build applications
+
+<CardGrid>
   <LinkCard
-    title="Development commands"
-    href="/reference/development-commands/"
-    description="Repository mise tasks, website commands, and dependency inventory settings."
-  />
-  <LinkCard
-    title="Experimental package format"
-    href="/reference/package-format/"
-    description="The Xila package archive, manifest, signatures, and limits."
+    title="Guest API"
+    href="/reference/guest/"
+    description="The xila-wasm guest API, WASI Preview 1 imports, and virtual file system (VFS) device control."
   />
   <LinkCard
     title="Wasm runtime"
@@ -44,13 +41,28 @@ Look up exact interfaces and constraints on these pages. For instructions, use t
     description="The host WebAssembly runtime: command-line options, WASI imports, and execution limits."
   />
   <LinkCard
-    title="Headless Xila runtime"
-    href="/reference/container-runtime/"
-    description="Shell and guest commands, image defaults, persistence, mounts, and limits of Xila's headless runtime."
-  />
-  <LinkCard
     title="Graphics bindings"
     href="/reference/graphics-bindings/"
     description="The graphics WebAssembly application binary interface (ABI), status codes, supported LVGL calls, and resource limits."
+  />
+  <LinkCard
+    title="Package format"
+    href="/reference/package-format/"
+    description="The Xila package archive, manifest, signatures, and limits."
+  />
+</CardGrid>
+
+## Develop Xila
+
+<CardGrid>
+  <LinkCard
+    title="Host API"
+    href="/reference/host/"
+    description="Xila Core workspace crates, Cargo features, and generated host Rustdoc."
+  />
+  <LinkCard
+    title="Development commands"
+    href="/reference/development-commands/"
+    description="Repository mise tasks, website commands, and dependency inventory settings."
   />
 </CardGrid>

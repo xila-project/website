@@ -10,22 +10,21 @@ This root `AGENTS.md` applies to the entire repository. If a more specific `AGEN
 
 ## Repository map
 
-| Path                     | Purpose                                                                    |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `src/content/docs/`      | Documentation collection                                                   |
-| `src/tutorials/`         | Guided first experiences                                                   |
-| `src/how-to/`            | Task-focused procedures                                                    |
-| `src/reference/`         | Exact commands, options, limits, capabilities, and API/source references   |
-| `src/explanation/`       | Concepts, architecture, rationale, trade-offs, and component relationships |
-| `src/about/`             | Project information                                                        |
-| `public/`                | Static assets published by Astro                                           |
-| `src/diagrams/`          | D2 shape vocabulary and the fonts that D2 uses to measure labels           |
-| `docs/templates/`        | Local authoring templates; never published directly                        |
-| `src/content/docs/`      | Starlight Markdown and MDX documentation collection                        |
-| `astro.config.mjs`       | Astro and Starlight configuration                                          |
-| `scripts/check-docs.mjs` | Documentation metadata, link, anchor, and Core source-path validation      |
-| `.github/workflows/`     | Pull-request checks and GitHub Pages deployment                            |
-| `package.json`           | Local development, formatting, build, preview, and validation commands     |
+| Path                            | Purpose                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `src/content/docs/`             | Starlight Markdown and MDX documentation collection                        |
+| `src/content/docs/tutorials/`   | Guided first experiences                                                   |
+| `src/content/docs/how-to/`      | Task-focused procedures                                                    |
+| `src/content/docs/reference/`   | Exact commands, options, limits, capabilities, and API/source references   |
+| `src/content/docs/explanation/` | Concepts, architecture, rationale, trade-offs, and component relationships |
+| `src/content/docs/about/`       | Project information                                                        |
+| `public/`                       | Static assets published by Astro                                           |
+| `src/diagrams/`                 | D2 shape vocabulary and the fonts that D2 uses to measure labels           |
+| `docs/templates/`               | Local authoring templates; never published directly                        |
+| `astro.config.mjs`              | Astro and Starlight configuration                                          |
+| `scripts/check-docs.mjs`        | Documentation metadata, link, anchor, and Core source-path validation      |
+| `.github/workflows/`            | Pull-request checks and GitHub Pages deployment                            |
+| `package.json`                  | Local development, formatting, build, preview, and validation commands     |
 
 Before editing, inspect the target page, its section landing page, nearby related pages, and `astro.config.mjs` when navigation may be affected.
 
@@ -45,12 +44,12 @@ Inspect Core read-only unless the user explicitly asks for a Core change. Do not
 
 Use Diátaxis to classify each substantive page by the reader's need:
 
-| Type        | Reader need                             | Location           | Expected content                                                                         |
-| ----------- | --------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------- |
-| Tutorial    | Learn through a guided first experience | `src/tutorials/`   | One reproducible path, prerequisites, actions, observable results, and next steps        |
-| How-to      | Complete a specific task                | `src/how-to/`      | Focused steps, requirements, completion checks, and relevant recovery actions            |
-| Reference   | Look up an exact fact                   | `src/reference/`   | Commands, options, defaults, features, errors, constraints, limits, and API/source links |
-| Explanation | Understand a concept or design          | `src/explanation/` | Context, relationships, rationale, trade-offs, architecture, and boundaries              |
+| Type        | Reader need                             | Location                        | Expected content                                                                         |
+| ----------- | --------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| Tutorial    | Learn through a guided first experience | `src/content/docs/tutorials/`   | One reproducible path, prerequisites, actions, observable results, and next steps        |
+| How-to      | Complete a specific task                | `src/content/docs/how-to/`      | Focused steps, requirements, completion checks, and relevant recovery actions            |
+| Reference   | Look up an exact fact                   | `src/content/docs/reference/`   | Commands, options, defaults, features, errors, constraints, limits, and API/source links |
+| Explanation | Understand a concept or design          | `src/content/docs/explanation/` | Context, relationships, rationale, trade-offs, architecture, and boundaries              |
 
 Use the locally authored templates in `docs/templates/` when creating pages. Read `docs/templates/README.md`, copy the appropriate template, remove unused sections, and replace every placeholder before publishing.
 
@@ -88,7 +87,7 @@ Write every page in the style of ASD-STE100 Simplified Technical English. Apply 
 
 ### Frontmatter
 
-Substantive pages under `src/tutorials/`, `src/how-to/`, `src/reference/`, and `src/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
+Substantive pages under `src/content/docs/tutorials/`, `src/content/docs/how-to/`, `src/content/docs/reference/`, and `src/content/docs/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
 
 Put the page heading in the `title` frontmatter field; Starlight renders it as the page `<h1>`, so do not repeat it as a `#` heading in the body. Use `template: splash` only for pages that intentionally drop the sidebar, such as the home page or an API/reference viewer.
 
@@ -98,6 +97,7 @@ When adding, moving, or removing documentation:
 
 - update the appropriate section/index page;
 - add the page to the explicit `sidebar` in `astro.config.mjs` when it should appear in site navigation;
+- set the sidebar label of every page to its page title (`title` frontmatter); the allowed short forms are `Overview` for a section or group index page and `Documentation` for the `Xila documentation` page;
 - update relevant related links and incoming links;
 - update the architecture component map when the page changes component discovery;
 - preserve meaningful anchors and query parameters when changing API/reference links.
