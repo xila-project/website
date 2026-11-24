@@ -3,6 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { applyShell, writeShellAssets } from "./api-shell.mjs";
 import { sourceEnvironmentKey } from "./source-checkouts.mjs";
 
 const defaultRoot = path.resolve(
@@ -59,7 +60,7 @@ function runTask(checkout, [task, ...args], environment) {
   });
 }
 
-function stage(source, destination, crate) {
+function stage(source, destination, crate, architecture) {
   if (!fs.existsSync(path.join(source, crate, "index.html"))) {
     throw new Error(
       `Rustdoc output ${source} does not contain ${crate}/index.html`,
@@ -68,6 +69,7 @@ function stage(source, destination, crate) {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
   fs.cpSync(source, destination, { recursive: true });
+  applyShell(destination, architecture);
 }
 
 function buildOne(architecture, { root, output, environment, strict }) {
@@ -77,7 +79,7 @@ function buildOne(architecture, { root, output, environment, strict }) {
     environment[`XILA_${architecture.toUpperCase()}_RUSTDOC_DIR`];
 
   if (prebuilt) {
-    stage(prebuilt, destination, source.crate);
+    stage(prebuilt, destination, source.crate, architecture);
     return "copied";
   }
 
@@ -108,13 +110,16 @@ function buildOne(architecture, { root, output, environment, strict }) {
     path.join(targetDirectory, source.target, "doc"),
     destination,
     source.crate,
+    architecture,
   );
   return "built";
 }
 
+// The API pages are staged in public/api/: Astro copies them into the site
+// at build time, and the development server serves them.
 export function buildRustdoc({
   root = defaultRoot,
-  output = path.join(root, "dist", "rustdoc"),
+  output = path.join(root, "public", "api"),
   environment = process.env,
 } = {}) {
   const options = {
@@ -123,10 +128,13 @@ export function buildRustdoc({
     environment,
     strict: environment.XILA_STRICT_RUSTDOC === "1",
   };
-  return {
+  const result = {
     host: buildOne("host", options),
     guest: buildOne("guest", options),
   };
+  if (Object.values(result).some((status) => status !== "skipped"))
+    writeShellAssets(output);
+  return result;
 }
 
 function main() {

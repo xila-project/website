@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  getReferenceDefaultIframeSrc,
-  getReferenceIframeSrc,
+  getApiHref,
+  getApiRedirectHref,
+  getApiRootHref,
   getReferenceTargetPath,
-  getReferenceViewerHref,
 } from "../scripts/reference-path.mjs";
 
 test("builds a crate-only Rustdoc target", () => {
@@ -31,29 +31,32 @@ test("appends an associated-item fragment to the Rustdoc target", () => {
   );
 });
 
-test("keeps the Rustdoc fragment inside the encoded viewer path", () => {
+test("builds API page URLs under /api/", () => {
   assert.equal(
-    getReferenceViewerHref(
-      "host",
-      "virtual_file_system/struct.File.html#method.open",
-    ),
-    "/reference/host/?path=virtual_file_system%2Fstruct.File.html%23method.open",
+    getApiHref("guest", "wasm/struct.Example.html#method.run"),
+    "/api/guest/wasm/struct.Example.html#method.run",
+  );
+  assert.equal(getApiRootHref("host"), "/api/host/xila/index.html");
+  assert.equal(getApiRootHref("guest"), "/api/guest/wasm/index.html");
+  assert.throws(() => getApiHref("browser", "x/index.html"));
+});
+
+test("redirects a viewer path to the API page and keeps the fragment", () => {
+  const path = new URLSearchParams(
+    "path=virtual_file_system%2Fstruct.File.html%23method.open",
+  ).get("path");
+  assert.equal(
+    getApiRedirectHref("host", path),
+    "/api/host/virtual_file_system/struct.File.html#method.open",
   );
 });
 
-test("restores the Rustdoc fragment when building the iframe URL", () => {
-  assert.equal(
-    getReferenceIframeSrc("guest", "wasm/struct.Example.html#method.run"),
-    "/rustdoc/guest/wasm/struct.Example.html#method.run",
-  );
-  assert.equal(
-    getReferenceDefaultIframeSrc("host"),
-    "/rustdoc/host/xila/index.html",
-  );
-  assert.equal(
-    getReferenceDefaultIframeSrc("guest"),
-    "/rustdoc/guest/wasm/index.html",
-  );
+test("does not redirect outside the API directory", () => {
+  assert.equal(getApiRedirectHref("host", null), null);
+  assert.equal(getApiRedirectHref("host", ""), null);
+  assert.equal(getApiRedirectHref("host", "../../index.html"), null);
+  assert.equal(getApiRedirectHref("host", "//example.com/x.html"), null);
+  assert.equal(getApiRedirectHref("guest", "https://example.com/"), null);
 });
 
 test("rejects a member without a top-level symbol", () => {

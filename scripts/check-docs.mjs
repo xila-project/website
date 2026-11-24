@@ -45,15 +45,21 @@ function resolveTarget(output, current, href) {
   const target = new URL(decode(href), currentUrl);
   if (target.origin !== "https://docs.invalid") return null;
   let pathname = decodeURIComponent(target.pathname);
-  if (pathname.startsWith("/rustdoc/")) {
-    return null;
-  }
   if (pathname.endsWith("/")) pathname += "index.html";
   else if (!path.extname(pathname)) pathname += "/index.html";
   return {
     file: path.join(output, pathname),
     anchor: decodeURIComponent(target.hash.slice(1)),
+    api: pathname.startsWith("/api/"),
   };
+}
+
+function readIdentifiers(html) {
+  return new Set(
+    [...html.matchAll(/\bid=(?:"([^"]*)"|'([^']*)')/g)].map((match) =>
+      decode(match[1] ?? match[2]),
+    ),
+  );
 }
 
 export function validateDocs({
@@ -88,25 +94,28 @@ export function validateDocs({
     return { errors: [...errors], pages: pages.length };
   }
 
-  const rustdocOutput = path.join(output, "rustdoc");
+  // The rustdoc pages under /api/ are link targets only: rustdoc checks its
+  // own links. They are staged only when rustdoc was built (deployment and
+  // the rustdoc job); otherwise links to them are counted as skipped.
+  const apiOutput = path.join(output, "api");
+  const apiStaged = fs.existsSync(apiOutput);
+  const strictApi = environment.XILA_STRICT_API_LINKS === "1";
+  const apiIdentifiers = new Map();
+  const warnings = new Set();
   const rendered = files(output, ".html").filter(
-    (file) =>
-      file !== rustdocOutput && !file.startsWith(rustdocOutput + path.sep),
+    (file) => file !== apiOutput && !file.startsWith(apiOutput + path.sep),
   );
   const documents = new Map(
     rendered.map((file) => {
       const html = fs.readFileSync(file, "utf8");
-      const ids = new Set(
-        [...html.matchAll(/\bid=(?:"([^"]*)"|'([^']*)')/g)].map((match) =>
-          decode(match[1] ?? match[2]),
-        ),
-      );
-      return [file, { html, ids }];
+      return [file, { html, ids: readIdentifiers(html) }];
     }),
   );
 
   let links = 0;
   let anchors = 0;
+  let apiLinks = 0;
+  let skippedApiLinks = 0;
   for (const [file, { html }] of documents) {
     const visited = new Set();
     for (const match of html.matchAll(
@@ -117,6 +126,32 @@ export function validateDocs({
       visited.add(href);
       const target = resolveTarget(output, file, href);
       if (!target) continue;
+      if (target.api) {
+        if (!apiStaged) {
+          skippedApiLinks += 1;
+          continue;
+        }
+        apiLinks += 1;
+        // Until the documentation links are migrated, a broken API link is
+        // an error only in strict mode.
+        const report = strictApi ? errors : warnings;
+        if (!fs.existsSync(target.file)) {
+          report.add(
+            `${path.relative(output, file)}: missing API link ${decode(href)}`,
+          );
+        } else if (target.anchor) {
+          if (!apiIdentifiers.has(target.file))
+            apiIdentifiers.set(
+              target.file,
+              readIdentifiers(fs.readFileSync(target.file, "utf8")),
+            );
+          if (!apiIdentifiers.get(target.file).has(target.anchor))
+            report.add(
+              `${path.relative(output, file)}: missing API anchor ${decode(href)}`,
+            );
+        }
+        continue;
+      }
       links += 1;
       if (!fs.existsSync(target.file)) {
         errors.add(
@@ -165,9 +200,12 @@ export function validateDocs({
 
   return {
     errors: [...errors],
+    warnings: [...warnings],
     pages: pages.length,
     links,
     anchors,
+    apiLinks,
+    skippedApiLinks,
     references,
     sourceChecks,
     omittedRepositories: [...omittedRepositories],
@@ -181,13 +219,21 @@ function main() {
       `Source checkout checks skipped for: ${result.omittedRepositories.join(", ")}`,
     );
   }
+  if (result.skippedApiLinks) {
+    console.log(
+      `API link checks skipped for ${result.skippedApiLinks} links: the API pages are not staged (run npm run docs:rustdoc).`,
+    );
+  }
+  if (result.warnings?.length) {
+    console.warn(result.warnings.map((line) => `warning: ${line}`).join("\n"));
+  }
   if (result.errors.length) {
     console.error(result.errors.join("\n"));
     process.exitCode = 1;
     return;
   }
   console.log(
-    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, and ${result.references} source references (${Object.entries(
+    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, ${result.apiLinks} API links, and ${result.references} source references (${Object.entries(
       result.sourceChecks,
     )
       .map(([repository, count]) => `${repository}: ${count}`)

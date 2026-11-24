@@ -84,3 +84,40 @@ test("strict source checkout mode fails while optional mode reports a skip", (t)
     /Missing source checkout for repository core/,
   );
 });
+
+test("checks API links only when the API pages are staged", (t) => {
+  const { root, source, output } = createSite(t);
+  writeFile(
+    path.join(output, "reference", "host", "index.html"),
+    [
+      '<a href="/api/host/task/struct.Manager.html#method.spawn">ok</a>',
+      '<a href="/api/host/task/struct.Manager.html#method.absent">anchor</a>',
+      '<a href="/api/host/abi_declarations/index.html">page</a>',
+    ].join(""),
+  );
+
+  const unstaged = validateDocs({ root, source, output, environment: {} });
+  assert.deepEqual(unstaged.errors, []);
+  assert.equal(unstaged.skippedApiLinks, 3);
+  assert.equal(unstaged.apiLinks, 0);
+
+  writeFile(
+    path.join(output, "api", "host", "task", "struct.Manager.html"),
+    '<section id="method.spawn"></section>',
+  );
+  const staged = validateDocs({ root, source, output, environment: {} });
+  assert.deepEqual(staged.errors, []);
+  assert.equal(staged.apiLinks, 3);
+  assert.deepEqual(staged.warnings, [
+    "reference/host/index.html: missing API anchor /api/host/task/struct.Manager.html#method.absent",
+    "reference/host/index.html: missing API link /api/host/abi_declarations/index.html",
+  ]);
+
+  const strict = validateDocs({
+    root,
+    source,
+    output,
+    environment: { XILA_STRICT_API_LINKS: "1" },
+  });
+  assert.equal(strict.errors.length, 2);
+});

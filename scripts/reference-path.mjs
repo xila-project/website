@@ -1,5 +1,9 @@
 const REFERENCE_ARCHITECTURES = new Set(["host", "guest"]);
 
+// The crate at the root of each published API: Core's façade for the host
+// and the guest API crate of Applications.
+export const API_ROOT_CRATES = Object.freeze({ host: "xila", guest: "wasm" });
+
 export function getReferencePagePath(kind, symbol) {
   if (kind === undefined && symbol === undefined) {
     return "index.html";
@@ -29,25 +33,42 @@ function assertArchitecture(architecture) {
   }
 }
 
-export function getReferenceViewerHref(architecture, targetPath) {
+/** The URL of a rustdoc page, for example `/api/host/xila/index.html`. */
+export function getApiHref(architecture, targetPath) {
   assertArchitecture(architecture);
-  return `/reference/${architecture}/?path=${encodeURIComponent(targetPath)}`;
+  return `/api/${architecture}/${targetPath}`;
 }
 
-export function getReferenceDefaultIframeSrc(
-  architecture,
-  basePrefix = "/rustdoc",
-) {
+/** The URL of the root crate page of an API. */
+export function getApiRootHref(architecture) {
   assertArchitecture(architecture);
-  const crateName = architecture === "guest" ? "wasm" : "xila";
-  return `${basePrefix.replace(/\/$/, "")}/${architecture}/${crateName}/index.html`;
+  return getApiHref(
+    architecture,
+    `${API_ROOT_CRATES[architecture]}/index.html`,
+  );
 }
 
-export function getReferenceIframeSrc(
-  architecture,
-  targetPath,
-  basePrefix = "/rustdoc",
-) {
-  assertArchitecture(architecture);
-  return `${basePrefix.replace(/\/$/, "")}/${architecture}/${targetPath}`;
+/**
+ * The API URL for a link of the former embedded viewer,
+ * `/reference/<architecture>/?path=<target>`. Returns `null` when the target
+ * is missing or leaves the API directory.
+ *
+ * ApiRedirect.astro inlines the source of this function in the page, so it
+ * must not use other functions of this module.
+ */
+export function getApiRedirectHref(architecture, targetPath) {
+  if (!targetPath) return null;
+  const base = new URL(`https://api.invalid/api/${architecture}/`);
+  let target;
+  try {
+    target = new URL(targetPath, base);
+  } catch {
+    return null;
+  }
+  if (
+    target.origin !== base.origin ||
+    !target.pathname.startsWith(base.pathname)
+  )
+    return null;
+  return `${target.pathname}${target.hash}`;
 }

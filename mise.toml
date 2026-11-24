@@ -9,7 +9,7 @@ run = "npm run check"
 # Core and Applications own the Rustdoc toolchains, features and native
 # packages; these tasks only delegate to their mise tasks.
 [tasks."documentation:rustdoc"]
-description = "Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it into dist/rustdoc"
+description = "Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it with the Xila shell into public/api"
 run = "npm run docs:rustdoc"
 
 [tasks."ci:rustdoc-toolchain"]
