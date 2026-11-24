@@ -1,0 +1,122 @@
+---
+title: "Supported hardware"
+docType: reference
+description: "Features, status and hardware test results of every Xila target: WT32-SC01 boards, Arduino Nano 33 BLE, ESP32 examples, QEMU, the browser and native Linux."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+This page lists the targets that Xila builds and the features that each target has. Every cell comes from the board crates, the shared firmware and the board documentation in the <CodeReference repo="platforms" path="examples/boards/README.md">Platforms repository</CodeReference>, at Platforms commit `fdcfe49` (2026-11-24).
+
+A cell with the value `Unknown` means that the sources do not state the fact. A cell with the value `No` means that the firmware or runtime does not enable the feature. Hardware that has no such part has the value `Not applicable`.
+
+## Targets and status
+
+| Target                      | Chip                        | Flash          | PSRAM                          | Status             |
+| --------------------------- | --------------------------- | -------------- | ------------------------------ | ------------------ |
+| WT32-SC01 Plus              | ESP32-S3                    | 16 MB          | 2 MB                           | Tested on hardware |
+| WT32-SC01                   | ESP32 (revision v1.0)       | 4 MB           | 8 MB on the module, 4 MiB used | Tested on hardware |
+| Arduino Nano 33 BLE         | nRF52840                    | 1 MiB          | None (256 KiB RAM)             | Tested on hardware |
+| ESP32-P4X-Function-EV-Board | ESP32-P4                    | 16 MB          | 32 MB                          | Experimental       |
+| ESP32-S3 in QEMU            | ESP32-S3                    | 4 MB, emulated | None                           | Emulator only      |
+| ESP32-C6 in QEMU            | ESP32-C6                    | 4 MB, emulated | None                           | Emulator only      |
+| Browser                     | `wasm32-unknown-unknown`    | Not applicable | Not applicable                 | Host runtime       |
+| Native Linux                | Host CPU (CI builds x86-64) | Not applicable | Not applicable                 | Host runtime       |
+
+The status values have these meanings:
+
+- **Tested on hardware:** a maintainer booted the firmware on the board. The [hardware test record](#hardware-test-record) lists the results.
+- **Emulator only:** the target runs in Espressif's QEMU in continuous integration (CI). No board result exists.
+- **Experimental:** the firmware builds in CI. No boot on a board is recorded. The [limits](#limits) list the known gaps.
+- **Host runtime:** the target runs on a computer. CI builds and tests it. It is not an embedded board.
+
+The ESP32-P4 row describes the ESP32-P4X-Function-EV-Board with chip revision v3.0 or later. An older ESP32-P4-Function-EV-Board has silicon that the firmware refuses to boot.
+
+## Display and input
+
+| Target                      | Display                                                                | Touch                          |
+| --------------------------- | ---------------------------------------------------------------------- | ------------------------------ |
+| WT32-SC01 Plus              | Yes: 480 x 320 ST7796 on an 8-bit 8080 bus                             | Yes: FT6336U                   |
+| WT32-SC01                   | Yes: 480 x 320 ST7796S on SPI                                          | Yes: FT6336U, polled           |
+| Arduino Nano 33 BLE         | No                                                                     | No                             |
+| ESP32-P4X-Function-EV-Board | No                                                                     | No                             |
+| ESP32-S3 in QEMU            | Test frame only: the emulator panel shows one frame at boot            | No                             |
+| ESP32-C6 in QEMU            | No                                                                     | No                             |
+| Browser                     | Yes: HTML canvas                                                       | Yes: mouse and touch events    |
+| Native Linux                | Yes: window (`--gui`) or headless screen (`--display-driver headless`) | No: mouse pointer and keyboard |
+
+## Connectivity and storage
+
+The internal flash column gives the size of the `storage` partition. The firmware formats this partition with LittleFS at the first boot. Each size comes from the `partitions.csv` file of the board.
+
+| Target                      | Wi-Fi                                                 | Internal flash (LittleFS)                                             | microSD                                  | GPIO                                                  |
+| --------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
+| WT32-SC01 Plus              | Yes: 2.4 GHz station, open and WPA2 Personal          | 11.94 MiB                                                             | Yes: LittleFS only, 1-bit native SD mode | Yes: 6 pins, `pin10` to `pin14` and `pin21`           |
+| WT32-SC01                   | No                                                    | 1.69 MiB                                                              | No                                       | Yes: 12 pins (listed below)                           |
+| Arduino Nano 33 BLE         | No                                                    | 512 KiB                                                               | No                                       | Yes: `d0` to `d13`, `a0` to `a7`, three RGB LED lines |
+| ESP32-P4X-Function-EV-Board | No: the chip has no radio                             | 12.94 MiB                                                             | No                                       | No                                                    |
+| ESP32-S3 in QEMU            | No: built with Wi-Fi, but QEMU has no radio           | 1.94 MiB                                                              | No                                       | No                                                    |
+| ESP32-C6 in QEMU            | No                                                    | 2.44 MiB                                                              | No                                       | No                                                    |
+| Browser                     | No: HTTP and HTTPS requests use the browser Fetch API | Not applicable: a 16 MiB disk image in the Origin Private File System | Not applicable                           | No                                                    |
+| Native Linux                | Mock only (`--mock-wifi`)                             | Not applicable: a disk image file, 16 MiB by default                  | Not applicable                           | No                                                    |
+
+The WT32-SC01 firmware mounts these GPIO devices: `pin2`, `pin4`, `pin5`, `pin12`, `pin25`, `pin26`, `pin27`, `pin32`, `pin33`, `pin34`, `pin35` and `pin36`. Pins 34, 35 and 36 are input only. Pins 2, 5 and 12 are strapping pins.
+
+The firmware withholds every other pin, so that no GPIO device can change the display, the touch panel, the console, the flash or the memory. The shell has no command that configures a GPIO pin. Applications use the control commands of the GPIO device.
+
+## Software
+
+| Target                      | Wasm applications              | Native applications                             | Graphical shell | Command-line shell                                                                      |
+| --------------------------- | ------------------------------ | ----------------------------------------------- | --------------- | --------------------------------------------------------------------------------------- |
+| WT32-SC01 Plus              | Yes: lazy function translation | Yes: Activity, File manager, Settings, Terminal | Yes             | Yes: on the USB console and in the Terminal application                                 |
+| WT32-SC01                   | No                             | Yes: Activity, File manager, Settings, Terminal | Yes             | Yes: on UART0 and in the Terminal application                                           |
+| Arduino Nano 33 BLE         | No                             | No                                              | No              | Yes: on the USB console                                                                 |
+| ESP32-P4X-Function-EV-Board | No                             | No                                              | No              | Yes: on UART0 (GPIO37 transmit, GPIO38 receive), but no account exists on a fresh board |
+| ESP32-S3 in QEMU            | No                             | No                                              | No              | Yes: on UART0                                                                           |
+| ESP32-C6 in QEMU            | No                             | No                                              | No              | Yes: on UART0, but no account exists on a fresh disk                                    |
+| Browser                     | Yes                            | Yes: linked into the runtime                    | Yes             | Yes: in the Terminal application only                                                   |
+| Native Linux                | Yes                            | Yes: linked into the runtime                    | Yes (`--gui`)   | Yes (`--terminal`) and in the Terminal application                                      |
+
+A native application is Rust code that the firmware or runtime links into its own binary. A Wasm application is a `wasm32-wasip1` guest that the Wasm runtime executes from the file system.
+
+Three other facts about native code limit the table:
+
+- Loading a separate native executable from the file system needs the `native-dev` feature. The feature is for developers only and does not sandbox the executable. The ESP32-C6 QEMU board enables it. The ESP32-P4 board and the Nano 33 BLE offer it as an option. The native Linux runtime offers it as an option on Linux x86-64 and AArch64. The firmware of the Nano 33 BLE does not fit in its flash with the feature enabled.
+- The WT32-SC01 build has no Wasm runtime. [Platforms pull request 197](https://github.com/xila-project/platforms/pull/197) is open to enable it, and [issue 177](https://github.com/xila-project/platforms/issues/177) tracks the board.
+
+## Hardware test record
+
+This table lists the results that the repositories record. A result without a date has no recorded test date. A feature that is absent from the table has no recorded hardware result.
+
+| Target                      | Feature                              | Result                                                                                                                                                                                             | Source                                                                             |
+| --------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| WT32-SC01 Plus              | Headless boot                        | 2026-11-22: Passed: USB console, PSRAM registered, PSRAM self-test, LittleFS mount, login as `administrator`                                                                                       | [Issue 170](https://github.com/xila-project/platforms/issues/170)                  |
+| WT32-SC01 Plus              | Display, touch, graphical login      | Passed                                                                                                                                                                                             | [Pull request 176](https://github.com/xila-project/platforms/pull/176)             |
+| WT32-SC01 Plus              | Wasm applications                    | 2026-11-23: Calculator and Clock each started alone and ran. Starting both at once failed with `FailedToInstantiateMemory(OutOfSystemMemory)` in a run with older guests. No later run is recorded | [Pull request 180](https://github.com/xila-project/platforms/pull/180)             |
+| WT32-SC01 Plus              | microSD card                         | 2026-11-24: Passed: detection, format, mount, persistence, and file access by `administrator`. One card tested (SanDisk SDXC, 59.47 GiB)                                                           | <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/README.md" /> |
+| WT32-SC01 Plus              | GPIO devices                         | 2026-11-24: Passed: `ls /devices/gpio` lists exactly `pin10`, `pin11`, `pin12`, `pin13`, `pin14` and `pin21`. A read before `CONFIGURE` fails as expected. Pin levels are not recorded             | [Issue 221](https://github.com/xila-project/platforms/issues/221)                  |
+| WT32-SC01 Plus              | Wi-Fi                                | The radio started and the startup heap was measured. No association or traffic result is recorded                                                                                                  | [Pull request 179](https://github.com/xila-project/platforms/pull/179)             |
+| WT32-SC01                   | Headless boot                        | Passed: shell on UART0, LittleFS, PSRAM                                                                                                                                                            | [Issue 177](https://github.com/xila-project/platforms/issues/177)                  |
+| WT32-SC01                   | Display and touch                    | Passed: clean image and working touch at a 40 MHz bus clock                                                                                                                                        | [Pull request 191](https://github.com/xila-project/platforms/pull/191)             |
+| WT32-SC01                   | Graphical shell                      | The display and touch panel initialize with the current partition layout. Opening the four applications from the menu is not recorded                                                              | [Pull request 194](https://github.com/xila-project/platforms/pull/194)             |
+| WT32-SC01                   | GPIO devices                         | Not tested on hardware                                                                                                                                                                             | [Issue 221](https://github.com/xila-project/platforms/issues/221)                  |
+| Arduino Nano 33 BLE         | Boot, shell, GPIO, recovery          | Merged 2026-11-11: Passed: boot, persistent file system, login, line editing, GPIO (D13, RGB LEDs, inputs), bootloader recovery, flashing with the 1200 baud touch                                 | [Pull request 71](https://github.com/xila-project/platforms/pull/71)               |
+| ESP32-P4X-Function-EV-Board | Boot                                 | Not tested: the boot milestone is open. CI builds the flash image                                                                                                                                  | [Issue 147](https://github.com/xila-project/platforms/issues/147)                  |
+| ESP32-S3 in QEMU            | Boot, LittleFS, random device, login | Each CI run: Checked in CI by `mise run test:esp32-s3-qemu`. The job is advisory and is not part of the required gate                                                                              | <CodeReference repo="platforms" path=".github/workflows/ci.yml" />                 |
+| ESP32-C6 in QEMU            | Boot, LittleFS, login prompt         | Each CI run: Checked in CI by `mise run test:esp32-c6-qemu`. The job is advisory and is not part of the required gate                                                                              | <CodeReference repo="platforms" path=".github/workflows/ci.yml" />                 |
+
+## Limits
+
+- The ESP32-P4 board and the ESP32-C6 QEMU board have no entropy source. The firmware skips the creation of the default account on a fresh file system. A fresh P4 board reaches the login prompt, but no account can sign in. The cause for the P4 is [esp-hal issue 5982](https://github.com/esp-rs/esp-hal/issues/5982).
+- The WT32-SC01 Plus microSD slot has no card-detect line. The firmware looks for a card once, at boot. The slot shares GPIO 38 with the RS-485 connector, so do not connect an RS-485 device while a card is in the slot.
+- The WT32-SC01 Plus has no Wi-Fi traffic result in the repositories. The HTTPS client does not verify server certificates ([Platforms issue 186](https://github.com/xila-project/platforms/issues/186)).
+- The WT32-SC01 cannot hold Wi-Fi together with the Wasm runtime and the neural network loader, because of the flash and internal RAM budget ([Platforms issue 200](https://github.com/xila-project/platforms/issues/200)).
+- The firmware of the Nano 33 BLE sets its clock to the build date at every power-up. The board keeps no time without power.
+- The browser runtime keeps its disk in the Origin Private File System. The browser needs support for `FileSystemFileHandle.createWritable` and Web Locks. See [Browser storage](/explanation/browser-storage/).
+
+## Related
+
+- [Run Xila on the Arduino Nano 33 BLE](/how-to/run-nano-33-ble/)
+- [Run Xila natively](/tutorials/native/)
+- [Run Calculator in the browser](/tutorials/browser/)
+- [Development environments and targets](/explanation/development-environments/)
