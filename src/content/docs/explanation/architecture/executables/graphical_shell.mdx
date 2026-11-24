@@ -40,7 +40,7 @@ When Xila boots into a graphical environment, the runtime starts the graphical s
 The shell layout maintains persistent interface elements around the primary window workspace:
 
 - **Top status bar**: Displays a digital clock formatted via `DateTimeFormatter` (`%H:%M`), an active network interface indicator, and an optional battery level icon.
-- **Application dock**: Lies along the bottom edge of the screen. It has a main launcher button and one icon per open window.
+- **Application dock**: Sits along the bottom edge of the screen. It has a main launcher button and one icon per open window.
 - **Window management menu**: Clicking a dock icon brings that window to the front. Secondary actions minimize, maximize, or close the window.
 
 ### Shortcut discovery and launcher integration
@@ -89,7 +89,7 @@ For instructions on formatting shortcut descriptors and adding new applications,
 
 ## Design choices and trade-offs
 
-- **Fresh scan on drawer open**: Scanning bundles when the drawer opens makes newly installed packages appear immediately. No shell reload or background file watcher is needed.
+- **Fresh scan on drawer open**: Scanning bundles when the drawer opens makes newly installed packages appear immediately. No shell reload or background file system watcher is needed.
 - **Lightweight shortcut descriptors**: Reading `shortcut.json` files instead of package archive manifests avoids parsing cryptographic package metadata during UI layout.
 - **Per-user appearance**: Applying the saved appearance right after login lets each user keep custom themes and palettes across sessions.
 

@@ -7,7 +7,7 @@ description: "Tab-based configuration utility managing system preferences, appea
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Settings executable (<HostReference repo="applications" crate="settings" />) is a tab-based configuration utility for Xila. It manages system options, appearance themes, user passwords, network interfaces, and system information.
+The Settings executable (<HostReference repo="applications" crate="settings" />) is a tab-based graphical configuration utility for Xila. It manages system options, appearance themes, user passwords, network interfaces, and system information.
 
 ## Context
 
@@ -42,7 +42,7 @@ flowchart TD
     About --> AboutData["System info & Memory manager"]
 ```
 
-Settings creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Se" (Grey palette). The window hosts a full-size LVGL tab view with five panels:
+Settings creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Se" (Grey palette). It flattens the window chrome and hosts a full-size LVGL tab view with five panels:
 
 1. **General**: Displays the active system language compiled into the system image (<CodeReference repo="applications" path="executables/settings/src/tabs/general.rs" />).
 2. **Appearance**: Configures interface styling. A switch toggles dark mode. Dropdowns select the primary and secondary palette hues (Blue, Green, Red, Orange, and Purple). Changes apply immediately to all open windows and are saved to `/users/<username>/configuration/graphics/appearance.json`.

@@ -34,7 +34,7 @@ flowchart LR
     Model -->|"Format and scale"| View["LVGL dashboard view"]
 ```
 
-The application runs a continuous asynchronous event loop. Each iteration checks for pending user interface events. Each iteration also evaluates the status of any active test workload. It collects fresh metrics when the configured sample interval expires:
+The application runs a continuous asynchronous event loop. Each iteration checks for pending user interface events. Each iteration also evaluates the status of any active test workload. The application also collects fresh metrics when the configured sample interval expires:
 
 1. **Task count**: Queries <HostReference crate="task" kind="struct" symbol="Manager" /> via `get_task_count()`. This gives the number of currently scheduled tasks.
 2. **Memory allocation**: Reads heap utilization from <HostReference crate="memory" /> via `global_manager().get_used()` and `get_total_size()`. If the capacity is zero or smaller than the used bytes, the application marks the capacity as unavailable.
@@ -48,7 +48,7 @@ Activity renders its dashboard with LVGL in an <HostReference crate="graphics" k
 
 - **Metrics summary**: Shows the formatted uptime (`D d HH:MM:SS`), the total task count, and the heap usage scaled to bytes, KiB, or MiB.
 - **Memory share bar**: Shows used heap memory as a permille value (0 to 1000) of the total heap capacity.
-- **Historical memory chart**: A 60-point line chart of heap usage over time. Each point divides the sample byte count by 16, so large values fit into signed 32-bit chart coordinates. The axis bounds adapt to the data and include at least 2,048 bytes of padding, which keeps flat traces readable.
+- **Historical memory chart**: A 60-point line chart of heap usage over time. Each point divides the sample byte count by 16, so large values fit into signed 32-bit chart coordinates. The axis bounds adapt to the data and include at least 2,048 bytes of padding, which keeps flat or slightly varying traces readable.
 - **Adaptive layout**: When the window is smaller than 560 pixels wide or 360 pixels high, the dashboard switches to a compact layout with less padding and tighter widget spacing.
 
 ### Refresh interval selection

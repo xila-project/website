@@ -11,7 +11,7 @@ The Terminal executable (<HostReference repo="applications" crate="terminal" />)
 
 ## Context
 
-On graphical platforms, text applications and interactive shells cannot write directly to the display framebuffer. They use the standard input, standard output, and standard error streams through file descriptors instead.
+On graphical platforms, text-mode applications and interactive shells cannot write directly to the display framebuffer. They use the standard input, standard output, and standard error streams through file descriptors instead.
 
 Terminal acts as a terminal emulator and a virtual device:
 
@@ -54,7 +54,7 @@ flowchart LR
 
 When Terminal starts:
 
-1. It creates a `Terminal` instance through the graphics manager (<HostReference crate="graphics" />). The instance is an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with a scrollable output display and a bottom toolbar.
+1. It creates a `Terminal` instance through the graphics manager (<HostReference crate="graphics" />). The instance owns an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with a scrollable output display and a bottom toolbar.
 2. It generates a task-specific device path `/devices/terminal_{task}` based on its current <HostReference crate="task" kind="struct" symbol="TaskIdentifier" />.
 3. It mounts the terminal instance into the VFS as a static character device via <HostReference crate="virtual_file_system" kind="enum" symbol="ItemStatic" />.
 4. It creates a <HostReference crate="executable" kind="struct" symbol="Standard" /> descriptor. Its standard input, standard output, and standard error paths all point to `/devices/terminal_{task}`.

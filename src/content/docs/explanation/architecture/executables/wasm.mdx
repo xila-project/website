@@ -13,7 +13,7 @@ The Wasm executable loads WebAssembly (Wasm) guest applications from the virtual
 
 ## Context
 
-Xila applications run as sandboxed WebAssembly modules instead of native machine code. This isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller boards, desktop builds, and browser platforms.
+Xila applications run as sandboxed WebAssembly modules instead of native machine code. This isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller development boards, native desktop builds, and browser platforms.
 
 The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" />, <HostReference crate="task" kind="struct" symbol="Manager" />, and <HostReference crate="graphics" kind="struct" symbol="Manager" />) and implements <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> to integrate into Xila's process lifecycle.
 
@@ -31,14 +31,14 @@ flowchart LR
     Subsystem --> Driver["Device driver or display hardware"]
 ```
 
-The guest application runs in sandboxed WebAssembly linear memory and calls an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O or through `xila_graphics_call` for graphical operations. The host runtime checks memory bounds and task capabilities, then forwards the request to the Core subsystems. The subsystems dispatch typed commands or pixel operations to the device drivers.
+The guest application runs in sandboxed WebAssembly linear memory and calls an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O or through `xila_graphics_call` for graphical operations. The host runtime checks memory bounds and task capabilities, then forwards the request to the Core subsystems. The subsystems dispatch typed control commands or pixel operations to the device drivers.
 
 ### Module initialization and lifecycle
 
 When launched from the shell or desktop, the host runner completes the following lifecycle:
 
 1. Path resolution: The runner reads the module bytecode from the VFS into memory using <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />.
-2. Directory provisioning: For an application bundle, the runner creates the configuration, data, and cache directories of the calling user and sets the `XILA_APPLICATION_*` environment variables.
+2. Directory provisioning: For an application bundle, the runner ensures that the configuration, data, and cache directories of the calling user exist and sets the `XILA_APPLICATION_*` environment variables.
 3. Engine instantiation: A fresh Wasmi engine and store are allocated for each execution. There is no globally cached interpreter state.
 4. Eager translation: The runner translates all function bytecode before execution starts. Fuel exhaustion therefore cannot interrupt lazy compilation.
 5. WASI environment setup: Standard streams (`stdin`, `stdout`, `stderr`) are mapped to descriptors `0`, `1`, and `2`. If available, the root directory (`/`) is preopened as descriptor `3`.

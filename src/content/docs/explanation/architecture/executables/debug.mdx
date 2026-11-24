@@ -60,7 +60,7 @@ The transport dispatches requests across several functional areas:
 - **Display resolution (`resolution`)**: Queries the graphics manager for the screen width and height in pixels.
 - **Screen capture (`screenshot`)**: Captures the current display framebuffer as a full composited RGBA8888 image through the graphics subsystem.
 - **UI tree inspection (`ui_tree`)**: Generates a bounded hierarchical snapshot of the active LVGL widget tree. The `max_elements` and `max_depth` parameters constrain the snapshot.
-- **Pointer injection (`pointer_move`, `pointer_button`, `pointer_click`, `click`)**: Injects synthetic pointer movement, button presses and releases, or clicks. The target is a widget role, identifier, or button label.
+- **Pointer injection (`pointer_move`, `pointer_button`, `pointer_click`, `click`)**: Injects synthetic pointer movement, button presses and releases, or high-level clicks. A high-level click targets a widget role, identifier, or button label.
 - **Keyboard injection (`key`, `press_key`, `text`)**: Injects raw key events, such as arrows, Enter, backspace, and escape. It also queues UTF-8 text strings into the graphics input queue.
 
 ## Design choices and trade-offs

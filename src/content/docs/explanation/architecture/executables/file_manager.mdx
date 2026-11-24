@@ -45,7 +45,7 @@ flowchart TD
 When started, File manager creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Fm" (Cyan hue). It arranges the contents in a vertical flex layout:
 
 1. **Toolbar**: A horizontal bar containing navigation controls:
-   - **Up button** (`LV_SYMBOL_UP`): Opens the parent directory of the current path. Disabled at the root (`/`).
+   - **Up button** (`LV_SYMBOL_UP`): Opens the parent directory of the current path. Disabled at the file system root (`/`).
    - **Home button** (`LV_SYMBOL_HOME`): Opens the user's home directory. The path comes from the `HOME` environment variable or is built as `/home/<username>`.
    - **Refresh button** (`LV_SYMBOL_REFRESH`): Re-reads the current directory from the VFS and updates the list.
    - **Path field** (`lv_textarea`): Shows the current path and accepts keyboard input. Pressing Enter opens the entered path.
@@ -60,7 +60,7 @@ When navigating to a new path:
 1. File manager checks that the path is absolute. Otherwise it joins the path against the current path using <HostReference crate="file_system" kind="struct" symbol="PathOwned" />.
 2. It opens the directory through the VFS using <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />.
 3. It iterates over directory entries, collecting file names, entry kinds (file, directory, device, pipe, or link), and file sizes.
-4. It sorts the entries: directories first, then the other entries, alphabetically and case-insensitive.
+4. It sorts the entries: directories first, then the other entries, alphabetically, ignoring case.
 5. It clears the old list buttons and creates new buttons for each entry, styled by entry kind:
    - Directories show the `LV_SYMBOL_DIRECTORY` prefix. Clicking a directory opens it.
    - Regular files and other nodes show the `LV_SYMBOL_FILE` prefix.
@@ -77,8 +77,8 @@ File manager does not create its own shortcut file at runtime. Platforms seeds t
 
 ## Limits
 
-- **Read-only navigation**: File manager only browses and inspects directories. The user interface cannot create, rename, move, or delete files or directories.
-- **No file opening or execution**: Clicking a regular file does not open it or run it. Files are opened through the shell or the launcher drawer.
+- **Read-only navigation**: File manager only browses and inspects directories. It does not currently create, rename, move, or delete files or directories from the user interface.
+- **No file opening or execution**: Clicking a regular file does not open it in a viewer application and does not run it. File launching is handled through the shell or the launcher drawer.
 
 ## API reference
 

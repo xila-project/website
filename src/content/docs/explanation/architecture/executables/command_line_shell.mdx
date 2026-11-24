@@ -19,7 +19,7 @@ The command-line shell meets these requirements:
 - It parses command lines using strictly bounded static and heap buffers.
 - It connects pipeline stages concurrently through in-memory virtual file system (VFS) pipes.
 - It resolves commands against built-in handlers and the directories listed in environment variables.
-- It limits the recursion depth of nested shell scripts. This protects the stack and the task table from exhaustion.
+- It limits the recursion depth of nested shell scripts. This protects against stack exhaustion and task exhaustion.
 
 ## How it works
 
