@@ -25,6 +25,7 @@ const sidebar = [
       page("Overview", "/tutorials/"),
       page("Run Xila natively", "/tutorials/native/"),
       page("Run Calculator in the browser", "/tutorials/browser/"),
+      page("Build your first application", "/tutorials/first-application/"),
     ],
   },
   {
