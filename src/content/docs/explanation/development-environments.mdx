@@ -23,14 +23,14 @@ Xila addresses these demands by decoupling portable operating system subsystems 
 The codebase is organized into three main repositories:
 
 - **Core** (`github.com/xila-project/core`): Architecture-independent operating system subsystems and libraries. Owns the virtual file system (VFS), task management, memory allocation abstractions, authentication, graphics primitives, and device interfaces.
-- **Applications** (`github.com/xila-project/applications`): User applications (such as Calculator, Clock, Weather, Pixel Painter, Text Editor, Synth, and Digits), system shells (graphical shell, command-line shell, terminal), and WebAssembly guest runtime bindings (`xila-wasm`).
+- **Applications** (`github.com/xila-project/applications`): User applications (such as Calculator, Clock, Weather, Pixel Painter, Text Editor, Synth, Digits, and Dashboard), system shells (graphical shell, command-line shell, terminal), and WebAssembly guest runtime bindings (`xila-wasm`).
 - **Platforms** (`github.com/xila-project/platforms`): Concrete platform targets, platform drivers, reference disk image generation (`xila-fs-image`), and runtime binaries for desktop, browser, and microcontroller environments.
 
 Supporting repositories include `package_manager` for application packaging and `registry` for signed package publication metadata.
 
 ### Execution targets
 
-Xila compiles to four distinct Rust target triples:
+Xila compiles to these main Rust target triples:
 
 | Target                     | Purpose                                 | Execution model                                           | Built by                           |
 | -------------------------- | --------------------------------------- | --------------------------------------------------------- | ---------------------------------- |
@@ -38,6 +38,8 @@ Xila compiles to four distinct Rust target triples:
 | `wasm32-wasip1`            | Sandboxed guest applications            | WebAssembly bytecode interpreted by Wasmi inside Xila     | Applications (`executables/*`)     |
 | `wasm32-unknown-unknown`   | Browser runtime                         | WebAssembly bytecode executed directly by the web browser | Platforms (`examples/wasm`)        |
 | `thumbv7em-none-eabihf`    | Embedded microcontroller firmware       | Bare-metal ARM Cortex-M4F machine code                    | Platforms (`examples/nano_33_ble`) |
+
+The Espressif boards add more targets, built from the board crates in `examples/boards`: `xtensa-esp32-none-elf` (WT32-SC01), `xtensa-esp32s3-none-elf` (WT32-SC01 Plus, ESP32-S3 QEMU), `riscv32imac-unknown-none-elf` (ESP32-C6 QEMU) and `riscv32imafc-unknown-none-elf` (ESP32-P4 Function EV Board).
 
 ### Build and runtime flow
 
@@ -98,7 +100,7 @@ The build flow works as follows:
 
 - **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the budget.
 - **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
-- **Espressif target status:** Although driver sources exist in `drivers/espressif`, ESP32 builds are gated out on host targets and are not currently verified in continuous integration.
+- **Espressif target status:** The Espressif driver source stays gated out on host targets, so host builds do not exercise it. Platforms CI builds the WT32-SC01, WT32-SC01 Plus and ESP32-P4 Function EV Board firmware, and boots the ESP32-S3 and ESP32-C6 images in Espressif's QEMU.
 
 ## API reference
 
