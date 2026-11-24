@@ -7,11 +7,11 @@ description: "Typed control contracts for Xila devices and their drivers."
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Core `device` crate defines typed control commands shared by device callers and drivers. Commands describe the data passed across the virtual file system (VFS) device interface.
+The Core `device` crate defines typed control commands for device callers and drivers. A command describes the data that crosses the virtual file system (VFS) device interface.
 
 ## Context
 
-The crate groups commands by device kind, including ADC, audio, GPIO, hash, I2C, neural network, PWM, screen, SPI and UART. The declarations define contracts; a particular driver determines which operations it implements.
+The crate groups commands by device kind. The kinds include ADC, audio, GPIO, hash, I2C, neural network, PWM, screen, SPI, and UART. The declarations define contracts. A particular driver determines which operations it implements.
 
 ## How it works
 
@@ -37,13 +37,13 @@ The GPIO contract uses versioned structures. Their version must equal `ABI_VERSI
 
 ## Design choices and trade-offs
 
-Typed commands give callers and drivers a shared representation without requiring every driver to support every device kind. The neural-network commands describe a device protocol; the backend trait belongs to the `neural_network` library.
+Typed commands give callers and drivers a shared representation. Not every driver supports every device kind. The neural-network commands describe a device protocol. The backend trait belongs to the `neural_network` library.
 
 ## API reference
 
-- <HostReference crate="device" /> — device contracts.
-- <CodeReference path="devices/src/gpio.rs" /> — GPIO command definitions.
-- <CodeReference path="devices/src/neural_network.rs" /> — inference device
+- <HostReference crate="device" />: device contracts.
+- <CodeReference path="devices/src/gpio.rs" />: GPIO command definitions.
+- <CodeReference path="devices/src/neural_network.rs" />: inference device
   protocol.
 
 ## Related

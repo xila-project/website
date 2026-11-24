@@ -13,8 +13,8 @@ The Core `firmware_update` library manages a firmware update transaction through
 
 <HostReference crate="firmware_update" kind="struct" symbol="Update" /> owns a
 <HostReference crate="firmware_update" kind="trait" symbol="FirmwareBackend" />.
-The backend defines image format, trust, staging geometry and persistent boot
-state. The transaction tracks the current stream in memory.
+The backend defines the image format, trust, staging geometry, and persistent
+boot state. The transaction tracks the current stream in memory.
 
 ## How it works
 
@@ -35,20 +35,20 @@ stateDiagram-v2
     PendingBoot --> Idle: abort succeeds
 ```
 
-A successful begin declares the image length. Writes stream data to the backend; finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when successful. Confirmation of the running image is a separate backend operation allowed in `Idle`.
+A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
 
-The optional device adapter exposes `/devices/system/firmware`. Its control commands manage the transaction, while writes supply image bytes. See <CodeReference path="libraries/firmware_update/src/device.rs" /> for the device contract.
+The optional device adapter exposes `/devices/system/firmware`. Its control commands manage the transaction. Writes supply image bytes. See <CodeReference path="libraries/firmware_update/src/device.rs" /> for the device contract.
 
 ## Design choices and trade-offs
 
-The backend owns verification and boot policy. The transaction retains a proof between finish and activation, and backend failures can put it in `Failed`. Closing a device does not activate an image.
+The backend owns verification and boot policy. The transaction keeps a proof between finish and activation. A backend failure can put the transaction in `Failed`. Closing the device does not activate an image.
 
 ## API reference
 
-- <HostReference crate="firmware_update" /> — update contracts.
-- <HostReference crate="firmware_update" kind="enum" symbol="State" /> —
+- <HostReference crate="firmware_update" />: update contracts.
+- <HostReference crate="firmware_update" kind="enum" symbol="State" />:
   transaction states.
-- <CodeReference path="libraries/firmware_update/src/device.rs" /> — device
+- <CodeReference path="libraries/firmware_update/src/device.rs" />: device
   adapter.
 
 ## Related
