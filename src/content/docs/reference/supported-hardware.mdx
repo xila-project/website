@@ -36,7 +36,7 @@ The ESP32-P4 row describes the ESP32-P4X-Function-EV-Board with chip revision v3
 
 | Target                      | Display                                                                | Touch                          |
 | --------------------------- | ---------------------------------------------------------------------- | ------------------------------ |
-| WT32-SC01 Plus              | Yes: 480 x 320 ST7796 on an 8-bit 8080 bus                             | Yes: FT6336U                   |
+| WT32-SC01 Plus              | Yes: 480 x 320 ST7796 on an 8-bit 8080 bus                             | Yes: FT6336U, polled           |
 | WT32-SC01                   | Yes: 480 x 320 ST7796S on SPI                                          | Yes: FT6336U, polled           |
 | Arduino Nano 33 BLE         | No                                                                     | No                             |
 | ESP32-P4X-Function-EV-Board | No                                                                     | No                             |
@@ -79,7 +79,7 @@ The firmware withholds every other pin, so that no GPIO device can change the di
 
 A native application is Rust code that the firmware or runtime links into its own binary. A Wasm application is a `wasm32-wasip1` guest that the Wasm runtime executes from the file system.
 
-Three other facts about native code limit the table:
+Two other facts about native code limit the table:
 
 - Loading a separate native executable from the file system needs the `native-dev` feature. The feature is for developers only and does not sandbox the executable. The ESP32-C6 QEMU board enables it. The ESP32-P4 board and the Nano 33 BLE offer it as an option. The native Linux runtime offers it as an option on Linux x86-64 and AArch64. The firmware of the Nano 33 BLE does not fit in its flash with the feature enabled.
 - The WT32-SC01 build has no Wasm runtime. [Platforms pull request 197](https://github.com/xila-project/platforms/pull/197) is open to enable it, and [issue 177](https://github.com/xila-project/platforms/issues/177) tracks the board.
