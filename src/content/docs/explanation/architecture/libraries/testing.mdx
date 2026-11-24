@@ -58,7 +58,7 @@ The bootstrap runs these steps in order:
 1. Initialize logging with `Logger`.
 2. Create task manager, users manager, and time manager instances.
 3. If `graphics_enabled` is true, construct a `HeadlessScreenDevice` (800×600) and spawn the background graphics loop task.
-4. Format an in-memory LittleFS file system on a `MemoryDevice::<512>::new_static(1024 * 512)` (512 KiB block device with 256-byte blocks) and initialize the virtual file system.
+4. Format an in-memory LittleFS file system on a `MemoryDevice::<512>::new_static(1024 * 512)` (512 KiB block device with 512-byte blocks) and initialize the virtual file system.
 5. Populate the default directory hierarchy via `create_default_hierarchy`.
 6. Mount mock character devices into the VFS:
    - `/devices/random/source` (`RandomDevice`)

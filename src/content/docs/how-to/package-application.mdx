@@ -18,7 +18,7 @@ This guide shows how to create a signed package with the desktop `xila-package` 
 1. In a host shell in your working directory, initialize a source folder:
 
    ```sh
-   xila-package bundle init ./weather community.weather 1.0.0 wasm32-wasip1 1 --entrypoint executables/weather.wasm --display-name Weather --icon resources/icon.png
+   xila-package bundle init ./weather example.xila.weather 1.0.0 wasm32-wasip1 --xila-version 0.1 --entrypoint executables/weather.wasm --display-name Weather --icon resources/icon.png
    ```
 
 2. Place the compiled guest at `weather/executables/weather.wasm` and its icon at `weather/resources/icon.png`. Then review `weather/xila-package.json`.

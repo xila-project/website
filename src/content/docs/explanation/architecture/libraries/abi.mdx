@@ -51,7 +51,7 @@ Core rejects raw ELF files by default. A platform can opt into running them from
 
 The `XilaApi` table layout is currently version `0.1`. The loader requires an exact match for pre-release `0.x` images. Rebuild native applications against the matching SDK when the table or status codes change.
 
-Core also defines <HostReference crate="abi_application" kind="constant" symbol="APPLICATION_ABI_VERSION" />, currently `1`. This Rust constant covers the application contract for both native and Wasm packages. The package installer compares it with the manifest's [`minimum_xila_abi`](/reference/package-format/) field. The C header exposes the native table version.
+Core also defines <HostReference crate="abi_application" kind="constant" symbol="APPLICATION_ABI_VERSION" />, currently `1`. This Rust constant covers the application contract for both native and Wasm packages. The package installer compares the manifest's [`xila_version`](/reference/package-format/) field with the running Xila version. The C header exposes the native table version.
 
 ## Limits
 

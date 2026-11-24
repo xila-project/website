@@ -10,7 +10,7 @@ Package management connects signed application files to registry metadata and in
 
 ## Context
 
-A package (a `.xpk` file) carries a manifest and payload. The [registry repository](https://github.com/xila-project/registry) holds metadata and developer keys. Project releases host the packages.
+A package (a `.xpk` file) carries a manifest and payload. The [registry repository](https://github.com/xila-project/registry) holds registry entries, developer keys and namespace files. Project releases host the packages. Published entries are immutable: a new release is a new entry. Xila's own applications are published under the `xila` developer key (`keys/developers/xila.json`).
 
 ## How it works
 
@@ -26,7 +26,7 @@ flowchart LR
     Release --> Install
 ```
 
-The desktop tool builds and signs a bundle, then makes a package from it. A registry entry is generated from the package. Registry publication signs the entry and the developer key. The device downloads the package from its release URL.
+The desktop tool builds and signs a bundle, then makes a package from it. A registry entry (format 2) is generated from the package, never written by hand. Registry publication signs each entry, developer key, namespace file and the index with the repository key. The device downloads the package from its release URL.
 
 The following diagram shows the trust chain for a repository install.
 
@@ -40,15 +40,15 @@ flowchart LR
     Signature --> Hashes[File hashes]
 ```
 
-The root key authenticates repository keys. A repository key signs the entry and the developer-key record. The entry identifies the authorized developer, the archive digest, and the archive size. The developer key authenticates the manifest, which contains a SHA-256 digest for each file. The installer checks the downloaded package and its payload against these records.
+The root key authenticates repository keys. A repository key signs each entry, developer key, namespace file and the index. The entry names the authorized publisher, pins the archive URL, digest and size, and copies the display name and catalog metadata from the signed manifest. The developer key authenticates the manifest, which contains a SHA-256 digest for each file. The installer checks the downloaded package and its payload against these records.
 
 ## Design choices and trade-offs
 
-A repository install verifies the signed root and index metadata, the entry and developer key, and the archive and manifest. The installer remembers the accepted root and index versions, but it does not check index expiry without a trustworthy clock. A local archive uses a directly trusted developer key instead. It does not authenticate registry metadata.
+A repository install verifies the signed root and index metadata, the entry and developer key, and the archive and manifest. The installer remembers the accepted root and index versions, but it does not check index expiry without a trustworthy clock. A local archive instead goes through the registry entry that pins it: the installer finds the entry for the archive's name and version in the configured repositories and checks the archive against it.
 
 ## Limits
 
-The installer stages files before moving the verified bundle into place. It does not provide a durable transaction journal or verify signatures at launch. Protect installed files from unprivileged writes.
+The installer stages files before moving the verified bundle into place, as a crash-consistent transaction with a journal. The Wasm runtime verifies installed package executables against the installed manifest before compiling them. It does not verify a signature at launch, so protect installed files from unprivileged writes.
 
 ## API reference
 

@@ -14,16 +14,18 @@ The writer produces an uncompressed USTAR archive of ordinary files. `.xila/mani
 
 ## Manifest
 
-| Field                       | Meaning                                                                             |
-| --------------------------- | ----------------------------------------------------------------------------------- |
-| `$schema`                   | Optional editor schema URL.                                                         |
-| `format_version`            | Format version, `1`.                                                                |
-| `name`, `version`, `target` | Package identity and target.                                                        |
-| `minimum_xila_abi`          | Minimum application binary interface (ABI) as an unsigned 32-bit integer.           |
-| `capabilities`              | Requested capability strings.                                                       |
-| `files`                     | Ordered inventory of `path`, `size` and lowercase hexadecimal `sha256`.             |
-| `application`               | Null or an object with `entrypoint`, `display_name`, `icon` and `show_in_launcher`. |
-| `metadata`                  | Optional descriptive `summary`, `license`, `source` and `homepage`.                 |
+| Field                       | Meaning                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| `$schema`                   | Optional editor schema URL.                                                                   |
+| `format_version`            | Format version, `2`.                                                                          |
+| `name`, `version`, `target` | Reverse-DNS package name, version and target. The name has at least three components.         |
+| `xila_version`              | Minimum Xila release as `major.minor`.                                                        |
+| `capabilities`              | Requested capability strings.                                                                 |
+| `files`                     | Ordered inventory of `path`, `size` and lowercase hexadecimal `sha256`.                       |
+| `application`               | Required. Null or an object with `entrypoint`, `display_name`, `icon` and `show_in_launcher`. |
+| `metadata`                  | Optional. Null or an object with `summary`, `license`, `source` and optional `homepage`.      |
+
+Legacy two-component `xila.<name>` names stay valid until Xila's own packages migrate. The installer rejects a package when `xila_version` is not compatible with the running Xila release. Before Xila 1.0, the major and minor versions must be equal. From Xila 1.0, the major versions must be equal and the running minor version must be at least the declared one. Patch versions are ignored.
 
 A bundle-local entrypoint and a nonempty icon must name files in the inventory. A system entrypoint can instead refer to an existing executable under `/system/executables/` or `/applications/executables/`.
 

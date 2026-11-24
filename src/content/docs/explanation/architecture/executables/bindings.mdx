@@ -47,12 +47,12 @@ The dispatch layer validates the function identifier and the parameter count. It
 
 ### Handle-based object virtualization
 
-Guest code never receives or manipulates native LVGL pointers (`lv_obj_t*`). The host assigns monotonically increasing integer handles instead:
+Guest code never receives or manipulates native LVGL pointers (`lv_obj_t*`). The host assigns 32-bit generational integer handles instead:
 
 - The object table of each virtual machine has no fixed entry cap. Retained resources are bounded by the limits below.
 - Each handle identifies a specific widget type and native pointer.
 - Calling <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" /> deletes the LVGL widget and invalidates the handle.
-- Handles are not reused within a single execution. This prevents stale handle references from affecting newly created widgets.
+- A handle packs a 16-bit slot and a 16-bit generation. Deleting an object frees its slot for reuse with a higher generation. A stale handle is therefore rejected until the same slot has been reused 65,536 times. Handles are not cryptographic capabilities.
 - When an application terminates or traps, the host tears down the window hierarchy and releases all graphics resources.
 
 ### Bounded string and array marshalling

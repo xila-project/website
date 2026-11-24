@@ -19,17 +19,17 @@ This guide shows how to submit a released package to the registry.
 1. In a host shell in the registry repository root, generate the entry using your package, public key, publisher ID and release URL:
 
    ```sh
-   xila-package registry entry ./Weather.xpk ./public.key community https://xila.example/Weather.xpk packages/community/weather/1.0.0.json
+   xila-package registry entry ./Weather.xpk ./public.key example-developer https://xila.example/Weather.xpk packages/example/xila/weather/1.0.0.json
    ```
 
-2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. Its namespaces must authorize the package identifier. Follow the <CodeReference repo="package_manager" path="schemas/developer-key.schema.json">developer-key schema</CodeReference>.
+2. If this is the publisher's first contribution, add its developer-key JSON under `keys/developers/`. The key must authorize the package identifier through a namespace file under `namespaces/` or the legacy `xila.<name>` grant, and the package kind through its `kinds`. Follow the <CodeReference repo="package_manager" path="schemas/developer-key.schema.json">developer-key schema</CodeReference>.
 3. In a host shell in the registry repository root, validate the checkout:
 
    ```sh
    bash tools/validate.sh
    ```
 
-4. Open a pull request adding the entry and, if needed, the developer key. Published version entries cannot be modified or deleted. Submit a new version instead.
+4. Open a pull request adding the entry and, if needed, the developer key. Published version entries cannot be modified or deleted. Submit a new version instead. The `tools/check_immutable.sh` check enforces this.
 
 ## Verify the result
 

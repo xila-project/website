@@ -78,7 +78,7 @@ Activity includes a demonstration workload for observing memory and CPU activity
 
 - **Global metrics only**: The dashboard shows total task counts and aggregate heap metrics. It does not show per-task CPU utilization or per-task memory breakdowns.
 - **Fixed historical depth**: The history chart retains exactly 60 samples. Older samples are dropped as new ones arrive.
-- **Unvarying memory capacity**: Platforms without a fixed allocator capacity report only the used bytes and omit the capacity percentage.
+- **Unavailable memory capacity**: When the allocator reports a capacity of zero or less than the used bytes, the capacity is unavailable. Activity then shows only the used bytes, hides the capacity bar, and marks the capacity as unavailable.
 
 ## API reference
 

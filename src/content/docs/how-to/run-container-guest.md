@@ -30,15 +30,11 @@ The named volume persists `/var/lib/xila/drive.img` between container runs. On i
 1. In a host terminal, run:
 
    ```sh
-
+   docker run --rm -it --network none --read-only \
+     --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+     --mount type=volume,src=xila-state,dst=/var/lib/xila \
+     ghcr.io/xila-project/xila-runtime:latest
    ```
-
-docker run --rm -it --network none --read-only \
---tmpfs /tmp:rw,noexec,nosuid,size=16m \
---mount type=volume,src=xila-state,dst=/var/lib/xila \
-ghcr.io/xila-project/xila-runtime:latest
-
-````
 
 By default the image executes `xila-runtime shell --network=none`: this opens **Xila's own command-line shell**, not the container's Linux `bash`. On a fresh installation, log in as **administrator** with an empty password. Try `pwd` or `echo hello`, then `exit` to quit.
 
@@ -48,26 +44,22 @@ You may append `shell --network=none` after the image name to select this mode e
 
 1. In the host working directory, prepare the guest:
 
-```sh
-mkdir -p fixtures
-cp /path/to/app.wasm fixtures/app.wasm
-````
+   ```sh
+   mkdir -p fixtures
+   cp /path/to/app.wasm fixtures/app.wasm
+   ```
 
 2. In the same host directory, launch the guest with the persistent disk:
 
    ```sh
-
+   docker run --rm --network none --read-only \
+     --tmpfs /tmp:rw,noexec,nosuid,size=16m \
+     --mount type=volume,src=xila-state,dst=/var/lib/xila \
+     --mount "type=bind,src=$PWD/fixtures,dst=/mnt/xila/fixtures,readonly" \
+     ghcr.io/xila-project/xila-runtime:latest run --network=none \
+     --mount host=/mnt/xila/fixtures,xila=/fixtures,ro \
+     -- /applications/executables/wasm /fixtures/app.wasm
    ```
-
-docker run --rm --network none --read-only \
---tmpfs /tmp:rw,noexec,nosuid,size=16m \
---mount type=volume,src=xila-state,dst=/var/lib/xila \
---mount "type=bind,src=$PWD/fixtures,dst=/mnt/xila/fixtures,readonly" \
-ghcr.io/xila-project/xila-runtime:latest run --network=none \
---mount host=/mnt/xila/fixtures,xila=/fixtures,ro \
--- /applications/executables/wasm /fixtures/app.wasm
-
-```
 
 The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
 
@@ -80,4 +72,3 @@ For bind-mounted state instead of a named volume, grant write permission to UID/
 ## Related
 
 - [Headless Xila runtime](/reference/container-runtime/)
-```
