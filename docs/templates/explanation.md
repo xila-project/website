@@ -4,7 +4,7 @@ docType: explanation
 description: "One sentence, under 160 characters, naming the concept and why it matters."
 ---
 
-<!-- Intro, 1–3 sentences: what it is, which repository and crate own it, and why it matters. -->
+<!-- Intro, 1-3 sentences: what it is, which repository and crate own it, and why it matters. -->
 
 ## Context
 
@@ -24,7 +24,7 @@ description: "One sentence, under 160 characters, naming the concept and why it 
 
 ## API reference
 
-<!-- 2–6 bullet links to the crate and its key items in Rustdoc (HostReference or GuestReference), or to source (CodeReference) when there is no Rustdoc. -->
+<!-- 2-6 bullet links to the crate and its key items in Rustdoc (HostReference or GuestReference), or to source (CodeReference) when there is no Rustdoc. -->
 
 ## Related
 
