@@ -63,3 +63,23 @@ test("keeps the index of staged API pages", async (t) => {
   });
   assert.deepEqual(result, { status: "staged" });
 });
+
+test("reports a response that is not JSON and asks the request to time out", async (t) => {
+  const directory = createDirectory(t, "xila-api-download-");
+  const destination = path.join(directory, "api", "api-index.json");
+  let signal;
+  const result = await downloadApiIndex({
+    destination,
+    fetchFunction: async (_url, options) => {
+      signal = options.signal;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => JSON.parse("<html>"),
+      };
+    },
+  });
+  assert.equal(result.status, "unavailable");
+  assert.ok(signal instanceof AbortSignal);
+  assert.equal(fs.existsSync(destination), false);
+});

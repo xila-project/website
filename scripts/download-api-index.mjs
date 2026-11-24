@@ -9,6 +9,8 @@ import { getApiIndexPath } from "./api-links.mjs";
 // build without rustdoc (pull requests, local writing) resolves and checks
 // `rust:` and Api links against the API that is online.
 
+const REQUEST_TIMEOUT_MILLISECONDS = 30_000;
+
 export const PUBLISHED_API_INDEX_URL =
   "https://www.xila.dev/api/api-index.json";
 
@@ -19,15 +21,19 @@ export async function downloadApiIndex({
 } = {}) {
   if (fs.existsSync(path.join(path.dirname(destination), "host")))
     return { status: "staged" };
-  let response;
+  let index;
   try {
-    response = await fetchFunction(url);
+    // A hanging request must not use the whole time of the CI job. A site
+    // that is down, slow or without an index only skips the API link checks.
+    const response = await fetchFunction(url, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MILLISECONDS),
+    });
+    if (!response.ok)
+      return { status: "unavailable", reason: `HTTP ${response.status}` };
+    index = await response.json();
   } catch (error) {
     return { status: "unavailable", reason: error.message };
   }
-  if (!response.ok)
-    return { status: "unavailable", reason: `HTTP ${response.status}` };
-  const index = await response.json();
   if (index.version !== API_INDEX_VERSION)
     return {
       status: "unavailable",
