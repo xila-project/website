@@ -4,6 +4,7 @@ import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
 import sitemap from "@astrojs/sitemap";
 
+const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
 const group = (label, base, entries, collapsed = true) => ({
   label,
@@ -163,12 +164,17 @@ export default defineConfig({
           // Honour `collapsed` on sidebar groups; without it every nested
           // Architecture group is always expanded.
           sidebar: { useDropdowns: true },
+          // The theme renders a flat list. On desktop, SiteTitle.astro
+          // replaces it with its own header items. The mobile menu keeps this
+          // list, and SiteTitle.astro marks the current item in it: the
+          // data-header-link attribute selects the items to mark.
           navLinks: [
-            { label: "Tutorials", link: "/tutorials/" },
-            { label: "How-to", link: "/how-to/" },
-            { label: "Reference", link: "/reference/" },
-            { label: "Explanation", link: "/explanation/" },
-            { label: "Packages", link: "/packages/" },
+            { label: "Documentation", link: "/docs/", attrs: headerLink },
+            { label: "Tutorials", link: "/tutorials/", attrs: headerLink },
+            { label: "How-to", link: "/how-to/", attrs: headerLink },
+            { label: "Reference", link: "/reference/", attrs: headerLink },
+            { label: "Explanation", link: "/explanation/", attrs: headerLink },
+            { label: "Packages", link: "/packages/", attrs: headerLink },
             { label: "Demonstration", link: "https://platforms.xila.dev/" },
           ],
         }),
