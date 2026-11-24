@@ -11,7 +11,7 @@ The Settings executable (<HostReference repo="applications" crate="settings" />)
 
 ## Context
 
-System configuration on multitasking embedded platforms needs a structured interface for administrative settings, so routine tasks do not require the command line. Settings manages distinct subsystems, such as graphics theming, user identity, and network stacks, and keeps sensitive credentials isolated in memory.
+System configuration on multitasking embedded platforms needs a structured interface for administrative settings, so routine tasks do not require the command line. Settings manages distinct subsystems, such as graphics theming, user identity, and network stacks.
 
 Settings provides:
 
@@ -19,7 +19,7 @@ Settings provides:
 - Loading and saving of user-level appearance preferences in the virtual file system (VFS).
 - Direct access to the Core users manager to update authentication credentials.
 - Live network status monitoring and interface configuration.
-- Cleanup of temporary password data and interface panels when it closes.
+- Cleanup of interface panels when it closes, and of password input fields after a successful password change.
 
 ## How it works
 
@@ -55,7 +55,7 @@ Settings creates an <HostReference crate="graphics" kind="struct" symbol="OwnedW
 Settings runs a responsive event loop that dispatches user actions to the active tab:
 
 - **Window close**: On a close or delete event, the event loop stops and the application exits.
-- **Resource cleanup**: Settings implements `Drop`. It deallocates temporary password text and interface panels under the graphics lock before the window widget tree is deleted.
+- **Resource cleanup**: Settings implements `Drop`. It releases the open network interface panel under the graphics lock before the window widget tree is deleted. The password tab clears its input fields after a successful password change.
 
 ### Desktop discovery
 
@@ -65,7 +65,7 @@ Settings does not write its own shortcut at runtime. Platforms seeds the shortcu
 
 - **Instant appearance persistence**: Appearance updates are written to the per-user VFS configuration file and applied to all open windows. The user sees the change immediately, without a restart.
 - **Periodic network polling**: While the network panel is open, the event loop polls the link state every 250 milliseconds. Link changes appear promptly, without kernel socket callbacks.
-- **Explicit cleanup on drop**: Clearing panel widgets and temporary password strings under the graphics lock in `Drop` prevents plaintext passwords from lingering in memory.
+- **No password zeroization**: Clearing a password input field empties the widget text. The password strings themselves are not zeroized in memory.
 
 ## Limits
 

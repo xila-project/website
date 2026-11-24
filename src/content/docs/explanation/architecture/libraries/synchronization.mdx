@@ -7,7 +7,7 @@ description: "Synchronization primitives, async locks, and portable reference-co
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The `synchronization` crate standardizes synchronization primitives across Xila. It re-exports async synchronization tools from `embassy-sync` and provides portable reference-counted types (`Arc`, `Weak`) with a lock-backed fallback for targets lacking atomic pointer operations. It lives in the Core repository under `libraries/synchronization/`. The `xila` facade crate exposes it.
+The `synchronization` crate standardizes synchronization primitives across Xila. It re-exports async synchronization tools from `embassy-sync` and the portable reference-counted pointers `Arc` and `Weak` from `portable_atomic_util`. It lives in the Core repository under `libraries/synchronization/`. The `xila` facade crate exposes it.
 
 ## Context
 
@@ -27,14 +27,9 @@ The crate re-exports concurrency tools from `embassy-sync`:
 
 ### Portable reference counting
 
-The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types provide target-adapted reference counting:
+The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types are re-exports from `portable_atomic_util` (<CodeReference path="libraries/synchronization/src/arc/mod.rs" />). That crate provides reference counting on every supported target, including microcontrollers without atomic pointer instructions.
 
-- When `target_has_atomic = "ptr"`: The crate directly re-exports `alloc::sync::{Arc, Weak}`.
-- When `not(target_has_atomic = "ptr")`: The crate provides a custom fallback implementation. The allocation is stored in an `ArcInner<T>` on the heap. A critical-section raw mutex and interior-mutable reference counters protect it.
-
-Both variants expose the same public API: `Arc::new`, `clone`, `downgrade`, `Weak::upgrade`, `strong_count`, `weak_count`, `get_mut`, and `ptr_eq`. The fallback panics on reference count overflow.
-
-The following diagram shows the categorization of synchronization primitives and the target-gated `Arc` implementation:
+The following diagram shows the categorization of synchronization primitives and the reference-counted pointer re-export:
 
 ```mermaid
 flowchart TD
@@ -42,23 +37,20 @@ flowchart TD
     AsyncLocks --> Mutex["mutex::Mutex\nrwlock::RwLock"]
     AsyncLocks --> Comm["channel::Channel\nsignal::Signal"]
     Sync --> Blocking["blocking_mutex::Mutex\n(CriticalSectionRawMutex)"]
-    Sync --> ArcSelection{"Target has atomic ptr?"}
-    ArcSelection -- Yes --> AtomicArc["alloc::sync::Arc"]
-    ArcSelection -- No --> MutexArc["Critical-section\nfallback Arc"]
+    Sync --> ArcReexport["Arc / Weak\n(portable_atomic_util)"]
 ```
 
-The `embassy-sync` primitives coordinate cooperative tasks without blocking. The blocking mutexes protect critical sections. `Arc` selects atomic reference counting or the critical-section fallback based on the target hardware.
+The `embassy-sync` primitives coordinate cooperative tasks without blocking. The blocking mutexes protect critical sections. `Arc` and `Weak` come from `portable_atomic_util`, which adapts the reference counting to the target hardware.
 
 ## Design choices and trade-offs
 
 - Cooperative async focus: `embassy-sync` primitives do not rely on OS thread preemption or kernel locks. They match Xila's cooperative task executor.
-- Broad target compatibility: The critical-section `Arc` fallback compiles and runs safely on microcontrollers without atomic pointer instructions. No hardware emulation is required.
+- Broad target compatibility: `portable_atomic_util` supplies `Arc` and `Weak` on every target, including microcontrollers without atomic pointer instructions.
 - Unified import path: Subsystems import all concurrency abstractions directly from `xila::synchronization`.
 
 ## Limits
 
 - Do not hold an async mutex across CPU-intensive blocking work. This starves other tasks on the cooperative scheduler.
-- On platforms without atomic pointer instructions, cloning or dropping an `Arc` briefly disables interrupts during reference counter modification.
 
 ## API reference
 
