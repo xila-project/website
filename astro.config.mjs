@@ -175,7 +175,11 @@ export default defineConfig({
             { label: "Reference", link: "/reference/", attrs: headerLink },
             { label: "Explanation", link: "/explanation/", attrs: headerLink },
             { label: "Packages", link: "/packages/", attrs: headerLink },
-            { label: "Demonstration", link: "https://platforms.xila.dev/" },
+            {
+              label: "Demonstration",
+              link: "/demonstration/",
+              attrs: headerLink,
+            },
           ],
         }),
       ],

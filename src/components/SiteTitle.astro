@@ -2,36 +2,41 @@
 /*
  * Wraps the theme's site title and navigation. On desktop the theme's header
  * links are replaced by: the "Documentation" menu (the documentation overview
- * and its four sections), the "Packages" link and the "Demonstration" language menu. They
- * are rendered here, after the title, so that the keyboard order follows the
- * visual order. The theme's mobile menu keeps the flat `navLinks` of
+ * and its four sections), the "Packages" link and the "Demonstration" link.
+ * They are rendered here, after the title, so that the keyboard order follows
+ * the visual order. The theme's mobile menu keeps the flat `navLinks` of
  * astro.config.mjs: the documentation and section overviews, Packages and
- * the English demo.
+ * Demonstration.
  *
  * The current item is marked with aria-current and an underline, in the
  * header and in the mobile menu. The theme renders the mobile menu without
  * knowledge of the page, so a script marks its items.
  */
 import ThemeSiteTitle from "starlight-theme-black/overrides/SiteTitle.astro";
-import DemoMenu from "./DemoMenu.astro";
 import DocsMenu from "./DocsMenu.astro";
-import { DEMO_URL } from "../data/demo-locales";
+import { DEMONSTRATION_PAGE } from "../data/demonstration-locales";
 import { navigationState } from "../data/navigation-state";
 
 const packagesState = navigationState(Astro.url.pathname, "/packages/");
+const demonstrationState = navigationState(
+  Astro.url.pathname,
+  DEMONSTRATION_PAGE,
+);
 ---
 
-<div
-  class="site-title-with-menus"
-  data-demo-url={DEMO_URL}
-  data-pathname={Astro.url.pathname}
->
+<div class="site-title-with-menus" data-pathname={Astro.url.pathname}>
   <ThemeSiteTitle />
   <DocsMenu class="header-menu" />
   <a class="header-link" href="/packages/" aria-current={packagesState}>
     Packages
   </a>
-  <DemoMenu class="header-menu" />
+  <a
+    class="header-link"
+    href={DEMONSTRATION_PAGE}
+    aria-current={demonstrationState}
+  >
+    Demonstration
+  </a>
 </div>
 
 <script>

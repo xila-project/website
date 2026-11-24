@@ -1,0 +1,347 @@
+---
+/*
+ * The browser demonstration of Xila, published by Platforms, in a frame that
+ * fills the viewport under the site header. The frame is not sandboxed: the
+ * demonstration keeps its disks in the Origin Private File System, which a
+ * sandboxed frame cannot reach. It needs no `allow` permission: it reads the
+ * paste event, not the clipboard API, and it does not use full screen. It is
+ * served from platforms.xila.dev, a different origin of the same site as this
+ * page, so its disks are the same disks as in the full screen page.
+ *
+ * Xila consumes the Escape key, so the page cannot offer Escape to leave the
+ * frame. The "Back to the site header" link follows the frame in the
+ * keyboard order, and the Tab key leaves the frame because the demonstration
+ * does not consume it.
+ *
+ * The demonstration draws on a canvas and has no text field, so a touch
+ * screen shows no keyboard for it, and nobody can type the user name. On a
+ * narrow touch screen the page shows a note and the full screen link instead
+ * of the frame, and it does not load the demonstration. Remove the note when
+ * xila-project/platforms#223 is done.
+ *
+ * The `:global` rules at the end remove the title, footer and spacing of the
+ * surrounding page: the frame must not cause a page scroll.
+ */
+import { Icon } from "@astrojs/starlight/components";
+import {
+  DEFAULT_LOCALE,
+  DEMONSTRATION_LOCALES,
+} from "../data/demonstration-locales";
+
+const initial = DEMONSTRATION_LOCALES.find(
+  ({ code }) => code === DEFAULT_LOCALE,
+)!;
+---
+
+<section class="demonstration not-content" aria-label="Browser demonstration">
+  <div class="toolbar">
+    <label class="language">
+      <span class="language-label">Language</span>
+      <select data-language>
+        {
+          DEMONSTRATION_LOCALES.map(({ code, label, href }) => (
+            <option
+              value={code}
+              data-href={href}
+              lang={code}
+              selected={code === DEFAULT_LOCALE}
+            >
+              {label}
+            </option>
+          ))
+        }
+      </select>
+    </label>
+    <p class="leave-hint" role="status" data-leave-hint hidden>
+      Press Tab to leave the demonstration. The Escape key does not leave it.
+    </p>
+    <a class="full-screen" href={initial.href} data-full-screen>
+      Open in full screen
+      <Icon name="external" size="1rem" />
+    </a>
+  </div>
+  <div class="phone-note">
+    <p>
+      The demonstration needs a keyboard to log in. A phone does not show its
+      on-screen keyboard for the demonstration.
+    </p>
+    <p>
+      Open this page on a computer. Or connect a keyboard to your phone and
+      open the demonstration in full screen.
+    </p>
+    <a class="phone-link" href={initial.href} data-full-screen>
+      Open in full screen
+      <Icon name="external" size="1rem" />
+    </a>
+  </div>
+  <iframe class="frame" title="Xila browser demonstration" data-frame></iframe>
+  <noscript>
+    <p class="notice">
+      The demonstration needs JavaScript. <a href={initial.href}
+        >Open it in full screen</a
+      >.
+    </p>
+  </noscript>
+  <a class="leave-link" href="#_top" data-leave-link>Back to the site header</a>
+</section>
+
+<script>
+  import { DEFAULT_LOCALE } from "../data/demonstration-locales";
+
+  const frame = document.querySelector<HTMLIFrameElement>("[data-frame]")!;
+  const select = document.querySelector<HTMLSelectElement>("[data-language]")!;
+  const fullScreen = document.querySelectorAll<HTMLAnchorElement>(
+    "[data-full-screen]",
+  );
+  const hint = document.querySelector<HTMLElement>("[data-leave-hint]")!;
+  const leave = document.querySelector<HTMLAnchorElement>("[data-leave-link]")!;
+
+  // The same condition hides the frame in the styles below.
+  const phone = matchMedia("(pointer: coarse) and (max-width: 40rem)");
+
+  // The frame has no address until here, so the browser loads only the
+  // demonstration in the requested locale, and not at all on a phone.
+  function show(code: string): boolean {
+    const option = [...select.options].find(({ value }) => value === code);
+    if (!option) return false;
+    select.value = code;
+    for (const link of fullScreen) link.href = option.dataset.href!;
+    if (!phone.matches) frame.src = option.dataset.href!;
+    return true;
+  }
+
+  const requested = new URLSearchParams(location.search).get("language");
+  if (!requested || !show(requested)) show(DEFAULT_LOCALE);
+
+  phone.addEventListener("change", () => {
+    if (!phone.matches && !frame.src) show(select.value);
+  });
+
+  select.addEventListener("change", () => {
+    show(select.value);
+    const url = new URL(location.href);
+    url.searchParams.set("language", select.value);
+    history.replaceState(null, "", url);
+  });
+
+  // The page does not receive key events from the frame. Focus in the frame
+  // blurs the window, so that is the moment to tell how to leave it.
+  window.addEventListener("blur", () => {
+    hint.hidden = document.activeElement !== frame;
+  });
+  window.addEventListener("focus", () => {
+    hint.hidden = true;
+  });
+
+  leave.addEventListener("click", (event) => {
+    event.preventDefault();
+    document.querySelector<HTMLElement>(".site-title")?.focus();
+  });
+</script>
+
+<style>
+  .demonstration {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--sl-nav-height, 4rem));
+    min-height: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    min-height: 3rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+
+  .language {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .language select {
+    min-height: 2rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--background);
+    color: var(--foreground);
+    font: inherit;
+  }
+
+  .leave-hint {
+    margin: 0;
+    color: var(--muted-foreground);
+  }
+
+  .full-screen,
+  .phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--foreground);
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .full-screen {
+    margin-inline-start: auto;
+  }
+
+  .full-screen:hover,
+  .phone-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  .phone-note {
+    display: none;
+    padding: 1rem;
+  }
+
+  .phone-note p {
+    margin: 0 0 0.75rem;
+  }
+
+  /* No room for the language name, the hint and the link on one line. The
+     select keeps its label for assistive technology. */
+  @media (max-width: 47.99rem) {
+    .language-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .leave-hint {
+      display: none;
+    }
+  }
+
+  .frame {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border: 0;
+    /* The demonstration draws its own background. */
+    background-color: var(--background);
+  }
+
+  .notice {
+    margin: 1rem;
+  }
+
+  /* Visible only while it has keyboard focus. */
+  .leave-link {
+    position: absolute;
+    inset-block-end: 1rem;
+    inset-inline-end: 1rem;
+    width: 1px;
+    height: 1px;
+    padding: 0.5rem 0.75rem;
+    overflow: hidden;
+    clip-path: inset(50%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  .leave-link:focus-visible {
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  :global(body:has(.demonstration)) {
+    overflow: hidden;
+  }
+
+  /* The title stays available to assistive technology. */
+  :global(body:has(.demonstration) .page-title) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The header is fixed: .main-frame keeps its top padding below it. */
+  :global(body:has(.demonstration) :is(.main-frame, .main-pane)) {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  :global(body:has(.demonstration) .main-pane) {
+    padding-block: 0;
+  }
+
+  :global(body:has(.demonstration) main) {
+    gap: 0;
+    padding: 0;
+  }
+
+  :global(body:has(.demonstration) :is(.content-panel, .sl-container)) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  :global(
+      body:has(.demonstration) :is(footer, .xila-footer, .pagination-links)
+    ) {
+    display: none;
+  }
+
+  /* After the page rules above, which it overrides. */
+  @media (pointer: coarse) and (max-width: 40rem) {
+    .toolbar,
+    .frame,
+    .leave-link {
+      display: none;
+    }
+
+    .demonstration {
+      height: auto;
+    }
+
+    .phone-note {
+      display: block;
+    }
+
+    :global(body:has(.demonstration)) {
+      overflow: visible;
+    }
+
+    /* The title replaces the frame. The description would repeat it. */
+    :global(body:has(.demonstration) .page-title) {
+      position: static;
+      width: auto;
+      height: auto;
+      padding: 1rem 1rem 0;
+      overflow: visible;
+      clip-path: none;
+      white-space: normal;
+    }
+
+    :global(body:has(.demonstration) .page-description) {
+      display: none;
+    }
+  }
+</style>
