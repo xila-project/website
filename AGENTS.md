@@ -19,6 +19,7 @@ This root `AGENTS.md` applies to the entire repository. If a more specific `AGEN
 | `src/explanation/`       | Concepts, architecture, rationale, trade-offs, and component relationships |
 | `src/about/`             | Project information                                                        |
 | `public/`                | Static assets published by Astro                                           |
+| `src/diagrams/`          | D2 shape vocabulary and the fonts that D2 uses to measure labels           |
 | `docs/templates/`        | Local authoring templates; never published directly                        |
 | `src/content/docs/`      | Starlight Markdown and MDX documentation collection                        |
 | `astro.config.mjs`       | Astro and Starlight configuration                                          |
@@ -107,7 +108,7 @@ Use `HostReference`, `GuestReference`, and `CodeReference` for generated API/sou
 
 ### Diagrams
 
-Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. Do not write new Mermaid diagrams; the existing `mermaid` pages keep their browser rendering until they are converted to D2 (tracked in issue #132).
+Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. In a `.md` page, which has no JSX, write `<div class="diagram">`. Keep a blank line between the `div` tags and the code fence. Do not write new Mermaid diagrams; the existing `mermaid` pages keep their browser rendering until they are converted to D2 (tracked in issue #132).
 
 The stylesheet `src/styles/diagrams.css` sets every colour, stroke and font of a diagram from the theme variables, so one render serves the light and the dark theme. Set no colour in the D2 source; use only the theme variables through the shape classes below.
 
@@ -117,23 +118,25 @@ Keep the text of a diagram short and spelled out, and follow the writing style a
 
 Use the shared shape vocabulary: one shape always means the same kind of thing. The classes are defined in `src/diagrams/xila.d2`, which `scripts/remark-d2-preamble.mjs` prepends to every `d2` block. Apply a shape with `class`, for example `registry: Registry { class: stored }` for a node or `root -> repository: { class: trust }` for an arrow.
 
-| Shape            | Meaning                                                         |
-| ---------------- | --------------------------------------------------------------- |
-| Rectangle        | Component, crate, repository or step                            |
-| Filled rectangle | Integration point: the part that assembles the others           |
-| Cylinder         | Stored data, such as a catalogue or a file system               |
-| Document         | Signed record or document                                       |
-| Hexagon          | Hardware or driver                                              |
-| Oval             | Cryptographic key                                               |
-| Diamond          | Decision                                                        |
-| Parallelogram    | Input or output of the flow                                     |
-| Solid frame      | Layer or group of steps                                         |
-| Dashed frame     | Boundary: ownership, trust or an optional part                  |
-| Thin arrow       | Depends on, calls or leads to                                   |
-| Thick arrow      | Signs or authenticates                                          |
-| Dashed arrow     | Optional relation or returned value (used in sequence diagrams) |
+| Shape            | Class       | Meaning                                                         |
+| ---------------- | ----------- | --------------------------------------------------------------- |
+| Rectangle        | `component` | Component, crate, repository or step                            |
+| Filled rectangle | `focus`     | Integration point: the part that assembles the others           |
+| Cylinder         | `stored`    | Stored data, such as a catalogue or a file system               |
+| Document         | `record`    | Signed record or document                                       |
+| Hexagon          | `hardware`  | Hardware or driver                                              |
+| Oval             | `key`       | Cryptographic key                                               |
+| Diamond          | `decision`  | Decision                                                        |
+| Parallelogram    | `io`        | Input or output of the flow                                     |
+| Solid frame      | `layer`     | Layer or group of steps                                         |
+| Dashed frame     | `boundary`  | Boundary: ownership, trust or an optional part                  |
+| Thin arrow       | none        | Depends on, calls or leads to                                   |
+| Thick arrow      | `trust`     | Signs or authenticates                                          |
+| Dashed arrow     | `optional`  | Optional relation or returned value (used in sequence diagrams) |
 
 A copyable example sits in [docs/templates/README.md](docs/templates/README.md).
+
+During a build, `astro-d2` also writes each diagram as a separate SVG file to `public/d2/`, which Git ignores, and Astro copies the files to `dist/d2/`. The pages do not use these files. Do not link to them. The fonts in `src/diagrams/fonts/` only serve the measurement of the labels; see the `README.md` in that directory.
 
 ## Technical boundaries worth preserving
 
