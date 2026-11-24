@@ -53,6 +53,7 @@ const sidebar = [
       page("Host API", "/reference/host/"),
       page("Guest API", "/reference/guest/"),
       page("Shell", "/reference/shell/"),
+      page("Supported hardware", "/reference/supported-hardware/"),
       page("Experimental package format", "/reference/package-format/"),
       page("Development commands", "/reference/development-commands/"),
       page("WASM runtime", "/reference/wasm-runtime/"),

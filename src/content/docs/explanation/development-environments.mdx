@@ -100,7 +100,7 @@ The build flow works as follows:
 
 - **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the budget.
 - **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
-- **Espressif target status:** The Espressif driver source stays gated out on host targets, so host builds do not exercise it. Platforms CI builds the WT32-SC01, WT32-SC01 Plus and ESP32-P4 Function EV Board firmware, and boots the ESP32-S3 and ESP32-C6 images in Espressif's QEMU.
+- **Espressif target status:** The Espressif driver source stays gated out on host targets, so host builds do not exercise it. Platforms CI builds the WT32-SC01, WT32-SC01 Plus and ESP32-P4 Function EV Board firmware, and boots the ESP32-S3 and ESP32-C6 images in Espressif's QEMU. The [supported hardware](/reference/supported-hardware/) reference lists which boards a maintainer tested.
 
 ## API reference
 
