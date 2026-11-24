@@ -5,10 +5,14 @@
  * in the middle column, and the actions (search, GitHub, Matrix, theme
  * switch) on the right. The middle column is sized by its content and the
  * side columns share the remaining space equally, so the navigation stays
- * centered on the page whatever the widths of the side blocks.
+ * centered on the page while both side blocks fit in their share. A long
+ * title is clipped. Wide actions push the navigation off center instead of
+ * overlapping it.
  *
  * Overriding the component replaces Starlight's own header element, so its
- * scoped styles no longer apply: the base rules below copy them. Below
+ * scoped styles no longer apply: the base rules below copy them.
+ * tests/header-override.test.mjs fails when a Starlight update changes its
+ * header, so that the copy is compared before the update is merged. Below
  * 1024px nothing changes: the actions wrapper is display: contents, so the
  * search and the right group are direct children of the header as in
  * Starlight's own header, and the navigation is hidden (the mobile menu
