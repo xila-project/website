@@ -89,8 +89,13 @@ const BODY = /<body\b[^>]*>/;
  * rustdoc pages, such as the redirect pages of re-exported items.
  */
 export function applyShellToPage(html, architecture, base = "/api") {
-  if (!RUSTDOC_PAGE.test(html) || !CHARSET.test(html) || !BODY.test(html))
-    return null;
+  if (!RUSTDOC_PAGE.test(html)) return null;
+  // A rustdoc page that the patterns do not match means that rustdoc changed
+  // its output: fail instead of publishing pages without the shell.
+  if (!CHARSET.test(html) || !BODY.test(html) || !html.includes("</head>"))
+    throw new Error(
+      "Unexpected rustdoc page structure: no <meta charset>, </head> or <body>",
+    );
   const assets = `${base}/${SHELL_DIRECTORY}`;
   // The theme script must run before rustdoc's storage script, which applies
   // the stored theme as soon as it loads in the head.
@@ -121,15 +126,21 @@ function htmlFiles(directory) {
 export function applyShell(directory, architecture, base = "/api") {
   let pages = 0;
   for (const file of htmlFiles(directory)) {
-    const html = applyShellToPage(
-      fs.readFileSync(file, "utf8"),
-      architecture,
-      base,
-    );
+    let html;
+    try {
+      html = applyShellToPage(
+        fs.readFileSync(file, "utf8"),
+        architecture,
+        base,
+      );
+    } catch (error) {
+      throw new Error(`${file}: ${error.message}`);
+    }
     if (html === null) continue;
     fs.writeFileSync(file, html);
     pages += 1;
   }
+  if (pages === 0) throw new Error(`No rustdoc page found under ${directory}`);
   return pages;
 }
 

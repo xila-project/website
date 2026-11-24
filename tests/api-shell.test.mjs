@@ -86,3 +86,16 @@ test("links the site pages of the header", () => {
   const bar = renderShellBar("host");
   assert.match(bar, /href="\/demonstration\/">Demonstration/);
 });
+
+test("fails on a rustdoc page whose structure is not recognised", () => {
+  const changed =
+    '<!DOCTYPE html><html><head><meta charset=utf-8><meta name="rustdoc-vars"></head><body class="rustdoc"></body></html>';
+  assert.throws(() => applyShellToPage(changed, "host"), /Unexpected rustdoc/);
+});
+
+test("fails when a directory has no rustdoc page", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "xila-api-shell-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, "index.html"), "<html></html>");
+  assert.throws(() => applyShell(root, "host"), /No rustdoc page/);
+});
