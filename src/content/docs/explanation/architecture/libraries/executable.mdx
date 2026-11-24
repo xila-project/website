@@ -29,7 +29,7 @@ The future returns `Result<(), NonZeroUsize>` in a pinned box. `ExecutableWrappe
 
 ### Mount executables in the file system
 
-Executables mount into the VFS path hierarchy, typically under `/applications/executables/<name>`. The <HostReference crate="executable" kind="macro" symbol="mount_executables" /> macro performs the mount. It wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
+The <HostReference crate="executable" kind="macro" symbol="mount_executables" /> macro mounts executables into the VFS path hierarchy, typically under `/applications/executables/<name>`. It wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
 
 ### Execution context and capabilities
 

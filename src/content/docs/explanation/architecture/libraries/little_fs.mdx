@@ -55,7 +55,7 @@ flowchart TD
     Device --> ERASE["ERASE control command / write_pattern_sync"]
 ```
 
-C callbacks run synchronously on the executor thread. Drivers must complete immediately. If a driver returns `Poll::Pending` or a short byte count, the callback returns `LFS_ERR_IO` instead of spinning.
+Drivers must complete immediately, because C callbacks run synchronously on the executor thread. If a driver returns `Poll::Pending` or a short byte count, the callback returns `LFS_ERR_IO` instead of spinning.
 
 ### Formatting and mounting behavior
 

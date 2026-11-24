@@ -37,7 +37,7 @@ The GPIO contract uses versioned structures. Their version must equal `ABI_VERSI
 
 ## Design choices and trade-offs
 
-Typed commands give callers and drivers a shared representation. Not every driver supports every device kind. The neural-network commands describe a device protocol. The backend trait belongs to the `neural_network` library.
+Typed commands give callers and drivers a shared representation. A driver does not have to support every device kind. The neural-network commands describe a device protocol. The backend trait belongs to the `neural_network` library.
 
 ## API reference
 

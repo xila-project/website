@@ -25,7 +25,7 @@ The host passes an `XilaStartup` pointer to the application entry point. It cont
 
 The table covers files and directories through opaque handles, monotonic and real-time clocks, sleep, randomness, the process heap, and optional networking. Builds without the `network` feature keep the network slots. Those slots return `UNSUPPORTED`. Every call returns an explicit `XilaStatus`. Zero means success. Applications borrow their startup capabilities until the entry point returns, and they close the handles they open themselves.
 
-When the application runs in a coroutine, on Linux x86_64 and AArch64 and on supported single-core bare-metal targets, a call that has to wait suspends the coroutine. Blocking file I/O, directory and network operations, sleep, and randomness let other tasks run on the same executor. Files opened as nonblocking return `WouldBlock` instead, even inside a coroutine.
+When the application runs in a coroutine, on Linux x86_64 and AArch64 and on supported single-core bare-metal targets, a call that has to wait suspends the coroutine and lets other tasks run on the same executor. These calls are blocking file I/O, directory and network operations, sleep, and randomness. Files opened as nonblocking return `WouldBlock` instead, even inside a coroutine.
 
 ### Loading native executables
 
@@ -38,13 +38,13 @@ note, copies the loadable segments, applies relative relocations, and calls the
 image's `_xila_start` entry point. The image must be self-contained. The loader
 rejects dynamic library dependencies.
 
-Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem. It enables the `xila` `native-dev` feature and registers the native format in `ExecutableContext.formats`.
+Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem. To opt in, the platform enables the `xila` `native-dev` feature and registers the native format in `ExecutableContext.formats`.
 
 ## Design choices and trade-offs
 
 - **Footprint first.** Files wrap an owned file handle. Directories keep only a reference, a task identity, a canonical path, and one byte of rights. There is no global handle table or ambient context. Reads and writes use the caller's buffers without temporary allocations.
 - **Capabilities, not global paths.** Paths are relative to a directory capability. The ABI rejects absolute paths and parent components. A child capability never has more rights than its parent.
-- **Trusted code.** The ABI checks arguments for mistakes, not for malice. Pointers must be valid, and calls on each object are serialized.
+- **Trusted code.** The ABI checks arguments for mistakes, not for malice. Pointers must be valid, and callers must serialize calls on each object.
 - **One table, one version.** A single `#[repr(C)]` struct is the source of the header, the SDK stubs, and the slot order. A test keeps the committed copies in sync.
 
 ## Compatibility
