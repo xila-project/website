@@ -7,6 +7,63 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 Use these guides to complete a specific task. For a guided first experience, start with a [tutorial](/tutorials/).
 
+## Run Xila
+
+<CardGrid>
+  <LinkCard
+    title="Run Xila on the Arduino Nano 33 BLE"
+    href="/how-to/run-nano-33-ble/"
+    description="Build and flash Xila on the Arduino Nano 33 BLE, open the serial console, log in, configure GPIO pins, and recover the board."
+  />
+  <LinkCard
+    title="Flash Xila on a WT32-SC01 or WT32-SC01 Plus"
+    href="/how-to/flash-wt32-sc01/"
+    description="Build the Xila firmware, flash a WT32-SC01 or WT32-SC01 Plus with espflash, seed its storage, and log in on the first boot."
+  />
+  <LinkCard
+    title="Run Xila with Docker"
+    href="/how-to/run-container-guest/"
+    description="Launch Xila's CLI shell or a WASI guest in a persistent headless Docker runtime."
+  />
+  <LinkCard
+    title="Manage browser disks"
+    href="/how-to/reset-browser-storage/"
+    description="Create, switch, or permanently delete browser-hosted Xila disk images in OPFS."
+  />
+</CardGrid>
+
+## Build applications
+
+<CardGrid>
+  <LinkCard
+    title="Build a guest application"
+    href="/how-to/build-guest/"
+    description="Compile a WebAssembly guest application for Xila using the wasm32-wasip1 target and xila-wasm crate."
+  />
+  <LinkCard
+    title="Run a guest application"
+    href="/how-to/run-guest/"
+    description="Launch a WebAssembly guest application in Xila from the terminal using the mounted Wasm executable."
+  />
+  <LinkCard
+    title="Add a launcher shortcut"
+    href="/how-to/add-shortcut/"
+    description="Create a shortcut descriptor so the graphical shell discovers and launches an application bundle."
+  />
+  <LinkCard
+    title="Package an application"
+    href="/how-to/package-application/"
+    description="Build, sign and verify a Xila application package."
+  />
+  <LinkCard
+    title="Submit a package"
+    href="/how-to/submit-package/"
+    description="Submit a signed package version to the Xila registry."
+  />
+</CardGrid>
+
+## Develop Xila
+
 <CardGrid>
   <LinkCard
     title="Set up a development environment"
@@ -27,52 +84,6 @@ Use these guides to complete a specific task. For a guided first experience, sta
     title="Validate a Core change"
     href="/how-to/validate-core/"
     description="Run Core checks, tests, and lint for a change."
-  />
-</CardGrid>
-
-<CardGrid>
-  <LinkCard
-    title="Build a guest application"
-    href="/how-to/build-guest/"
-    description="Compile a WebAssembly guest application for Xila using the wasm32-wasip1 target and xila-wasm crate."
-  />
-  <LinkCard
-    title="Add a launcher shortcut"
-    href="/how-to/add-shortcut/"
-    description="Create a shortcut descriptor so the graphical shell discovers and launches an application bundle."
-  />
-  <LinkCard
-    title="Run a guest application"
-    href="/how-to/run-guest/"
-    description="Launch a WebAssembly guest application in Xila from the terminal using the mounted Wasm executable."
-  />
-  <LinkCard
-    title="Package an application"
-    href="/how-to/package-application/"
-    description="Build, sign and verify a Xila application package."
-  />
-  <LinkCard
-    title="Submit a package"
-    href="/how-to/submit-package/"
-    description="Submit a signed package version to the Xila registry."
-  />
-  <LinkCard
-    title="Run Xila with Docker"
-    href="/how-to/run-container-guest/"
-    description="Launch Xila's CLI shell or a WASI guest in a persistent headless Docker runtime."
-  />
-  <LinkCard
-    title="Manage browser disks"
-    href="/how-to/reset-browser-storage/"
-    description="Create, switch, or permanently delete browser-hosted Xila disk images in OPFS."
-  />
-</CardGrid>
-
-<CardGrid>
-  <LinkCard
-    title="Run Xila on the Arduino Nano 33 BLE"
-    href="/how-to/run-nano-33-ble/"
-    description="Build and flash Xila on the Arduino Nano 33 BLE, open the serial console, log in, configure GPIO pins, and recover the board."
   />
   <LinkCard
     title="Write or update documentation"

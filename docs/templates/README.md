@@ -19,10 +19,29 @@ Copy the selected file into the appropriate source directory, choose a descripti
 - **Asides:** `:::note`, `:::tip`, `:::caution` and `:::danger`, at most two per page, never holding prerequisites or steps. Put `:::caution` or `:::danger` next to the destructive action.
 - **Code blocks:** always set a language (`sh` for the host shell, `text` for Xila's terminal and for output). Introduce each block with a sentence that names the working directory and context. No prompt characters.
 - **Links:** root-relative internal links with a trailing slash; descriptive link text. Link Rust items with `HostReference` or `GuestReference`, source files with `CodeReference` and third-party crates with `DocsRsReference`.
-- **Diagrams:** fenced `mermaid` blocks without styling directives, one idea each, introduced by a sentence and described again in prose.
+- **Diagrams:** new diagrams use fenced `d2` blocks (see the example below and [Diagrams](../../AGENTS.md#diagrams)); one idea each, introduced by a sentence and described again in prose. The existing `mermaid` pages keep their browser rendering until they are converted.
 - **Last section:** `## Related` (tutorials end with `## Next steps`).
 
 Follow [AGENTS.md](../../AGENTS.md) for accuracy, style, navigation, and validation. The public [documentation contribution guide](../../src/content/docs/how-to/write-documentation.mdx) explains the workflow.
+
+## Diagram example
+
+Copy this block into a page. The `d2` fence is rendered at build time to a static SVG; the `title` metadata becomes the title of the SVG for assistive technology; the `class` values come from the shared shape vocabulary in `src/diagrams/xila.d2`.
+
+<div className="diagram">
+
+```d2 title="Trust chain of a package installation"
+registry: Registry entry { class: record }
+repository_key: Repository key { class: key }
+developer_key: Developer key { class: key }
+signature: Package signature { class: record }
+
+repository_key -> registry: signs { class: trust }
+repository_key -> developer_key: authorizes { class: trust }
+developer_key -> signature: signs { class: trust }
+```
+
+</div>
 
 ## Editorial review
 

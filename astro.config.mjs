@@ -1,8 +1,11 @@
 import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
+import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
+import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
 import sitemap from "@astrojs/sitemap";
+import astroD2 from "astro-d2";
 
 const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
@@ -23,42 +26,93 @@ const sidebar = [
     label: "Tutorials",
     items: [
       page("Overview", "/tutorials/"),
-      page("Run Xila natively", "/tutorials/native/"),
       page("Run Calculator in the browser", "/tutorials/browser/"),
+      page("Run Xila natively", "/tutorials/native/"),
+      page(
+        "Build and package your first application",
+        "/tutorials/first-application/",
+      ),
     ],
   },
   {
     label: "How-to guides",
     items: [
       page("Overview", "/how-to/"),
-      page("Set up development", "/how-to/setup-development/"),
-      page("Run Xila on the Nano 33 BLE", "/how-to/run-nano-33-ble/"),
-      page("Integrate a host application", "/how-to/integrate-host/"),
-      page("Build a guest", "/how-to/build-guest/"),
-      page("Add a launcher shortcut", "/how-to/add-shortcut/"),
-      page("Run a guest", "/how-to/run-guest/"),
-      page("Create a development package", "/how-to/package-application/"),
-      page("Submit a package", "/how-to/submit-package/"),
-      page("Run Xila with Docker", "/how-to/run-container-guest/"),
-      page("Validate Xila changes", "/how-to/validate-core/"),
-      page("Contribute to Core", "/how-to/contribute-core/"),
-      page("Manage browser disks", "/how-to/reset-browser-storage/"),
-      page("Write documentation", "/how-to/write-documentation/"),
+      {
+        label: "Run Xila",
+        collapsed: true,
+        items: [
+          page(
+            "Run Xila on the Arduino Nano 33 BLE",
+            "/how-to/run-nano-33-ble/",
+          ),
+          page(
+            "Flash Xila on a WT32-SC01 or WT32-SC01 Plus",
+            "/how-to/flash-wt32-sc01/",
+          ),
+          page("Run Xila with Docker", "/how-to/run-container-guest/"),
+          page("Manage browser disks", "/how-to/reset-browser-storage/"),
+        ],
+      },
+      {
+        label: "Build applications",
+        collapsed: true,
+        items: [
+          page("Build a guest application", "/how-to/build-guest/"),
+          page("Run a guest application", "/how-to/run-guest/"),
+          page("Add a launcher shortcut", "/how-to/add-shortcut/"),
+          page("Package an application", "/how-to/package-application/"),
+          page("Submit a package", "/how-to/submit-package/"),
+        ],
+      },
+      {
+        label: "Develop Xila",
+        collapsed: true,
+        items: [
+          page(
+            "Set up a development environment",
+            "/how-to/setup-development/",
+          ),
+          page("Integrate Xila into a host", "/how-to/integrate-host/"),
+          page("Contribute a Core change", "/how-to/contribute-core/"),
+          page("Validate a Core change", "/how-to/validate-core/"),
+          page("Write or update documentation", "/how-to/write-documentation/"),
+        ],
+      },
     ],
   },
   {
     label: "Reference",
     items: [
       page("Overview", "/reference/"),
-      page("Host API", "/reference/host/"),
-      page("Guest API", "/reference/guest/"),
       page("API reference", "/reference/api/"),
-      page("Shell", "/reference/shell/"),
-      page("Experimental package format", "/reference/package-format/"),
-      page("Development commands", "/reference/development-commands/"),
-      page("WASM runtime", "/reference/wasm-runtime/"),
-      page("Headless container runtime", "/reference/container-runtime/"),
-      page("Graphics bindings", "/reference/graphics-bindings/"),
+      {
+        label: "Run Xila",
+        collapsed: true,
+        items: [
+          page("Supported hardware", "/reference/supported-hardware/"),
+          page("Shell commands", "/reference/shell/"),
+          page("Headless Xila runtime", "/reference/container-runtime/"),
+        ],
+      },
+      {
+        label: "Build applications",
+        collapsed: true,
+        items: [
+          page("Guest API", "/reference/guest/"),
+          page("Wasm runtime", "/reference/wasm-runtime/"),
+          page("Graphics bindings", "/reference/graphics-bindings/"),
+          page("Package format", "/reference/package-format/"),
+        ],
+      },
+      {
+        label: "Develop Xila",
+        collapsed: true,
+        items: [
+          page("Host API", "/reference/host/"),
+          page("Development commands", "/reference/development-commands/"),
+        ],
+      },
     ],
   },
   {
@@ -69,78 +123,81 @@ const sidebar = [
         label: "Architecture",
         collapsed: true,
         items: [
-          page("Overview", `${architecture}/`),
+          page("Architecture overview", `${architecture}/`),
           page("Component map", `${architecture}/components/`),
-          group("Subsystems", `${architecture}/subsystems`, [
-            ["Graphics", "graphics"],
-            ["Log", "log"],
-            ["Memory", "memory"],
-            ["Network", "network"],
-            ["Task", "task"],
-            ["Time", "time"],
-            ["Users", "users"],
-            ["Virtual file system", "virtual_file_system"],
-          ]),
-          group("Libraries", `${architecture}/libraries`, [
-            ["ABI", "abi"],
-            ["Audio", "audio"],
-            ["Authentication", "authentication"],
-            ["Bootsplash", "bootsplash"],
-            ["Device", "device"],
-            ["Debug protocol", "debug_protocol"],
-            ["Executable", "executable"],
-            ["Firmware update", "firmware_update"],
-            ["File system", "file_system"],
-            ["Internationalization", "internationalization"],
-            ["Little FS", "little_fs"],
-            ["Neural network", "neural_network"],
-            ["HTTP", "http"],
-            ["Peripherals", "peripherals"],
-            ["Shared", "shared"],
-            ["Synchronization", "synchronization"],
-            ["Testing", "testing"],
-            ["Verification", "verification"],
-          ]),
-          group("Drivers", `${architecture}/drivers`, [
-            ["Core", "core"],
-            ["Espressif", "espressif"],
-            ["Headless", "headless"],
-            ["Native", "native"],
-            ["Nordic", "nordic"],
-            ["Shared", "shared"],
-            ["Std", "std"],
-            ["WASM", "wasm"],
-          ]),
-          group("Executables", `${architecture}/executables`, [
-            ["Activity", "activity"],
-            ["WASM guest bindings", "bindings"],
-            ["Calculator", "calculator"],
-            ["Clock", "clock"],
-            ["Command line shell", "command_line_shell"],
-            ["Debug", "debug"],
-            ["Digits", "digits"],
-            ["File manager", "file_manager"],
-            ["Graphical shell", "graphical_shell"],
-            ["Package", "package"],
-            ["Pixel Painter", "pixel_painter"],
-            ["Settings", "settings"],
-            ["Synth", "synth"],
-            ["Terminal", "terminal"],
-            ["Text Editor", "text_editor"],
-            ["Weather", "weather"],
-            ["WASM", "wasm"],
-          ]),
+          page(
+            "Development environments and targets",
+            "/explanation/development-environments/",
+          ),
         ],
       },
-      page(
-        "Development environments",
-        "/explanation/development-environments/",
-      ),
-      page("Browser storage", "/explanation/browser-storage/"),
-      page(
-        "Package management architecture",
-        "/explanation/package-management/",
-      ),
+      group("Subsystems", `${architecture}/subsystems`, [
+        ["Graphics", "graphics"],
+        ["Log", "log"],
+        ["Memory", "memory"],
+        ["Network", "network"],
+        ["Task", "task"],
+        ["Time", "time"],
+        ["Users", "users"],
+        ["Virtual file system", "virtual_file_system"],
+      ]),
+      group("Libraries", `${architecture}/libraries`, [
+        ["ABI", "abi"],
+        ["Audio", "audio"],
+        ["Authentication", "authentication"],
+        ["Bootsplash", "bootsplash"],
+        ["Device", "device"],
+        ["Debug protocol", "debug_protocol"],
+        ["Executable", "executable"],
+        ["Firmware update", "firmware_update"],
+        ["File system", "file_system"],
+        ["Internationalization", "internationalization"],
+        ["LittleFS", "little_fs"],
+        ["Neural network", "neural_network"],
+        ["HTTP", "http"],
+        ["Peripherals", "peripherals"],
+        ["Shared", "shared"],
+        ["Synchronization", "synchronization"],
+        ["Testing", "testing"],
+        ["Verification", "verification"],
+      ]),
+      group("Drivers", `${architecture}/drivers`, [
+        ["Shared", "shared"],
+        ["Core", "core"],
+        ["Espressif", "espressif"],
+        ["Nordic", "nordic"],
+        ["Native", "native"],
+        ["Std", "std"],
+        ["Headless", "headless"],
+        ["Wasm", "wasm"],
+      ]),
+      group("Executables", `${architecture}/executables`, [
+        ["Activity", "activity"],
+        ["Graphics bindings", "bindings"],
+        ["Calculator", "calculator"],
+        ["Clock", "clock"],
+        ["Command-line shell", "command_line_shell"],
+        ["Debug", "debug"],
+        ["Digits", "digits"],
+        ["File manager", "file_manager"],
+        ["Graphical shell", "graphical_shell"],
+        ["Package", "package"],
+        ["Pixel Painter", "pixel_painter"],
+        ["Settings", "settings"],
+        ["Synth", "synth"],
+        ["Terminal", "terminal"],
+        ["Text Editor", "text_editor"],
+        ["Weather", "weather"],
+        ["Wasm executable", "wasm"],
+      ]),
+      {
+        label: "Topics",
+        collapsed: true,
+        items: [
+          page("Browser storage", "/explanation/browser-storage/"),
+          page("Package management", "/explanation/package-management/"),
+        ],
+      },
     ],
   },
   page("About Xila", "/about/"),
@@ -149,9 +206,28 @@ const sidebar = [
 export default defineConfig({
   site: "https://www.xila.dev",
   trailingSlash: "ignore",
-  markdown: { remarkPlugins: [remarkMermaid] },
+  markdown: {
+    remarkPlugins: [remarkMermaid, remarkD2Preamble],
+    rehypePlugins: [rehypeDiagramSvg],
+  },
   integrations: [
     sitemap(),
+    // D2 renders the code fences with the language `d2` to inline SVG at
+    // build time. D2.js runs D2 as WebAssembly, so the build needs no `d2`
+    // binary. The fonts only serve the measurement of the labels.
+    astroD2({
+      inline: true,
+      layout: "elk",
+      pad: 8,
+      theme: { default: "0", dark: false },
+      experimental: { useD2js: true },
+      fonts: {
+        regular: "src/diagrams/fonts/Montserrat-regular.ttf",
+        italic: "src/diagrams/fonts/Montserrat-italic.ttf",
+        bold: "src/diagrams/fonts/Montserrat-bold.ttf",
+        semibold: "src/diagrams/fonts/Montserrat-semibold.ttf",
+      },
+    }),
     starlight({
       title: "Xila",
       description: "An open-source operating system for embedded world",
@@ -165,14 +241,14 @@ export default defineConfig({
           // Honour `collapsed` on sidebar groups; without it every nested
           // Architecture group is always expanded.
           sidebar: { useDropdowns: true },
-          // The theme renders a flat list. On desktop, SiteTitle.astro
+          // The theme renders a flat list. On desktop, HeaderNav.astro
           // replaces it with its own header items. The mobile menu keeps this
           // list, and SiteTitle.astro marks the current item in it: the
           // data-header-link attribute selects the items to mark.
           navLinks: [
             { label: "Documentation", link: "/docs/", attrs: headerLink },
             { label: "Tutorials", link: "/tutorials/", attrs: headerLink },
-            { label: "How-to", link: "/how-to/", attrs: headerLink },
+            { label: "How-to guides", link: "/how-to/", attrs: headerLink },
             { label: "Reference", link: "/reference/", attrs: headerLink },
             { label: "Explanation", link: "/explanation/", attrs: headerLink },
             { label: "Packages", link: "/packages/", attrs: headerLink },
@@ -184,7 +260,11 @@ export default defineConfig({
           ],
         }),
       ],
-      customCss: ["./src/styles/xila.css", "./src/styles/page-icons.css"],
+      customCss: [
+        "./src/styles/xila.css",
+        "./src/styles/page-icons.css",
+        "./src/styles/diagrams.css",
+      ],
       lastUpdated: true,
       // Plain code frames: shell blocks get no terminal title bar.
       expressiveCode: { defaultProps: { frame: "code" } },
@@ -223,6 +303,7 @@ export default defineConfig({
         EditLink: "./src/components/EditLink.astro",
         Hero: "./src/components/Hero.astro",
         Footer: "./src/components/Footer.astro",
+        Header: "./src/components/Header.astro",
         LastUpdated: "./src/components/LastUpdated.astro",
         PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",

@@ -7,7 +7,7 @@ import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 These pages explain how Xila fits together, why its architecture spans multiple repositories, and how its runtime systems interact.
 
-## Topics
+## Architecture
 
 <CardGrid>
   <LinkCard
@@ -21,30 +21,55 @@ These pages explain how Xila fits together, why its architecture spans multiple 
     description="Runtime owners, libraries, drivers, and executables across the Xila workspace."
   />
   <LinkCard
+    title="Development environments and targets"
+    href="/explanation/development-environments/"
+    description="Target architectures, repository boundaries, and toolchains across Core, Applications, and Platforms."
+  />
+</CardGrid>
+
+## Subsystems
+
+<CardGrid>
+  <LinkCard
     title="Subsystems"
     href="/explanation/architecture/subsystems/"
     description="Runtime-owned foundation and coordination services in the Core repository."
   />
+</CardGrid>
+
+## Libraries
+
+<CardGrid>
   <LinkCard
     title="Libraries"
     href="/explanation/architecture/libraries/"
     description="Xila's reusable Rust contracts, helpers, and implementations."
   />
+</CardGrid>
+
+## Drivers
+
+<CardGrid>
   <LinkCard
     title="Drivers"
     href="/explanation/architecture/drivers/"
     description="How Xila drivers connect devices to the virtual file system and runtime services."
   />
+</CardGrid>
+
+## Executables
+
+<CardGrid>
   <LinkCard
     title="Executables"
     href="/explanation/architecture/executables/"
     description="Xila host executables and WebAssembly guest applications on the executable runtime."
   />
-  <LinkCard
-    title="Development environments and targets"
-    href="/explanation/development-environments/"
-    description="Target architectures, repository boundaries, and toolchains across Core, Applications, and Platforms."
-  />
+</CardGrid>
+
+## Topics
+
+<CardGrid>
   <LinkCard
     title="Browser storage"
     href="/explanation/browser-storage/"

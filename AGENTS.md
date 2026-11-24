@@ -10,21 +10,21 @@ This root `AGENTS.md` applies to the entire repository. If a more specific `AGEN
 
 ## Repository map
 
-| Path                     | Purpose                                                                    |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `src/content/docs/`      | Documentation collection                                                   |
-| `src/tutorials/`         | Guided first experiences                                                   |
-| `src/how-to/`            | Task-focused procedures                                                    |
-| `src/reference/`         | Exact commands, options, limits, capabilities, and API/source references   |
-| `src/explanation/`       | Concepts, architecture, rationale, trade-offs, and component relationships |
-| `src/about/`             | Project information                                                        |
-| `public/`                | Static assets published by Astro                                           |
-| `docs/templates/`        | Local authoring templates; never published directly                        |
-| `src/content/docs/`      | Starlight Markdown and MDX documentation collection                        |
-| `astro.config.mjs`       | Astro and Starlight configuration                                          |
-| `scripts/check-docs.mjs` | Documentation metadata, link, anchor, and Core source-path validation      |
-| `.github/workflows/`     | Pull-request checks and GitHub Pages deployment                            |
-| `package.json`           | Local development, formatting, build, preview, and validation commands     |
+| Path                            | Purpose                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `src/content/docs/`             | Starlight Markdown and MDX documentation collection                        |
+| `src/content/docs/tutorials/`   | Guided first experiences                                                   |
+| `src/content/docs/how-to/`      | Task-focused procedures                                                    |
+| `src/content/docs/reference/`   | Exact commands, options, limits, capabilities, and API/source references   |
+| `src/content/docs/explanation/` | Concepts, architecture, rationale, trade-offs, and component relationships |
+| `src/content/docs/about/`       | Project information                                                        |
+| `public/`                       | Static assets published by Astro                                           |
+| `src/diagrams/`                 | D2 shape vocabulary and the fonts that D2 uses to measure labels           |
+| `docs/templates/`               | Local authoring templates; never published directly                        |
+| `astro.config.mjs`              | Astro and Starlight configuration                                          |
+| `scripts/check-docs.mjs`        | Documentation metadata, link, anchor, and Core source-path validation      |
+| `.github/workflows/`            | Pull-request checks and GitHub Pages deployment                            |
+| `package.json`                  | Local development, formatting, build, preview, and validation commands     |
 
 Before editing, inspect the target page, its section landing page, nearby related pages, and `astro.config.mjs` when navigation may be affected.
 
@@ -44,12 +44,12 @@ Inspect Core read-only unless the user explicitly asks for a Core change. Do not
 
 Use Diátaxis to classify each substantive page by the reader's need:
 
-| Type        | Reader need                             | Location           | Expected content                                                                         |
-| ----------- | --------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------- |
-| Tutorial    | Learn through a guided first experience | `src/tutorials/`   | One reproducible path, prerequisites, actions, observable results, and next steps        |
-| How-to      | Complete a specific task                | `src/how-to/`      | Focused steps, requirements, completion checks, and relevant recovery actions            |
-| Reference   | Look up an exact fact                   | `src/reference/`   | Commands, options, defaults, features, errors, constraints, limits, and API/source links |
-| Explanation | Understand a concept or design          | `src/explanation/` | Context, relationships, rationale, trade-offs, architecture, and boundaries              |
+| Type        | Reader need                             | Location                        | Expected content                                                                         |
+| ----------- | --------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| Tutorial    | Learn through a guided first experience | `src/content/docs/tutorials/`   | One reproducible path, prerequisites, actions, observable results, and next steps        |
+| How-to      | Complete a specific task                | `src/content/docs/how-to/`      | Focused steps, requirements, completion checks, and relevant recovery actions            |
+| Reference   | Look up an exact fact                   | `src/content/docs/reference/`   | Commands, options, defaults, features, errors, constraints, limits, and API/source links |
+| Explanation | Understand a concept or design          | `src/content/docs/explanation/` | Context, relationships, rationale, trade-offs, architecture, and boundaries              |
 
 Use the locally authored templates in `docs/templates/` when creating pages. Read `docs/templates/README.md`, copy the appropriate template, remove unused sections, and replace every placeholder before publishing.
 
@@ -64,7 +64,7 @@ Keep one primary reader need per substantive page. Split mixed content when read
 - Add observable results for important tutorial steps and completion checks for how-to guides.
 - Use reference pages for exhaustive facts and explanation pages for design reasoning.
 - Follow the writing style below.
-- Use tables for lookup/comparison and Mermaid diagrams when they clarify relationships.
+- Use tables for lookup/comparison and diagrams when they clarify relationships; see Diagrams below.
 - Keep technical headings, navigation labels, reference text, and documentation-link labels free of decorative emojis. Sparse, consistent emojis are acceptable on overview/marketing surfaces.
 - Put warnings next to the action that requires them, especially destructive storage operations. Do not add speculative warnings.
 - Avoid unnecessary troubleshooting sections; include them only when there is a concrete recovery path.
@@ -87,7 +87,7 @@ Write every page in the style of ASD-STE100 Simplified Technical English. Apply 
 
 ### Frontmatter
 
-Substantive pages under `src/tutorials/`, `src/how-to/`, `src/reference/`, and `src/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
+Substantive pages under `src/content/docs/tutorials/`, `src/content/docs/how-to/`, `src/content/docs/reference/`, and `src/content/docs/explanation/` must use the matching `docType` value and a non-empty `description`. Section/index pages may omit `docType`.
 
 Put the page heading in the `title` frontmatter field; Starlight renders it as the page `<h1>`, so do not repeat it as a `#` heading in the body. Use `template: splash` only for pages that intentionally drop the sidebar, such as the home page or the API reference frame.
 
@@ -97,6 +97,7 @@ When adding, moving, or removing documentation:
 
 - update the appropriate section/index page;
 - add the page to the explicit `sidebar` in `astro.config.mjs` when it should appear in site navigation;
+- set the sidebar label of every page to its page title (`title` frontmatter); the allowed short forms are `Overview` for a section or group index page and `Documentation` for the `Xila documentation` page;
 - update relevant related links and incoming links;
 - update the architecture component map when the page changes component discovery;
 - preserve meaningful anchors and query parameters when changing API/reference links.
@@ -104,6 +105,38 @@ When adding, moving, or removing documentation:
 The site is pre-production. Move pages directly and update links instead of adding redirects unless URL compatibility is explicitly requested.
 
 Use `HostReference`, `GuestReference`, and `CodeReference` for generated API/source links. Verify referenced crates and source paths exist before adding them.
+
+### Diagrams
+
+Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. In a `.md` page, which has no JSX, write `<div class="diagram">`. Keep a blank line between the `div` tags and the code fence. Do not write new Mermaid diagrams; the existing `mermaid` pages keep their browser rendering until they are converted to D2 (tracked in issue #132).
+
+The stylesheet `src/styles/diagrams.css` sets every colour, stroke and font of a diagram from the theme variables, so one render serves the light and the dark theme. Set no colour in the D2 source; use only the theme variables through the shape classes below.
+
+Give every diagram a title for assistive technology in the fence metadata: ` ```d2 title="..." ` becomes the `<title>` element of the SVG.
+
+Keep the text of a diagram short and spelled out, and follow the writing style above. Introduce each diagram with a sentence and describe it again in prose.
+
+Use the shared shape vocabulary: one shape always means the same kind of thing. The classes are defined in `src/diagrams/xila.d2`, which `scripts/remark-d2-preamble.mjs` prepends to every `d2` block. Apply a shape with `class`, for example `registry: Registry { class: stored }` for a node or `root -> repository: { class: trust }` for an arrow.
+
+| Shape            | Class       | Meaning                                                         |
+| ---------------- | ----------- | --------------------------------------------------------------- |
+| Rectangle        | `component` | Component, crate, repository or step                            |
+| Filled rectangle | `focus`     | Integration point: the part that assembles the others           |
+| Cylinder         | `stored`    | Stored data, such as a catalogue or a file system               |
+| Document         | `record`    | Signed record or document                                       |
+| Hexagon          | `hardware`  | Hardware or driver                                              |
+| Oval             | `key`       | Cryptographic key                                               |
+| Diamond          | `decision`  | Decision                                                        |
+| Parallelogram    | `io`        | Input or output of the flow                                     |
+| Solid frame      | `layer`     | Layer or group of steps                                         |
+| Dashed frame     | `boundary`  | Boundary: ownership, trust or an optional part                  |
+| Thin arrow       | none        | Depends on, calls or leads to                                   |
+| Thick arrow      | `trust`     | Signs or authenticates                                          |
+| Dashed arrow     | `optional`  | Optional relation or returned value (used in sequence diagrams) |
+
+A copyable example sits in [docs/templates/README.md](docs/templates/README.md).
+
+During a build, `astro-d2` also writes each diagram as a separate SVG file to `public/d2/`, which Git ignores, and Astro copies the files to `dist/d2/`. The pages do not use these files. Do not link to them. The fonts in `src/diagrams/fonts/` only serve the measurement of the labels; see the `README.md` in that directory.
 
 ## Technical boundaries worth preserving
 
