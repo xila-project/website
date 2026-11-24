@@ -8,8 +8,8 @@ This guide shows how to run a WebAssembly (Wasm) guest application from Xila's t
 
 ## Before you begin
 
-- Start a Xila runtime with `/applications/executables/wasm` mounted, such as the native runtime or the browser runtime.
-- Ensure the compiled `wasm32-wasip1` guest binary is present in Xila's virtual file system (VFS), such as `/applications/bundles/xila.calculator/executables/calculator.wasm`.
+- A running Xila runtime with `/applications/executables/wasm` mounted, for example the native runtime or the browser runtime.
+- The compiled `wasm32-wasip1` guest binary in Xila's virtual file system (VFS), for example `/applications/bundles/xila.calculator/executables/calculator.wasm`.
 
 ## Steps
 
@@ -31,7 +31,7 @@ This guide shows how to run a WebAssembly (Wasm) guest application from Xila's t
 
 Confirm that the guest application runs:
 
-- For a graphical guest such as Calculator, the application window appears on the desktop.
+- For a graphical guest, for example Calculator, the application window appears on the desktop.
 - For a command-line guest, output appears in Xila's terminal.
 - When execution completes, the terminal prompt returns without error.
 

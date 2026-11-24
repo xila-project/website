@@ -4,13 +4,13 @@ docType: how-to
 description: Launch Xila's CLI shell or a WASI guest in a persistent headless Docker runtime.
 ---
 
-This guide shows how to run the Xila shell or a WebAssembly (Wasm) guest in a headless Docker runtime. Use it on Linux/amd64.
+This guide shows how to run the Xila shell or a WebAssembly (Wasm) guest in a headless Docker runtime on Linux/amd64.
 
 ## Before you begin
 
-- Install Docker and ensure you can start containers.
-- Use a published image from [Platforms' runtime workflow](https://github.com/xila-project/platforms/actions/workflows/runtime.yml). `latest` follows `main`; pin a release or commit-SHA tag for reproducible runs.
-- To run a guest, have a compatible `app.wasm` file compiled for `wasm32-wasip1`.
+- Docker installed, and permission to start containers.
+- A published image from [Platforms' runtime workflow](https://github.com/xila-project/platforms/actions/workflows/runtime.yml). The `latest` tag follows `main`. Pin a release tag or a commit-SHA tag for reproducible runs.
+- To run a guest, a compatible `app.wasm` file compiled for `wasm32-wasip1`.
 
 ## Steps
 
@@ -23,7 +23,7 @@ This guide shows how to run the Xila shell or a WebAssembly (Wasm) guest in a he
    docker volume create xila-state
    ```
 
-The named volume persists `/var/lib/xila/drive.img` between container runs. On its first start, Xila imports the image's reference filesystem; subsequent starts reuse the existing data and credentials. The image runs as non-root UID/GID **10001**.
+The named volume persists `/var/lib/xila/drive.img` between container runs. On its first start, Xila imports the image's reference filesystem. Subsequent starts reuse the existing data and credentials. The image runs as non-root UID/GID **10001**.
 
 ### Launch the interactive Xila shell
 
@@ -42,7 +42,7 @@ ghcr.io/xila-project/xila-runtime:latest
 
 By default the image executes `xila-runtime shell --network=none`: this opens **Xila's own command-line shell**, not the container's Linux `bash`. On a fresh installation, log in as **administrator** with an empty password. Try `pwd` or `echo hello`, then `exit` to quit.
 
-You may append `shell --network=none` after the image name to select this mode explicitly. The `-it` flags attach an interactive terminal, while Docker's `--network none` disables container networking independently of Xila's network setting.
+You may append `shell --network=none` after the image name to select this mode explicitly. The `-it` flags attach an interactive terminal. Docker's `--network none` disables container networking independently of Xila's network setting.
 
 ### Run an existing guest instead
 
@@ -69,11 +69,11 @@ ghcr.io/xila-project/xila-runtime:latest run --network=none \
 
 ```
 
-The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. Arguments after `app.wasm` go to the guest, and a nonzero guest exit status propagates to Docker.
+The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
 
 ## Verify the result
 
-In shell mode, confirm the login prompt works and a command executes inside Xila. In guest mode, inspect the application's output and exit code. The volume survives `--rm` and holds the existing disk; do not delete `xila-state` if it contains data you wish to keep.
+In shell mode, confirm the login prompt works and a command executes inside Xila. In guest mode, inspect the application's output and exit code. The volume survives `--rm` and holds the existing disk. Do not delete `xila-state` if it contains data that you want to keep.
 
 For bind-mounted state instead of a named volume, grant write permission to UID/GID 10001. See the [headless runtime reference](/reference/container-runtime/) for disk/seed paths, additional read-write mounts, and explicit guest environment options.
 

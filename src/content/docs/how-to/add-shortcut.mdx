@@ -6,12 +6,12 @@ description: "Create a shortcut descriptor so the graphical shell discovers and 
 
 import CodeReference from "@/components/CodeReference.astro";
 
-This guide shows how to add a `shortcut.json` launcher descriptor to an application bundle so Xila's graphical shell discovers and launches the application.
+This guide shows how to add a `shortcut.json` launcher descriptor to an application bundle so that Xila's graphical shell discovers and launches the application.
 
 ## Before you begin
 
-- Have a compiled `wasm32-wasip1` guest binary, as described in [Build a guest application](/how-to/build-guest/).
-- Have an application bundle directory structure prepared for installation under `/applications/bundles/<identifier>/`.
+- A compiled `wasm32-wasip1` guest binary, as described in [Build a guest application](/how-to/build-guest/).
+- An application bundle directory that you install under `/applications/bundles/<identifier>/`.
 
 ## Steps
 
@@ -36,12 +36,12 @@ This guide shows how to add a `shortcut.json` launcher descriptor to an applicat
 
    | Property      | Format                      | Description                                                      |
    | ------------- | --------------------------- | ---------------------------------------------------------------- |
-   | `name`        | String, 1–128 characters    | Display name shown in the application drawer                     |
-   | `command`     | String, 1–256 characters    | Path to the executable; `@bundle/` prefix is supported           |
+   | `name`        | String, 1-128 characters    | Display name shown in the application drawer                     |
+   | `command`     | String, 1-256 characters    | Path to the executable; `@bundle/` prefix is supported           |
    | `arguments`   | Array of up to 24 strings   | Command arguments; `@bundle/` elements are expanded by the shell |
    | `terminal`    | Boolean                     | Declares whether the application runs in a terminal              |
-   | `icon_string` | String, 1–8 characters      | Monogram text rendered inside the icon                           |
-   | `icon_color`  | Array of 3 integers (0–255) | RGB color array for the icon background                          |
+   | `icon_string` | String, 1-8 characters      | Monogram text rendered inside the icon                           |
+   | `icon_color`  | Array of 3 integers (0-255) | RGB color array for the icon background                          |
 
 ### Install the bundle structure
 
