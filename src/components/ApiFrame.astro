@@ -37,7 +37,10 @@ import { getApiRootHref } from "../../scripts/reference-path.mjs";
   // The frame has no address until here, so the browser loads only the
   // requested API page, and the Host API index when the path is missing or
   // not a page under /api/host/ or /api/guest/.
-  const requested = new URLSearchParams(location.search).get("path");
+  // A fragment outside the query, as in `?path=host/x.html#method.spawn`
+  // with an unencoded `#`, belongs to the API page too.
+  let requested = new URLSearchParams(location.search).get("path");
+  if (requested && !requested.includes("#")) requested += location.hash;
   frame.src =
     (requested && getApiFrameSource(requested)) || getApiRootHref("host");
 </script>
