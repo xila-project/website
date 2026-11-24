@@ -48,7 +48,7 @@ A repository install verifies the signed root and index metadata, the entry and 
 
 ## Limits
 
-The installer stages files before moving the verified bundle into place, as a crash-consistent transaction with a journal. The Wasm runtime verifies installed package executables against the installed manifest before compiling them. Protect installed files from unprivileged writes.
+The installer stages files before moving the verified bundle into place, as a crash-consistent transaction with a journal. The Wasm runtime verifies installed package executables against the installed manifest before compiling them. It does not verify a signature at launch, so protect installed files from unprivileged writes.
 
 ## API reference
 

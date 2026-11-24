@@ -24,7 +24,7 @@ Streaming avoids holding a complete package in memory. Staging keeps a failed ve
 
 ## Limits
 
-Root and the members of the `administrator` group may change packages and repositories. Package changes run as crash-consistent transactions, journaled in `/configuration/system/packages/transaction.json`; `package recover` finishes or undoes an interrupted operation. The Wasm runtime hashes each installed package executable against the installed manifest before compiling it. Repository index expiry is not checked without a trustworthy clock.
+Root and the members of the `administrator` group may change packages and repositories. Package changes run as crash-consistent transactions, journaled in `/configuration/system/packages/transaction.json`; `package recover` finishes or undoes an interrupted operation. The Wasm runtime hashes each installed package executable against the installed manifest before compiling it. It does not verify a signature at launch. Repository index expiry is not checked without a trustworthy clock.
 
 ## API reference
 
