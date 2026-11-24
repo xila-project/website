@@ -12,7 +12,7 @@ The <HostReference crate="file_system" /> crate provides the architectural contr
 
 ## Context
 
-Storage hardware varies from raw NOR/NAND flash memory and SD cards to memory-backed virtual disks. The `file_system` crate abstracts these differences into uniform interfaces: character devices for stream-oriented data, block devices for fixed-size sector access, and file system operations for hierarchical directory trees.
+Storage hardware in embedded and desktop systems varies from raw NOR/NAND flash memory and SD cards to memory-backed virtual disks. The `file_system` crate abstracts these differences into uniform interfaces: character devices for stream-oriented data, block devices for fixed-size sector access, and file system operations for hierarchical directory trees.
 
 Higher-level subsystems such as the [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) use `file_system` traits to resolve paths and dispatch control commands without depending on concrete hardware drivers. Concrete storage engines such as [Little FS](/explanation/architecture/libraries/little_fs/) implement these traits for persistent file storage.
 

@@ -89,7 +89,7 @@ Typed control commands for pin reservation, direction, pull resistors, and elect
 ## Design choices and trade-offs
 
 - **Exclusive device ownership**: only one task may hold an open handle to a peripheral device at a time. This prevents race conditions and pin contention without complex scheduling locks.
-- **Borrowed controller handles**: controller trait methods borrow the controller and return scoped handles. Dropping a handle releases the line back to the high-impedance state.
+- **Borrowed controller handles**: controller trait methods borrow the controller and return scoped handles. Dropping a handle automatically releases the line back to the high-impedance state.
 - **Immediate non-blocking execution**: peripheral methods run directly on the executor and never yield `Poll::Pending`. If a hardware bus or FIFO is unavailable, callers receive `Error::RessourceBusy` and manage retries.
 
 ## Limits

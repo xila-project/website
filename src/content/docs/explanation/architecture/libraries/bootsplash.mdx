@@ -33,7 +33,7 @@ The animation runs in two phases:
    - The intro concludes exactly on the static rest pose of the brand symbol.
 2. Loop phase (`timeline::PERIOD` 1600 ms, `PULSE` 800 ms):
    - A ripple runs clockwise around the symbol.
-   - One arm at a time glides outward along its diagonal and returns. During the pulse, the opacity drops to `PULSE_OPACITY` (180).
+   - One arm at a time glides outward along its diagonal, briefly widening the separation, and returns. During the pulse, the opacity drops to `PULSE_OPACITY` (180).
    - The next arm clockwise starts halfway through the previous pulse.
    - The arms return to their rest positions between pulses. The symbol is never rotated or recolored.
 
@@ -63,7 +63,7 @@ stateDiagram-v2
 
 ## Design choices and trade-offs
 
-- Dedicated animation crate: The crate isolates LVGL C ABI animation descriptors and unsafe C callbacks from the shell and graphics components.
+- Dedicated animation crate: The crate isolates LVGL C ABI animation descriptors and unsafe C callbacks from general shell and graphics components.
 - Responsive geometric scaling: The logo scales to 30% of the screen dimension. The presentation stays consistent across display resolutions.
 - Deterministic timeline: Animation progress uses fixed-point mathematics (`ArmState`). Unit tests can run without a display server.
 

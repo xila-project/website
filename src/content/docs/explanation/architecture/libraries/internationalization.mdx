@@ -7,11 +7,11 @@ description: "Build-time locale selection, catalog structure, and embedded-i18n 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 
-Xila uses the external <DocsRsReference crate="embedded-i18n" /> dependency for build-time localization. Core re-exports it as `xila::internationalization`. It extracts strings at compile time, formats plurals, and verifies catalogs. It needs no runtime translation dictionary.
+Xila uses the external <DocsRsReference crate="embedded-i18n" /> dependency for build-time localization. Core re-exports it as `xila::internationalization`. It extracts strings at compile time, formats plurals, and verifies catalogs. It needs no dynamic runtime dictionary.
 
 ## Context
 
-Microcontrollers cannot afford the RAM and storage cost of runtime translation files. Xila compiles localized strings into the binary at build time. Subsystems, libraries, and applications share one compile-time localization system. It produces zero-allocation, statically verified strings.
+Microcontrollers cannot afford the RAM and storage cost of loading runtime translation files from disk. Xila compiles localized strings into the binary at build time. Subsystems, libraries, and applications share one compile-time localization system. It produces zero-allocation, statically verified UI strings.
 
 ## How it works
 
@@ -99,7 +99,7 @@ The Tolgee extractor processes the `t!` macro invocations in the Rust source and
 ## Design choices and trade-offs
 
 - Zero runtime overhead: Translations are embedded at compile time. This eliminates file system I/O, string parsing, and heap allocation for static text.
-- Build-time selection: Language selection requires building an image for that locale. There is no dynamic language switching at runtime.
+- Build-time selection: Language selection requires building and running an image for that locale. There is no dynamic language switching service at runtime.
 - Strict compile-time checks: Strict checking rejects missing translation keys, mismatched format placeholders, and absent plural categories at compile time.
 
 ## Limits

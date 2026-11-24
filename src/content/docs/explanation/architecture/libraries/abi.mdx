@@ -19,7 +19,7 @@ Native applications are trusted code. They run in the same address space as Xila
 
 The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs and slot list are committed files. The Core build regenerates them from the table. cbindgen generates the header, and a separate generator writes the SDK files. A test checks that the committed copies match.
 
-The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
+The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
 
 ### Services
 

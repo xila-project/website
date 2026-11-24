@@ -26,7 +26,7 @@ When initializing or formatting a filesystem, `little_fs` queries block paramete
 - **Block count**: queried via `GET_BLOCK_COUNT`.
 - **Cache and lookahead sizes**: both set to the caller-supplied `cache_size` (for example, 256 bytes in native and browser runtimes). The lookahead buffer size must be a multiple of 8.
 - **Read and program sizes**: set to 16 bytes by default in `Configuration::new`.
-- **Block cycles**: set to `None` (`-1` in raw `littlefs::lfs_config`). Wear-leveling cycle limits stay disabled unless configured.
+- **Block cycles**: set to `None` (`-1` in raw `littlefs::lfs_config`). Wear-leveling cycle limits stay disabled unless explicitly configured.
 
 ```rust
 use little_fs::FileSystem;

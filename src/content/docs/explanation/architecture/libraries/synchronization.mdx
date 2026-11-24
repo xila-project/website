@@ -11,7 +11,7 @@ The `synchronization` crate standardizes synchronization primitives across Xila.
 
 ## Context
 
-Xila runs on architectures from desktop x86_64 and 32-bit ARM Cortex-M processors to microcontrollers without atomic pointer instructions. The `synchronization` crate provides a uniform `#![no_std]` interface. Subsystems and drivers use it to share state and synchronize tasks on all supported targets.
+Xila runs on architectures from desktop x86_64 and 32-bit ARM Cortex-M processors with hardware atomics to microcontrollers without atomic pointer instructions. The `synchronization` crate provides a uniform `#![no_std]` interface. Subsystems and drivers use it to share state and synchronize tasks on all supported targets.
 
 ## How it works
 

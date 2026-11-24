@@ -11,7 +11,7 @@ The `shared` crate provides cross-cutting foundational types, layout-based type 
 
 ## Context
 
-Subsystems, drivers, and libraries need shared primitives for type erasure across C-compatible boundaries, unit formatting, and bidirectional lookups. Instead of duplicating these utilities or creating circular dependencies, `shared` sits near the bottom of the dependency graph as a reusable, dependency-light foundation.
+Subsystems, drivers, and libraries need shared primitives for type erasure across C-compatible boundaries, physical unit formatting, and bidirectional lookups. Instead of duplicating these utilities or creating circular dependencies, `shared` sits near the bottom of the dependency graph as a reusable, dependency-light foundation.
 
 ## How it works
 
@@ -42,7 +42,7 @@ assert_eq!(map.get_value(&"name"), Some(&100));
 assert_eq!(map.get_key(&100), Some(&"name"));
 ```
 
-Forward and reverse lookups both run in logarithmic time. No separate lookup tables are needed.
+Forward and reverse lookups both run in logarithmic time. They track state consistently in both directions, so no separate lookup tables are needed.
 
 ### Units, calendar, and slice utilities
 

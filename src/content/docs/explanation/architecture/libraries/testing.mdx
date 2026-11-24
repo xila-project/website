@@ -11,7 +11,7 @@ The `testing` crate provides minimal `std` test infrastructure for Xila unit and
 
 ## Context
 
-Testing components such as the virtual file system, the task manager, and executables requires time, randomness, storage, console streams, and cryptography. These must work without physical target peripherals or desktop window managers. The `testing` crate provides mock devices and a complete in-memory environment. Tests run quickly and deterministically in continuous integration pipelines.
+Testing operating system components such as the virtual file system, the task manager, and executables on host developer machines requires real operating system abstractions: time, randomness, storage, console streams, and cryptography. These must work without binding to physical target peripherals or desktop window managers. The `testing` crate provides mock devices and a complete in-memory environment. Tests run quickly and deterministically in continuous integration pipelines.
 
 ## How it works
 
