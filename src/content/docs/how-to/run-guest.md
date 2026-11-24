@@ -48,4 +48,4 @@ Confirm that the guest application runs:
 - [Build a guest application](/how-to/build-guest/)
 - [Add a launcher shortcut](/how-to/add-shortcut/)
 - [Wasm runtime](/reference/wasm-runtime/)
-- [Wasm](/explanation/architecture/executables/wasm/)
+- [Wasm executable](/explanation/architecture/executables/wasm/)
