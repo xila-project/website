@@ -6,7 +6,7 @@ description: "Understand the on-device package installer and its trust checks."
 
 import CodeReference from "@/components/CodeReference.astro";
 
-The Applications repository's `package` executable installs packages into Xila's virtual file system (VFS). It accepts local packages and packages from configured repositories.
+The `package` executable in the Applications repository installs packages into the virtual file system (VFS) of Xila. It accepts local packages and packages from configured repositories.
 
 ## Context
 
@@ -14,9 +14,9 @@ The executable connects repository metadata and package verification to VFS stor
 
 ## How it works
 
-Repository installation authenticates signed metadata using the configured root key, then checks the developer key, package signature and payload hashes. Local installation uses `/configuration/system/packages/trusted.pub`, or a key supplied with `--public-key`. The `--allow-untrusted` option bypasses publisher authentication for a local package while retaining integrity checks.
+Repository installation verifies signed metadata with the configured root key. It then checks the developer key, the package signature, and the payload hashes. Local installation trusts `/configuration/system/packages/trusted.pub` or a key given with `--public-key`. The `--allow-untrusted` option skips publisher authentication for a local package but keeps the integrity checks.
 
-The installer reads 512-byte TAR blocks, writes to a quarantine directory and moves the verified bundle to `/applications/bundles/<identifier>/`. `package list` lists installed bundles. Repository commands add, list and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
+The installer reads 512-byte TAR blocks and writes them to a quarantine directory. After verification, it moves the bundle to `/applications/bundles/<identifier>/`. `package list` shows the installed bundles. The repository commands add, list, and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
 
 ## Design choices and trade-offs
 
@@ -24,25 +24,25 @@ Streaming avoids holding a complete package in memory. Staging keeps a failed ve
 
 ## Limits
 
-System-wide installation requires a root task. The installer does not provide upgrade, uninstall or a durable power-loss recovery journal. It does not verify a signature at launch. Repository index expiry is not checked without a trustworthy clock.
+System-wide installation requires a root task. The installer has no upgrade, uninstall, or power-loss recovery journal. It does not verify a signature at launch. It does not check repository index expiry without a trustworthy clock.
 
 ## API reference
 
 - <CodeReference repo="applications" path="executables/package/src/cli.rs">
     Command parser
   </CodeReference>
-  — commands and options.
+  : commands and options.
 - <CodeReference repo="applications" path="executables/package/src/install.rs">
     Installer
   </CodeReference>
-  — local package staging.
+  : local package staging.
 - <CodeReference
     repo="applications"
     path="executables/package/src/repository.rs"
   >
     Repository client
   </CodeReference>
-  — authenticated metadata and downloads.
+  : authenticated metadata and downloads.
 
 ## Related
 
