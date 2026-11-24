@@ -24,7 +24,7 @@ const inside = sections.some(({ state }) => state);
 ---
 
 <details class:list={["docs-menu", className]}>
-  <summary aria-expanded="false" aria-current={inside ? "true" : undefined}>
+  <summary aria-current={inside ? "true" : undefined}>
     Documentation
     <Icon name="down-caret" size="1rem" class="caret" />
   </summary>
@@ -43,25 +43,15 @@ const inside = sections.some(({ state }) => state);
 </details>
 
 <script>
+  // Browsers expose the open state of the details element as the expanded
+  // state of its summary, also without scripts. ARIA in HTML does not allow
+  // aria-expanded on summary, so the script does not set it.
   const MENU = ".docs-menu";
 
   function close(menu: HTMLDetailsElement, restoreFocus = false) {
     menu.open = false;
     if (restoreFocus) menu.querySelector("summary")?.focus();
   }
-
-  // Keep aria-expanded in step with the open state, however it changes.
-  document.addEventListener(
-    "toggle",
-    (event) => {
-      const menu = event.target;
-      if (!(menu instanceof HTMLDetailsElement) || !menu.matches(MENU)) return;
-      menu
-        .querySelector("summary")
-        ?.setAttribute("aria-expanded", String(menu.open));
-    },
-    true,
-  );
 
   // "pointerdown" also fires for a touch on iOS, where "click" does not
   // reach the document for elements that are not interactive.
