@@ -168,6 +168,7 @@ export default defineConfig({
             { label: "How-to", link: "/how-to/" },
             { label: "Reference", link: "/reference/" },
             { label: "Explanation", link: "/explanation/" },
+            { label: "Packages", link: "/packages/" },
             { label: "Demonstration", link: "https://platforms.xila.dev/" },
           ],
         }),

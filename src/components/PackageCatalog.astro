@@ -1,0 +1,1342 @@
+---
+import { Icon } from "@astrojs/starlight/components";
+---
+
+<div class="package-catalog not-content" data-package-catalog>
+  <p class="catalog-intro">
+    Live metadata from{" "}
+    <a
+      href="https://registry.xila.dev"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      registry.xila.dev
+    </a>
+    . This catalog is for browsing and does not verify signatures; devices
+    verify repository, developer, and archive signatures at install time.
+  </p>
+
+  <section class="catalog-list-view" data-list-view>
+    <div class="catalog-controls">
+      <label class="control-field control-search">
+        <span class="control-label">Search</span>
+        <span class="search-input-wrap">
+          <Icon name="magnifier" size="1rem" class="search-icon" />
+          <input
+            type="search"
+            placeholder="Search by name, summary, or capability"
+            autocomplete="off"
+            spellcheck="false"
+            data-filter-query
+          />
+        </span>
+      </label>
+
+      <label class="control-field">
+        <span class="control-label">Target</span>
+        <select data-filter-target>
+          <option value="">All targets</option>
+        </select>
+      </label>
+
+      <label class="control-field">
+        <span class="control-label">Publisher</span>
+        <select data-filter-publisher>
+          <option value="">All publishers</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="catalog-status-bar">
+      <p
+        class="catalog-count"
+        role="status"
+        aria-live="polite"
+        data-status-text
+      >
+        Loading registry index…
+      </p>
+      <button
+        type="button"
+        class="catalog-button-ghost"
+        data-clear-filters
+        hidden
+      >
+        Clear filters
+      </button>
+    </div>
+
+    <div class="catalog-loading" data-loading-state>
+      <div class="skeleton-card" aria-hidden="true"></div>
+      <div class="skeleton-card" aria-hidden="true"></div>
+      <div class="skeleton-card" aria-hidden="true"></div>
+      <div class="skeleton-card" aria-hidden="true"></div>
+    </div>
+
+    <div class="catalog-alert" role="alert" data-error-state hidden>
+      <div class="alert-copy">
+        <strong>Unable to load package registry</strong>
+        <p data-error-message></p>
+      </div>
+      <button type="button" class="catalog-button-primary" data-retry-button>
+        Retry
+      </button>
+    </div>
+
+    <div class="catalog-empty" data-empty-state hidden>
+      <p>No packages match the current search and filter selection.</p>
+      <button
+        type="button"
+        class="catalog-button-secondary"
+        data-empty-clear-button
+      >
+        Reset filters
+      </button>
+    </div>
+
+    <div class="catalog-grid" data-package-grid hidden></div>
+  </section>
+
+  <section class="catalog-detail-view" data-detail-view hidden></section>
+</div>
+
+<script>
+  import {
+    DEFAULT_REGISTRY_URL,
+    buildCatalogUrl,
+    buildInstallCommand,
+    fetchRegistryCatalog,
+    filterPackages,
+    formatBytes,
+    readCatalogUrlState,
+  } from "../../scripts/package-registry.mjs";
+
+  type RegistryCatalog = Awaited<ReturnType<typeof fetchRegistryCatalog>>;
+  type CatalogPackage = RegistryCatalog["packages"][number];
+  type CatalogEntry = CatalogPackage["latest"];
+
+  for (const root of document.querySelectorAll<HTMLElement>(
+    "[data-package-catalog]",
+  )) {
+    const listView = root.querySelector<HTMLElement>("[data-list-view]");
+    const detailView = root.querySelector<HTMLElement>("[data-detail-view]");
+    const queryInput = root.querySelector<HTMLInputElement>(
+      "[data-filter-query]",
+    );
+    const targetSelect = root.querySelector<HTMLSelectElement>(
+      "[data-filter-target]",
+    );
+    const publisherSelect = root.querySelector<HTMLSelectElement>(
+      "[data-filter-publisher]",
+    );
+    const statusText = root.querySelector<HTMLElement>("[data-status-text]");
+    const clearFiltersButton = root.querySelector<HTMLButtonElement>(
+      "[data-clear-filters]",
+    );
+    const loadingState = root.querySelector<HTMLElement>(
+      "[data-loading-state]",
+    );
+    const errorState = root.querySelector<HTMLElement>("[data-error-state]");
+    const errorMessage = root.querySelector<HTMLElement>(
+      "[data-error-message]",
+    );
+    const retryButton = root.querySelector<HTMLButtonElement>(
+      "[data-retry-button]",
+    );
+    const emptyState = root.querySelector<HTMLElement>("[data-empty-state]");
+    const emptyClearButton = root.querySelector<HTMLButtonElement>(
+      "[data-empty-clear-button]",
+    );
+    const grid = root.querySelector<HTMLElement>("[data-package-grid]");
+
+    if (
+      !listView ||
+      !detailView ||
+      !queryInput ||
+      !targetSelect ||
+      !publisherSelect ||
+      !statusText ||
+      !clearFiltersButton ||
+      !loadingState ||
+      !errorState ||
+      !errorMessage ||
+      !retryButton ||
+      !emptyState ||
+      !emptyClearButton ||
+      !grid
+    ) {
+      continue;
+    }
+
+    let catalog: RegistryCatalog | null = null;
+    let activeController: AbortController | null = null;
+    let selectedState = readCatalogUrlState(
+      window.location.search,
+      window.location.hash,
+    );
+
+    const createElement = <K extends keyof HTMLElementTagNameMap>(
+      tag: K,
+      className?: string,
+      text?: string,
+    ) => {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text !== undefined) element.textContent = text;
+      return element;
+    };
+
+    const copyText = async (text: string, button: HTMLButtonElement) => {
+      const original = button.dataset.label || button.textContent || "Copy";
+      button.dataset.label = original;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copied";
+        button.dataset.copied = "true";
+      } catch {
+        button.textContent = "Copy failed";
+      }
+      window.setTimeout(() => {
+        button.textContent = original;
+        delete button.dataset.copied;
+      }, 1800);
+    };
+
+    const populateSelect = (
+      select: HTMLSelectElement,
+      values: string[],
+      allLabel: string,
+    ) => {
+      const previous = select.value;
+      select.replaceChildren(new Option(allLabel, ""));
+      for (const value of values) {
+        select.append(new Option(value, value));
+      }
+      select.value = values.includes(previous) ? previous : "";
+    };
+
+    const compatibilityLabel = (entry: CatalogEntry) =>
+      entry.xilaVersion !== null
+        ? `Xila >= ${entry.xilaVersion}`
+        : `ABI ${entry.minimumXilaAbi}`;
+
+    const navigateTo = (
+      packageName: string,
+      version = "",
+      isLatest = true,
+      push = true,
+    ) => {
+      selectedState = { packageName, version };
+      const nextUrl = buildCatalogUrl(
+        window.location.pathname,
+        packageName,
+        version,
+        isLatest,
+      );
+      if (push) {
+        window.history.pushState(selectedState, "", nextUrl);
+      }
+      render();
+      if (packageName) {
+        window.scrollTo({ top: 0 });
+      }
+    };
+
+    const createPackageCard = (pkg: CatalogPackage) => {
+      const entry = pkg.latest;
+      const card = createElement("article", "package-card");
+
+      const header = createElement("div", "package-card-header");
+      const titleGroup = createElement("div", "package-card-titles");
+      const titleLink = createElement(
+        "a",
+        "package-card-title",
+        pkg.displayName,
+      );
+      titleLink.href = buildCatalogUrl(window.location.pathname, pkg.name);
+      titleLink.addEventListener("click", (event) => {
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigateTo(pkg.name, entry.version, true);
+      });
+
+      const idCode = createElement("code", "package-id", pkg.name);
+      titleGroup.append(titleLink, idCode);
+
+      const versionBadge = createElement(
+        "span",
+        "package-badge",
+        `v${pkg.latestVersion}`,
+      );
+      header.append(titleGroup, versionBadge);
+
+      const summary = createElement(
+        "p",
+        entry.metadata ? "package-summary" : "package-summary is-missing",
+        entry.metadata
+          ? entry.metadata.summary
+          : "No catalog summary published for this version.",
+      );
+
+      const meta = createElement("dl", "package-meta-list");
+      const addMetaItem = (label: string, value: string) => {
+        const group = createElement("div", "package-meta-item");
+        group.append(
+          createElement("dt", undefined, label),
+          createElement("dd", undefined, value),
+        );
+        meta.append(group);
+      };
+      addMetaItem("Publisher", pkg.publishers.join(", "));
+      addMetaItem("Target", pkg.targets.join(", "));
+      addMetaItem("Compatibility", compatibilityLabel(entry));
+      if (pkg.versions.length > 1) {
+        addMetaItem("Versions", `${pkg.versions.length} published`);
+      }
+
+      const footer = createElement("div", "package-card-footer");
+      const command = createElement(
+        "code",
+        "package-card-command",
+        buildInstallCommand(pkg.name, entry.version, true),
+      );
+      const inspectLink = createElement(
+        "a",
+        "package-card-action",
+        "Details →",
+      );
+      inspectLink.href = titleLink.href;
+      inspectLink.addEventListener("click", (event) => {
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigateTo(pkg.name, entry.version, true);
+      });
+
+      footer.append(command, inspectLink);
+      card.append(header, summary, meta, footer);
+      return card;
+    };
+
+    const renderList = () => {
+      if (!catalog) return;
+      const query = queryInput.value;
+      const target = targetSelect.value;
+      const publisher = publisherSelect.value;
+      const hasFilters = Boolean(query.trim() || target || publisher);
+      clearFiltersButton.hidden = !hasFilters;
+
+      const visible = filterPackages(catalog.packages, {
+        query,
+        target,
+        publisher,
+      });
+
+      const totalCount = catalog.packages.length;
+      const countText =
+        visible.length === totalCount
+          ? `${totalCount} ${totalCount === 1 ? "package" : "packages"}`
+          : `${visible.length} of ${totalCount} packages`;
+      statusText.textContent = `${countText} · Registry index v${catalog.index.version}`;
+
+      if (visible.length === 0) {
+        grid.hidden = true;
+        grid.replaceChildren();
+        emptyState.hidden = false;
+        return;
+      }
+
+      emptyState.hidden = true;
+      grid.hidden = false;
+      grid.replaceChildren(...visible.map((pkg) => createPackageCard(pkg)));
+    };
+
+    const renderDetail = (packageName: string, requestedVersion: string) => {
+      if (!catalog) return;
+      detailView.replaceChildren();
+
+      const backButton = createElement(
+        "a",
+        "detail-back-link",
+        "← All packages",
+      );
+      backButton.href = buildCatalogUrl(window.location.pathname);
+      backButton.addEventListener("click", (event) => {
+        if (
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey ||
+          event.button !== 0
+        ) {
+          return;
+        }
+        event.preventDefault();
+        navigateTo("", "", true);
+      });
+      detailView.append(backButton);
+
+      const pkg = catalog.packages.find((item) => item.name === packageName);
+      if (!pkg) {
+        const missing = createElement("div", "catalog-empty");
+        missing.append(
+          createElement(
+            "p",
+            undefined,
+            `Package "${packageName}" was not found in the registry index.`,
+          ),
+        );
+        detailView.append(missing);
+        return;
+      }
+
+      const selectedEntry =
+        (requestedVersion
+          ? pkg.versions.find((entry) => entry.version === requestedVersion)
+          : undefined) ?? pkg.latest;
+      const isLatest =
+        selectedEntry.version === pkg.latestVersion &&
+        selectedEntry.target === pkg.latest.target;
+
+      const header = createElement("div", "detail-header");
+      const titleWrap = createElement("div", "detail-title-wrap");
+      const title = createElement("h2", "detail-title", pkg.displayName);
+      const idBadge = createElement("code", "package-id", pkg.name);
+      titleWrap.append(title, idBadge);
+
+      const versionPill = createElement(
+        "span",
+        "package-badge",
+        `v${selectedEntry.version}${selectedEntry.version === pkg.latestVersion ? " (latest)" : ""}`,
+      );
+      header.append(titleWrap, versionPill);
+      detailView.append(header);
+
+      if (selectedEntry.metadata) {
+        detailView.append(
+          createElement("p", "detail-summary", selectedEntry.metadata.summary),
+        );
+      } else {
+        const notice = createElement("div", "detail-metadata-missing");
+        notice.append(
+          createElement(
+            "strong",
+            undefined,
+            "Catalog metadata is not published for this version.",
+          ),
+          createElement(
+            "span",
+            undefined,
+            "Summary, license, and source repository fields are absent because this entry has metadata: null.",
+          ),
+        );
+        detailView.append(notice);
+      }
+
+      // Install command box
+      const installSection = createElement("section", "detail-panel");
+      installSection.append(createElement("h3", undefined, "Install"));
+
+      const commandString = buildInstallCommand(
+        pkg.name,
+        selectedEntry.version,
+        selectedEntry.version === pkg.latestVersion,
+      );
+      const commandRow = createElement("div", "command-box");
+      const commandPre = createElement("pre");
+      commandPre.append(createElement("code", undefined, commandString));
+      const copyCommandButton = createElement(
+        "button",
+        "catalog-button-secondary",
+        "Copy",
+      );
+      copyCommandButton.type = "button";
+      copyCommandButton.setAttribute("aria-label", "Copy install command");
+      copyCommandButton.addEventListener("click", () =>
+        copyText(commandString, copyCommandButton),
+      );
+      commandRow.append(commandPre, copyCommandButton);
+
+      const installNote = createElement(
+        "p",
+        "detail-note",
+        "Run in the Xila shell as root. Seeded images configure the official xila repository; on an unconfigured disk, run package repository add xila https://registry.xila.dev first.",
+      );
+      installSection.append(commandRow, installNote);
+      detailView.append(installSection);
+
+      // Metadata grid
+      const detailsSection = createElement("section", "detail-panel");
+      detailsSection.append(createElement("h3", undefined, "Package details"));
+
+      const specGrid = createElement("dl", "detail-spec-grid");
+      const addSpec = (label: string, content: Node | string) => {
+        const row = createElement("div", "detail-spec-row");
+        row.append(createElement("dt", undefined, label));
+        const dd = createElement("dd");
+        if (typeof content === "string") {
+          dd.textContent = content;
+        } else {
+          dd.append(content);
+        }
+        row.append(dd);
+        specGrid.append(row);
+      };
+
+      const createExternalLink = (href: string, text: string) => {
+        const link = createElement("a", "detail-external-link", text);
+        link.href = href;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        return link;
+      };
+
+      addSpec("Publisher", selectedEntry.publisher);
+      addSpec("Target", selectedEntry.target);
+      addSpec("Compatibility", compatibilityLabel(selectedEntry));
+      addSpec("Size", formatBytes(selectedEntry.archive.size));
+      addSpec("License", selectedEntry.metadata?.license ?? "Not provided");
+      addSpec(
+        "Source",
+        selectedEntry.metadata?.source
+          ? createExternalLink(
+              selectedEntry.metadata.source,
+              selectedEntry.metadata.source,
+            )
+          : "Not provided",
+      );
+      if (selectedEntry.metadata?.homepage) {
+        addSpec(
+          "Homepage",
+          createExternalLink(
+            selectedEntry.metadata.homepage,
+            selectedEntry.metadata.homepage,
+          ),
+        );
+      }
+
+      if (selectedEntry.capabilities.length > 0) {
+        const capList = createElement("ul", "capability-list");
+        for (const cap of selectedEntry.capabilities) {
+          capList.append(createElement("li", "capability-chip", cap));
+        }
+        addSpec("Capabilities", capList);
+      } else {
+        addSpec("Capabilities", "None requested");
+      }
+
+      addSpec(
+        "Archive",
+        createExternalLink(
+          selectedEntry.archive.url,
+          selectedEntry.archive.url,
+        ),
+      );
+
+      const shaWrap = createElement("div", "sha-wrap");
+      shaWrap.append(
+        createElement("code", "sha-code", selectedEntry.archive.sha256),
+      );
+      const copyShaButton = createElement(
+        "button",
+        "catalog-button-ghost",
+        "Copy SHA-256",
+      );
+      copyShaButton.type = "button";
+      copyShaButton.addEventListener("click", () =>
+        copyText(selectedEntry.archive.sha256, copyShaButton),
+      );
+      shaWrap.append(copyShaButton);
+      addSpec("SHA-256", shaWrap);
+
+      detailsSection.append(specGrid);
+      detailView.append(detailsSection);
+
+      // Versions section (latest first)
+      const versionsSection = createElement("section", "detail-panel");
+      versionsSection.append(createElement("h3", undefined, "Versions"));
+
+      const versionList = createElement("div", "version-list");
+      for (const entry of pkg.versions) {
+        const active =
+          entry.version === selectedEntry.version &&
+          entry.target === selectedEntry.target;
+        const versionItem = createElement(
+          "button",
+          active ? "version-item is-active" : "version-item",
+        );
+        versionItem.type = "button";
+        versionItem.setAttribute("aria-pressed", String(active));
+
+        const versionLabel = createElement(
+          "span",
+          "version-number",
+          `v${entry.version}`,
+        );
+        const versionMeta = createElement(
+          "span",
+          "version-meta",
+          `${entry.target} · ${compatibilityLabel(entry)} · ${formatBytes(entry.archive.size)}`,
+        );
+        versionItem.append(versionLabel, versionMeta);
+        versionItem.addEventListener("click", () => {
+          navigateTo(
+            pkg.name,
+            entry.version,
+            entry.version === pkg.latestVersion &&
+              entry.target === pkg.latest.target,
+          );
+        });
+        versionList.append(versionItem);
+      }
+      versionsSection.append(versionList);
+      detailView.append(versionsSection);
+
+      if (isLatest && pkg.versions.length > 1) {
+        // Keep history URL canonical without redundant version param on latest.
+        const canonical = buildCatalogUrl(
+          window.location.pathname,
+          pkg.name,
+          selectedEntry.version,
+          true,
+        );
+        if (window.location.pathname + window.location.search !== canonical) {
+          window.history.replaceState(selectedState, "", canonical);
+        }
+      }
+    };
+
+    const render = () => {
+      if (!catalog) return;
+      if (selectedState.packageName) {
+        listView.hidden = true;
+        detailView.hidden = false;
+        renderDetail(selectedState.packageName, selectedState.version);
+      } else {
+        detailView.hidden = true;
+        listView.hidden = false;
+        renderList();
+      }
+    };
+
+    const loadCatalog = async () => {
+      activeController?.abort();
+      activeController = new AbortController();
+
+      loadingState.hidden = false;
+      errorState.hidden = true;
+      emptyState.hidden = true;
+      grid.hidden = true;
+      detailView.hidden = true;
+      listView.hidden = false;
+      statusText.textContent = "Loading registry index…";
+
+      try {
+        catalog = await fetchRegistryCatalog({
+          baseUrl: DEFAULT_REGISTRY_URL,
+          signal: activeController.signal,
+        });
+
+        const targets = [
+          ...new Set(catalog.entries.map((entry) => entry.target)),
+        ].sort((a, b) => a.localeCompare(b, "en"));
+        const publishers = [
+          ...new Set(catalog.entries.map((entry) => entry.publisher)),
+        ].sort((a, b) => a.localeCompare(b, "en"));
+
+        populateSelect(targetSelect, targets, "All targets");
+        populateSelect(publisherSelect, publishers, "All publishers");
+
+        loadingState.hidden = true;
+        render();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        loadingState.hidden = true;
+        errorState.hidden = false;
+        statusText.textContent = "Failed to load registry.";
+        errorMessage.textContent =
+          error instanceof Error ? error.message : String(error);
+      }
+    };
+
+    const clearFilters = () => {
+      queryInput.value = "";
+      targetSelect.value = "";
+      publisherSelect.value = "";
+      renderList();
+    };
+
+    queryInput.addEventListener("input", renderList);
+    targetSelect.addEventListener("change", renderList);
+    publisherSelect.addEventListener("change", renderList);
+    clearFiltersButton.addEventListener("click", clearFilters);
+    emptyClearButton.addEventListener("click", clearFilters);
+    retryButton.addEventListener("click", loadCatalog);
+
+    window.addEventListener("popstate", () => {
+      selectedState = readCatalogUrlState(
+        window.location.search,
+        window.location.hash,
+      );
+      render();
+    });
+
+    loadCatalog();
+  }
+</script>
+
+<style>
+  .package-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    font-family: var(--sl-font);
+    color: var(--foreground);
+  }
+
+  .catalog-intro {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  .catalog-intro a {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .catalog-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .catalog-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 44rem) {
+    .catalog-controls {
+      grid-template-columns: minmax(0, 2fr) minmax(10rem, 1fr) minmax(
+          10rem,
+          1fr
+        );
+    }
+  }
+
+  .control-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  .control-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .search-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    color: var(--muted-foreground);
+    pointer-events: none;
+  }
+
+  .package-catalog input[type="search"],
+  .package-catalog select {
+    width: 100%;
+    min-width: 0;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--background);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.875rem;
+  }
+
+  .package-catalog input[type="search"] {
+    padding-inline-start: 2.25rem;
+  }
+
+  .package-catalog input[type="search"]::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .package-catalog select option {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .package-catalog :is(input, select, button, a):focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  .catalog-status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .catalog-count {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+
+  .catalog-button-primary,
+  .catalog-button-secondary,
+  .catalog-button-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 2.125rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: calc(var(--radius) - 2px);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+  }
+
+  .catalog-button-primary {
+    border: 1px solid var(--primary);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .catalog-button-secondary {
+    border: 1px solid var(--border);
+    background-color: var(--muted);
+    color: var(--foreground);
+  }
+
+  .catalog-button-secondary:hover {
+    background-color: var(--accent);
+    border-color: var(--muted-foreground);
+  }
+
+  .catalog-button-ghost {
+    border: 1px solid var(--border);
+    background-color: transparent;
+    color: var(--muted-foreground);
+  }
+
+  .catalog-button-ghost:hover {
+    color: var(--foreground);
+    border-color: var(--muted-foreground);
+  }
+
+  .catalog-loading,
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 44rem) {
+    .catalog-loading,
+    .catalog-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .skeleton-card {
+    height: 11.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--muted);
+    opacity: 0.55;
+    animation: catalog-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes catalog-pulse {
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-card {
+      animation: none;
+    }
+  }
+
+  .catalog-alert {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--sl-color-red);
+    border-radius: var(--radius);
+    background-color: var(--sl-color-red-low);
+    color: var(--sl-color-red-high);
+  }
+
+  .alert-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .alert-copy p {
+    margin: 0;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+  }
+
+  .catalog-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 2rem 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    color: var(--muted-foreground);
+  }
+
+  .catalog-empty p {
+    margin: 0;
+  }
+
+  .package-catalog :global(.package-card) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    min-width: 0;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+    color: var(--card-foreground);
+    transition: border-color 0.15s;
+  }
+
+  .package-catalog :global(.package-card:hover) {
+    border-color: var(--muted-foreground);
+  }
+
+  .package-catalog :global(.package-card-header) {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .package-catalog :global(.package-card-titles) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .package-catalog :global(.package-card-title) {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--foreground);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.package-card-title:hover) {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .package-catalog :global(.package-id) {
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.package-badge) {
+    flex-shrink: 0;
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 4px);
+    background-color: var(--muted);
+    color: var(--foreground);
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .package-catalog :global(.package-summary) {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+
+  .package-catalog :global(.package-summary.is-missing) {
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  .package-catalog :global(.package-meta-list) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem 0.75rem;
+    margin: 0;
+  }
+
+  .package-catalog :global(.package-meta-item) {
+    min-width: 0;
+  }
+
+  .package-catalog :global(.package-meta-item dt) {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .package-catalog :global(.package-meta-item dd) {
+    margin: 0.125rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.package-card-footer) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.625rem;
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .package-catalog :global(.package-card-command) {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 4px);
+    background-color: var(--code-background);
+    color: var(--foreground);
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .package-catalog :global(.package-card-action) {
+    flex-shrink: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    text-decoration: none;
+  }
+
+  .package-catalog :global(.package-card-action:hover) {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* Detail view */
+  .catalog-detail-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+  }
+
+  .package-catalog :global(.detail-back-link) {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-decoration: none;
+  }
+
+  .package-catalog :global(.detail-back-link:hover) {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .package-catalog :global(.detail-header) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+  }
+
+  .package-catalog :global(.detail-title-wrap) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .package-catalog :global(.detail-title) {
+    margin: 0;
+    font-size: 1.625rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.detail-summary) {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--foreground);
+  }
+
+  .package-catalog :global(.detail-metadata-missing) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
+  .package-catalog :global(.detail-metadata-missing strong) {
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .package-catalog :global(.detail-panel) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    min-width: 0;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--card);
+  }
+
+  .package-catalog :global(.detail-panel h3) {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .package-catalog :global(.command-box) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--code-background);
+  }
+
+  .package-catalog :global(.command-box pre) {
+    flex: 1 1 14rem;
+    min-width: 0;
+    margin: 0;
+    overflow-x: auto;
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--foreground);
+  }
+
+  .package-catalog :global(.detail-note) {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+
+  .package-catalog :global(.detail-spec-grid) {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .package-catalog :global(.detail-spec-row) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+    padding-block: 0.625rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .package-catalog :global(.detail-spec-row:first-child) {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .package-catalog :global(.detail-spec-row:last-child) {
+    padding-bottom: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .package-catalog :global(.detail-spec-row) {
+      grid-template-columns: 10rem minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+  }
+
+  .package-catalog :global(.detail-spec-row dt) {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .package-catalog :global(.detail-spec-row dd) {
+    margin: 0;
+    min-width: 0;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.detail-external-link) {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    overflow-wrap: anywhere;
+  }
+
+  .package-catalog :global(.capability-list) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .package-catalog :global(.capability-chip) {
+    padding: 0.125rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 4px);
+    background-color: var(--muted);
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+  }
+
+  .package-catalog :global(.sha-wrap) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .package-catalog :global(.sha-code) {
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.75rem;
+    word-break: break-all;
+    color: var(--foreground);
+  }
+
+  .package-catalog :global(.version-list) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .package-catalog :global(.version-item) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background-color: var(--background);
+    color: var(--foreground);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+  }
+
+  .package-catalog :global(.version-item:hover) {
+    background-color: var(--muted);
+    border-color: var(--muted-foreground);
+  }
+
+  .package-catalog :global(.version-item.is-active) {
+    background-color: var(--muted);
+    border-color: var(--foreground);
+  }
+
+  .package-catalog :global(.version-number) {
+    font-family: var(--sl-font-mono, ui-monospace, monospace);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .package-catalog :global(.version-meta) {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>
