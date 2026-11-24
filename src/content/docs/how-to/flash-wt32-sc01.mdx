@@ -199,7 +199,11 @@ The Plus sends the console through its built-in USB Serial/JTAG controller. The 
 2. Reset the board and wait for the `User name:` prompt. Do not type before the prompt shows: the console garbles the input that it receives during the boot, and the login fails.
 3. Enter `administrator` as the user name. Press `Enter` at the `Password:` prompt, because the password of the default account is empty.
 
-The command-line shell starts. A board with a screen also shows the bootsplash and the graphical login. Enter the same user name there and leave the password empty. If the storage holds a seeded image, the Terminal application on the screen opens the same command-line shell.
+The command-line shell starts. A board with a screen also shows the bootsplash and the graphical login. Enter the same user name there and leave the password empty. If the storage holds a seeded image, the Terminal application on the screen opens a command-line shell.
+
+:::note
+The `administrator` account cannot write to `/configuration/system`. Only root and the members of its group can. The `sudo` command runs external commands only, not commands of the shell such as `echo`. For a root task, such as the microSD format request of the Plus, first start a root shell with `sudo command_line_shell`. See the microSD section of the <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/README.md">WT32-SC01 Plus README</CodeReference>.
+:::
 
 ## Verify the result
 
