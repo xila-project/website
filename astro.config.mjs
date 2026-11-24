@@ -2,6 +2,7 @@ import { remarkApiLinks } from "./scripts/remark-api-links.mjs";
 import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
 import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
 import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
+import { getPagefindOptions, xilaSearch } from "./scripts/search-index.mjs";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
@@ -267,6 +268,9 @@ export default defineConfig({
         "./src/styles/diagrams.css",
       ],
       lastUpdated: true,
+      // scripts/search-index.mjs writes the search index of the API items;
+      // the search merges it with the index of the pages.
+      pagefind: getPagefindOptions(),
       // Plain code frames: shell blocks get no terminal title bar.
       expressiveCode: { defaultProps: { frame: "code" } },
       social: [
@@ -313,5 +317,6 @@ export default defineConfig({
         SiteTitle: "./src/components/SiteTitle.astro",
       },
     }),
+    xilaSearch(),
   ],
 });
