@@ -24,7 +24,7 @@ description: "One sentence, under 160 characters, naming the concept and why it 
 
 ## API reference
 
-<!-- 2-6 bullet links to the crate and its key items in Rustdoc (HostReference or GuestReference), or to source (CodeReference) when there is no Rustdoc. -->
+<!-- 2-6 bullet links to the crate and its key items in Rustdoc (`rust:` links or the `Api` component), or to source (CodeReference) when there is no Rustdoc. -->
 
 ## Related
 

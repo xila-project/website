@@ -15,7 +15,7 @@ Cargo features:    | Feature | Default | Effect |
 Control commands:  | Command | Input | Output | Description |
 Devices and paths: | Path | Kind | Driver | Description |
 Crates:            | Crate | Package | Description |
-Link item names to Rustdoc with HostReference or GuestReference instead of copying signatures. -->
+Link item names to Rustdoc with `rust:` links or the `Api` component instead of copying signatures. -->
 
 ## Limits
 
