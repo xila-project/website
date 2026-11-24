@@ -12,7 +12,7 @@ The headless runtime runs a Xila shell or a virtual file system (VFS) executable
 
 The Platforms [runtime workflow](https://github.com/xila-project/platforms/actions/workflows/runtime.yml) builds the image from `Dockerfile.runtime`, smoke-tests it, and publishes it to `ghcr.io/xila-project/xila-runtime` on eligible pushes. The `latest` tag follows the default branch. Releases receive matching `v*` tags. Published builds receive a commit SHA tag.
 
-The image runs as UID/GID **10001**. It keeps its mutable disk in `/var/lib/xila` and an immutable reference image at `/usr/share/xila/base.img`. Its entrypoint is `/usr/bin/xila-runtime`. Its default command is **`shell --network=none`**. The container supports **linux/amd64** only, not embedded hardware.
+The image runs as UID/GID **10001**. It keeps its mutable disk in `/var/lib/xila` and an immutable reference image at `/usr/share/xila/base.img`. Its entrypoint is `/usr/bin/xila-runtime`. Its default command is **`shell --network=none`**. The container currently supports **linux/amd64** only, not embedded hardware.
 
 ## Command syntax
 
@@ -36,15 +36,15 @@ Both modes accept these options:
 - `--disk PATH` selects the mutable LittleFS disk. The default is `/var/lib/xila/drive.img`.
 - `--seed PATH` selects the seed image. Xila uses it **only when no disk exists**. The default is `/usr/share/xila/base.img`.
 - `--network=none` is the **only** accepted Xila network mode. Docker's separate `--network none` disables container networking.
-- `--mount host=...,xila=...,ro|rw` exposes a selected **host directory** to Xila's VFS. The optional `uid`, `gid`, `file_mode`, and `directory_mode` settings control ownership and permissions.
+- `--mount host=...,xila=...,ro|rw` exposes a selected **runtime-host directory** to Xila's VFS. The optional `uid`, `gid`, `file_mode`, and `directory_mode` settings control ownership and permissions.
 - `--env KEY=VALUE` adds a guest environment setting. Repeat the option for multiple settings.
 - `--help` and `--version` print command-line interface information.
 
 ## Isolation and durability
 
-Mount host directories into Docker first, then expose them separately through Xila's `--mount`. A Docker bind mount alone gives no Xila VFS access. The image does not pass ambient host environment variables to guests. Use read-only mounts unless writes are necessary.
+Mount host directories into Docker first, then expose them separately through Xila's `--mount`. A Docker bind mount alone gives no Xila VFS access. The runtime does not pass ambient host environment variables to guests. Use read-only mounts unless writes are necessary.
 
-A writable volume at `/var/lib/xila` retains the LittleFS disk across container runs. A newer seed **never overwrites** an existing disk. SIGINT and SIGTERM flush and unmount the disk before exiting. Abrupt termination may lose recent writes. The image is non-root. It supports a read-only container root filesystem with writable state and a temporary `/tmp`.
+A writable volume at `/var/lib/xila` retains the LittleFS disk across container runs. A newer seed **never overwrites** an existing disk. On SIGINT and SIGTERM, the runtime tries to flush and unmount the disk before exiting. Abrupt termination may lose recent writes. The image is non-root. It supports a read-only container root filesystem with writable state and a temporary `/tmp`.
 
 This runner does not start a graphics or network manager. The graphical headless driver and its debug transport are separate from this executable. Guests are limited to the WASI API subset that Xila implements.
 

@@ -59,7 +59,7 @@ During boot, the target platform registers its backend by calling <HostReference
 ## Limits
 
 - The logging backend can be initialized only once. Later calls to `log::initialize` fail.
-- The default handler formats log messages with ANSI escape sequences. Strip them when redirecting output to raw binary storage.
+- The default handler formats log messages with ANSI escape sequences. You may need to strip them when redirecting output to raw binary storage.
 
 ## API reference
 

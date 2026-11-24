@@ -56,7 +56,7 @@ When a command line does not match an internal built-in, the shell resolves an e
 
 1. **Path contains `/`**: a command with any forward slash is a path. Absolute paths (`/applications/executables/...`) execute directly. The shell resolves relative paths against the task's `Current_directory` environment variable.
 2. **Path contains no `/`**: the shell reads the colon-separated directory list in the `Paths` environment variable (for example, `/applications/executables`). It scans each directory in order and executes the first matching executable file.
-3. **Execution dispatch**: the shell passes the resolved path to <HostReference crate="executable" kind="fn" symbol="execute" />. The function verifies permissions and spawns the target task. If no command matches, the shell exits with status 127.
+3. **Execution dispatch**: the shell passes the resolved path to <HostReference crate="executable" kind="fn" symbol="execute" />. The function verifies permissions and spawns the target task. If no command matches, the command fails with exit status 127.
 
 ## Built-in commands
 

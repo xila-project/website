@@ -54,7 +54,7 @@ Platform crates implement `ManagerTrait` and instantiate the global allocator us
 
 ## Limits
 
-- The memory manager does not compact memory or collect garbage. The underlying platform allocator manages fragmented heaps.
+- The memory manager does not compact memory or collect garbage. The underlying platform allocator must manage fragmented heaps.
 - Microcontroller targets with bounded physical RAM return null when heap capacity is exhausted.
 
 ## API reference
