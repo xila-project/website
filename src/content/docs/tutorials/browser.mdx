@@ -6,20 +6,20 @@ description: "Open the hosted browser runtime at platforms.xila.dev, log in and 
 
 import DemoLanguages from "@/components/DemoLanguages.astro";
 
-In this tutorial, you run Xila in a web browser using the hosted demonstration at platforms.xila.dev. At the end, you have an active Xila desktop in your browser running the Calculator guest application.
+In this tutorial, you run Xila in a web browser with the hosted demonstration at platforms.xila.dev. A guest application is a WebAssembly program that runs inside Xila. At the end, you have an Xila desktop in your browser with the Calculator guest application open.
 
 ## Before you begin
 
-- A modern web browser supporting Origin Private File System (OPFS) and Web Locks (such as Chromium, Chrome, or Firefox).
+- A modern web browser that supports the Origin Private File System (OPFS) and the Web Locks API, for example Chromium, Chrome, or Firefox.
 - An internet connection to reach `https://platforms.xila.dev/`.
 
 ## Open the hosted demonstration
 
 1. In your web browser, navigate to the [Platforms hosted demonstration](https://platforms.xila.dev/). <DemoLanguages />
 
-The browser page loads the Xila runtime canvas and displays the login screen.
+The page loads the Xila runtime canvas and shows the login screen.
 
-2. If prompted by the disk manager in the help panel, create or select an OPFS disk image.
+2. If the disk manager in the help panel asks you to, create or select an OPFS disk image.
 
 ## Log in and launch Calculator
 
@@ -32,7 +32,7 @@ The browser page loads the Xila runtime canvas and displays the login screen.
 
 ## Check your result
 
-The browser canvas displays the Xila desktop. Calculator opens, responds to clicks, and evaluates arithmetic expressions. Changes are persisted to the selected OPFS disk.
+The browser canvas shows the Xila desktop. Calculator opens, responds to clicks, and evaluates arithmetic expressions. Xila saves changes to the selected OPFS disk.
 
 ## Next steps
 

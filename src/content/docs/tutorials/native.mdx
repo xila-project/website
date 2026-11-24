@@ -4,15 +4,15 @@ docType: tutorial
 description: "Create a reference disk image and run the native Xila desktop on Linux."
 ---
 
-In this tutorial, you create a reference disk image with the released WebAssembly (Wasm) applications and start the native runtime on desktop Linux. At the end, you have an interactive Xila desktop running on your display.
+In this tutorial, you create a reference disk image that contains the released WebAssembly (Wasm) applications, and you start the native runtime on desktop Linux. At the end, you have an interactive Xila desktop on your display.
 
 ## Before you begin
 
-- An x86_64 Linux system with an active Wayland or X11 session. The package step uses `apt`, so a Debian-based distribution such as Debian or Ubuntu is the simplest choice.
+- An x86_64 Linux system with an active Wayland or X11 session. The package step uses `apt`. A Debian-based distribution, for example Debian or Ubuntu, is the simplest choice.
 - [Git](https://git-scm.com/), to clone the Platforms repository.
-- [mise](https://mise.jdx.dev/), which installs the Rust toolchain and other tools each task needs.
+- [mise](https://mise.jdx.dev/), which installs the Rust toolchain and the other tools that each task needs.
 - [Node.js](https://nodejs.org/) and npm, for the font converter used by the graphics build.
-- A network connection: the disk image step downloads the released application packages.
+- A network connection. The disk image step downloads the released application packages.
 
 ## Prepare the Platforms repository
 
@@ -51,7 +51,7 @@ In this tutorial, you create a reference disk image with the released WebAssembl
    mise run image:native
    ```
 
-   The task downloads the released, signed application packages pinned in `tools/fs_image/profiles/bundles.lock.json`, then runs the `xila-fs-image` tool. When it finishes, the 16 MiB LittleFS image is at `target/seed/native/seed.img`.
+   The task downloads the released, signed application packages pinned in `tools/fs_image/profiles/bundles.lock.json`. The task then runs the `xila-fs-image` tool. When the task finishes, the 16 MiB LittleFS image is at `target/seed/native/seed.img`.
 
 ## Start the native runtime
 
@@ -61,7 +61,7 @@ In this tutorial, you create a reference disk image with the released WebAssembl
 cargo run -p xila-native-example --bin native_example -- --gui --no-network --seed-image target/seed/native/seed.img
 ```
 
-Cargo builds the runtime, then a window opens with the Xila login screen. On first start, the runtime imports the seed into a new live disk at `./drive.img`.
+Cargo builds the runtime. A window then opens with the Xila login screen. On first start, the runtime imports the seed into a new live disk at `./drive.img`.
 
 ## Log in and launch Calculator
 
@@ -74,9 +74,9 @@ Cargo builds the runtime, then a window opens with the Xila login screen. On fir
 
 ## Check your result
 
-The Xila desktop is running, Calculator launched and evaluated an expression, and the application closed cleanly. The terminal outputs log messages reporting task and device status.
+The Xila desktop is running. Calculator launched, evaluated an expression, and closed cleanly. The terminal prints log messages about task and device status.
 
-To stop the native runtime, close the window or press `Ctrl+C` in the terminal. Your changes stay in `./drive.img`. The next start reuses that disk and ignores the seed; to start from a clean installation, pass another path with `--disk-path`.
+To stop the native runtime, close the window or press `Ctrl+C` in the terminal. Your changes stay in `./drive.img`. The next start reuses that disk and ignores the seed. To start from a clean installation, pass a different path with `--disk-path`.
 
 ## Next steps
 

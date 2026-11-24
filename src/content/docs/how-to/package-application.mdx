@@ -11,7 +11,7 @@ This guide shows how to create a signed package with the desktop `xila-package` 
 ## Before you begin
 
 - Install the <CodeReference repo="package_manager" path="crates/builder">package manager tool</CodeReference> and prepare a compiled WebAssembly (Wasm) guest application.
-- Have a developer signing key: a raw 32-byte Ed25519 seed and its public key. Keep the seed outside the source directory.
+- A developer signing key: a raw 32-byte Ed25519 seed and its public key. Keep the seed outside the source directory.
 
 ## Steps
 
@@ -21,7 +21,7 @@ This guide shows how to create a signed package with the desktop `xila-package` 
    xila-package bundle init ./weather community.weather 1.0.0 wasm32-wasip1 1 --entrypoint executables/weather.wasm --display-name Weather --icon resources/icon.png
    ```
 
-2. Place the compiled guest at `weather/executables/weather.wasm` and its icon at `weather/resources/icon.png`. Review `weather/xila-package.json`.
+2. Place the compiled guest at `weather/executables/weather.wasm` and its icon at `weather/resources/icon.png`. Then review `weather/xila-package.json`.
 3. In the same host shell, build and sign the bundle:
 
    ```sh
