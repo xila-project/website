@@ -1,6 +1,6 @@
 ---
 title: "About Xila"
-description: "Project information, source repositories, community channels, and open-source licenses."
+description: "Find the Xila source repositories, community channels, and open-source licenses."
 ---
 
 Xila is an open-source operating system written in Rust for embedded systems, desktop Linux, and web browsers.

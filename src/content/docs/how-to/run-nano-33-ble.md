@@ -11,10 +11,10 @@ This guide shows how to compile Xila for the Arduino Nano 33 BLE, flash the firm
 - An Arduino Nano 33 BLE board (Nordic Semiconductor nRF52840 SoC, 1 MiB internal flash, 256 KiB RAM) and a micro-USB cable.
 - An x86_64 Linux development system with [mise](https://mise.jdx.dev/) and Git.
 - Flashing tools: the Arduino fork of `bossac` (version 1.9.1-arduino2, supplied automatically by mise) and an ARM-compatible binary copy utility (`rust-objcopy`, `llvm-objcopy`, or `arm-none-eabi-objcopy`).
-- Host serial permissions: write access to `/dev/ttyACM*` (such as membership in the `dialout` or `uucp` group on Linux).
+- Host serial permissions: write access to `/dev/ttyACM*` (for example membership in the `dialout` or `uucp` group on Linux).
 
 :::caution
-Flashing writes only to the firmware flash region (`0x10000`–`0x80000`) and preserves the file system. Erasing the storage flash pages (`0x80000`–`0x100000`) permanently deletes all saved user accounts, configurations, and data.
+Flashing writes only to the firmware flash region (`0x10000`-`0x80000`) and preserves the file system. Erasing the storage flash pages (`0x80000`-`0x100000`) permanently deletes all saved user accounts, configurations, and data.
 :::
 
 ## Steps
@@ -25,11 +25,11 @@ The board partitions the 1 MiB internal flash and 256 KiB RAM into fixed regions
 
 | Region      | Flash address range | Size    | Description                                        |
 | ----------- | ------------------- | ------- | -------------------------------------------------- |
-| Bootloader  | `0x00000`–`0x0FFFF` | 64 KiB  | Arduino USB bootloader (never overwritten by Xila) |
-| Firmware    | `0x10000`–`0x7FFFF` | 448 KiB | Xila embedded runtime binary                       |
-| File system | `0x80000`–`0xFFFFF` | 512 KiB | LittleFS root file system (4 KiB page size)        |
+| Bootloader  | `0x00000`-`0x0FFFF` | 64 KiB  | Arduino USB bootloader (never overwritten by Xila) |
+| Firmware    | `0x10000`-`0x7FFFF` | 448 KiB | Xila embedded runtime binary                       |
+| File system | `0x80000`-`0xFFFFF` | 512 KiB | LittleFS root file system (4 KiB page size)        |
 
-RAM is organized from `0x20000000` into static data, the dynamic heap, a 32 KiB stack, and a dedicated 256-byte uninitialized crash record at the top of memory (`0x2003FF00`–`0x2003FFFF`).
+RAM is organized from `0x20000000` into static data, the dynamic heap, a 32 KiB stack, and a dedicated 256-byte uninitialized crash record at the top of memory (`0x2003FF00`-`0x2003FFFF`).
 
 ### Build the firmware
 
@@ -39,7 +39,7 @@ RAM is organized from `0x20000000` into static data, the dynamic heap, a 32 KiB 
 mise run build:nano-33-ble
 ```
 
-Cargo compiles `xila-nano-33-ble-example` for the `thumbv7em-none-eabihf` target with the `release-embedded` profile. The generated ELF binary is located at `target/thumbv7em-none-eabihf/release-embedded/nano_33_ble_example`.
+Cargo compiles `xila-nano-33-ble-example` for the `thumbv7em-none-eabihf` target with the `release-embedded` profile. The generated ELF binary is at `target/thumbv7em-none-eabihf/release-embedded/nano_33_ble_example`.
 
 Optional: To compile with the `bring-up` feature (which waits for a host terminal before running and automatically resets into the bootloader if no host connects within 60 seconds):
 
@@ -76,7 +76,7 @@ picocom /dev/ttyACM0
 
 Because the connection uses native USB CDC-ACM emulation, the host baud rate setting does not affect transmission speed.
 
-2. On first startup, the firmware detects an unformatted flash region, formats the LittleFS file system, and seeds default accounts. The log shows the board banner and a file system line; the heap numbers depend on the build:
+2. On first startup, the firmware detects an unformatted flash region, formats the LittleFS file system, and seeds default accounts. The log shows the board banner and a file system line. The heap numbers depend on the build:
 
 ```text
 Xila on Arduino Nano 33 BLE
@@ -166,7 +166,7 @@ The recovery mechanisms operate as follows:
 | Serial device `/dev/ttyACM0` does not appear | Firmware halted or USB disconnected       | Double-tap the physical reset button to force the Arduino bootloader mode (`2341:005a` in `lsusb`).                                     |
 | Flashing fails with missing objcopy          | ARM binary utilities not installed        | Install `cargo-binutils` (for `rust-objcopy`) or LLVM, as the error message from `flash.sh` says.                                       |
 | Board continuously resets                    | Panic loop during startup                 | Connect a serial terminal to read the panic message logged on boot. After three consecutive crashes, the board halts in the bootloader. |
-| LittleFS fails to mount                      | Flash corruption in the storage partition | Erase the storage partition (`0x80000`–`0x100000`) through the bootloader or reflash with a full chip erase.                            |
+| LittleFS fails to mount                      | Flash corruption in the storage partition | Erase the storage partition (`0x80000`-`0x100000`) through the bootloader or reflash with a full chip erase.                            |
 
 ## Related
 

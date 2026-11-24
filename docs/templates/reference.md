@@ -4,7 +4,7 @@ docType: reference
 description: "One sentence, under 160 characters, naming the exact interface or facts covered."
 ---
 
-<!-- Intro, 1–2 sentences: what the page covers and its source of truth (repository, crate, CodeReference to the file, Rustdoc entry point). Describe; do not instruct. -->
+<!-- Intro, 1-2 sentences: what the page covers and its source of truth (repository, crate, CodeReference to the file, Rustdoc entry point). Describe; do not instruct. -->
 
 ## Group of items
 

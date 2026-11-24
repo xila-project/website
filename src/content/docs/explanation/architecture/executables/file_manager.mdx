@@ -7,24 +7,24 @@ description: "Graphical virtual file system browser with directory navigation co
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The File manager executable (<HostReference repo="applications" crate="file_manager" />) provides a graphical directory browser for Xila. It allows users to inspect the hierarchy of the virtual file system (VFS), traverse directories, and navigate to arbitrary paths using a dedicated toolbar and interactive file list.
+The File manager executable (<HostReference repo="applications" crate="file_manager" />) is a graphical directory browser for Xila. It shows the hierarchy of the virtual file system (VFS). Users can traverse directories and open arbitrary paths with a toolbar and an interactive file list.
 
 ## Context
 
-While developers and administrators frequently navigate the file system using the command-line shell, users in graphical desktop environments benefit from visual exploration of storage volumes, user directories, and system paths.
+Developers and administrators often navigate the file system with the command-line shell. In graphical desktop environments, users explore storage volumes, user directories, and system paths visually.
 
-File manager satisfies this role:
+File manager fills this role:
 
 - It provides an interactive graphical interface backed directly by the VFS.
-- It displays files, directories, character devices, and block devices with visual type distinctions.
-- It supports standard navigation actions including parent directory traversal, home directory shortcuts, and direct path entry.
-- It integrates seamlessly with the graphical desktop through a launcher shortcut seeded by Platforms.
+- It displays files, directories, character devices, and block devices and marks each type visually.
+- It supports parent directory traversal, a home directory shortcut, and direct path entry.
+- Platforms seeds a launcher shortcut for it, so the graphical desktop shows it in the application drawer.
 
 ## How it works
 
 ### Interface layout and components
 
-The following diagram illustrates the component hierarchy of the File manager window.
+The following diagram shows the components of the File manager window.
 
 ```mermaid
 flowchart TD
@@ -42,43 +42,43 @@ flowchart TD
     List --> Files["File entries (LV_SYMBOL_FILE)"]
 ```
 
-When started, File manager creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Fm" (Cyan hue) and arranges its contents using a vertical flex layout:
+When started, File manager creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Fm" (Cyan hue). It arranges the contents in a vertical flex layout:
 
 1. **Toolbar**: A horizontal bar containing navigation controls:
-   - **Up button** (`LV_SYMBOL_UP`): Navigates to the parent directory of the current path. Disabled at the file system root (`/`).
-   - **Home button** (`LV_SYMBOL_HOME`): Navigates directly to the user's home directory, resolved from the `HOME` environment variable or constructed as `/home/<username>`.
-   - **Refresh button** (`LV_SYMBOL_REFRESH`): Re-reads and re-renders the current directory contents from the VFS.
-   - **Path field** (`lv_textarea`): Displays the current path as text and accepts manual keyboard input. Pressing Enter navigates to the entered path.
-   - **Go button** (`LV_SYMBOL_RIGHT`): Confirms and navigates to the path entered in the path field.
-2. **Status line**: A dedicated label positioned beneath the toolbar that surfaces error diagnostics, such as failed directory reads or invalid target paths.
-3. **File list**: A scrollable vertical container listing all entries contained in the active directory.
+   - **Up button** (`LV_SYMBOL_UP`): Opens the parent directory of the current path. Disabled at the file system root (`/`).
+   - **Home button** (`LV_SYMBOL_HOME`): Opens the user's home directory. The path comes from the `HOME` environment variable or is built as `/home/<username>`.
+   - **Refresh button** (`LV_SYMBOL_REFRESH`): Re-reads the current directory from the VFS and updates the list.
+   - **Path field** (`lv_textarea`): Shows the current path and accepts keyboard input. Pressing Enter opens the entered path.
+   - **Go button** (`LV_SYMBOL_RIGHT`): Opens the path entered in the path field.
+2. **Status line**: A label below the toolbar that shows errors such as failed directory reads or invalid paths.
+3. **File list**: A scrollable vertical list of the entries in the active directory.
 
 ### Directory reading and traversal
 
 When navigating to a new path:
 
-1. File manager checks that the path is absolute or joins it against the current path using <HostReference crate="file_system" kind="struct" symbol="PathOwned" />.
+1. File manager checks that the path is absolute. Otherwise it joins the path against the current path using <HostReference crate="file_system" kind="struct" symbol="PathOwned" />.
 2. It opens the directory through the VFS using <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />.
 3. It iterates over directory entries, collecting file names, entry kinds (file, directory, device, pipe, or link), and file sizes.
-4. It sorts the entries deterministically: directories appear first, followed by other entries, sorted alphabetically in a case-insensitive order.
-5. It clears existing widget buttons and creates new list buttons styled according to entry kind:
-   - Directories display the `LV_SYMBOL_DIRECTORY` prefix. Clicking a directory button navigates into that directory.
-   - Regular files and other nodes display the `LV_SYMBOL_FILE` prefix.
+4. It sorts the entries: directories first, then the other entries, alphabetically, ignoring case.
+5. It clears the old list buttons and creates new buttons for each entry, styled by entry kind:
+   - Directories show the `LV_SYMBOL_DIRECTORY` prefix. Clicking a directory opens it.
+   - Regular files and other nodes show the `LV_SYMBOL_FILE` prefix.
 
 ### Desktop integration
 
-File manager does not register its own shortcut file at runtime. Instead, Platforms seeds its launcher shortcut at `/configuration/shared/applications/shortcuts/file_manager.json` (<CodeReference repo="platforms" path="tools/fs_image/shortcuts/file_manager.json" />), allowing the graphical shell to discover and present it in the launcher drawer.
+File manager does not create its own shortcut file at runtime. Platforms seeds the launcher shortcut at `/configuration/shared/applications/shortcuts/file_manager.json` (<CodeReference repo="platforms" path="tools/fs_image/shortcuts/file_manager.json" />). The graphical shell then shows it in the application drawer.
 
 ## Design choices and trade-offs
 
-- **Directories-first sorting**: Presenting subdirectories ahead of regular files ensures consistent, predictable navigation across both small and large storage trees.
-- **Edge-to-edge layout**: Removing outer padding from the window, toolbar, and list maximizes visible entries on constrained embedded displays.
-- **Direct VFS queries**: The manager reads directory entries directly without maintaining a persistent file cache, ensuring that modifications made concurrently by background tasks are immediately visible upon refresh.
+- **Directories-first sorting**: Showing subdirectories before files makes navigation consistent across storage trees of any size.
+- **Edge-to-edge layout**: Removing the outer padding of the window, toolbar, and list shows more entries on small embedded displays.
+- **Direct VFS queries**: The manager reads directory entries without a persistent file cache. Changes made by background tasks are visible after a refresh.
 
 ## Limits
 
-- **Read-only navigation**: File manager browses and inspects directories; it does not currently create, rename, move, or delete files or directories from the user interface.
-- **No file opening or execution**: Clicking regular files does not launch associated viewer applications or execute binaries; file launching is handled through the shell or launcher drawer.
+- **Read-only navigation**: File manager only browses and inspects directories. It does not currently create, rename, move, or delete files or directories from the user interface.
+- **No file opening or execution**: Clicking a regular file does not open it in a viewer application and does not run it. File launching is handled through the shell or the launcher drawer.
 
 ## API reference
 

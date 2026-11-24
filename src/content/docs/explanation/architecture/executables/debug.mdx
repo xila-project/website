@@ -7,24 +7,24 @@ description: "Host diagnostics service providing bounded task inspection, memory
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Debug executable (<HostReference repo="applications" crate="debug_application">Debug executable</HostReference>) provides a host-side diagnostics and automation service for Xila. It exposes task inspection, allocator heap metrics, screen capture, user interface tree introspection, and synthetic pointer and keyboard input injection over a character-device transport.
+The Debug executable (<HostReference repo="applications" crate="debug_application">Debug executable</HostReference>) is a diagnostics and automation service on the host side of Xila. It provides task inspection, heap metrics, screen capture, user interface tree introspection, and synthetic pointer and keyboard input. It communicates over a character device.
 
 ## Context
 
-Automated testing, continuous integration, and remote diagnosis on embedded devices require inspecting internal operating system state without attaching hardware debug probes. Furthermore, end-to-end integration tests must simulate realistic user interactions—such as clicking buttons, entering text, and verifying rendered screens—without perturbing production code.
+Automated tests, continuous integration, and remote diagnosis on embedded devices need access to internal operating system state without hardware debug probes. End-to-end tests must also simulate realistic user interactions, such as clicking buttons, entering text, and verifying rendered screens, without changing production code.
 
-Debug addresses these needs:
+Debug provides:
 
-- It provides an extensible JSON command protocol defined by <HostReference crate="debug_protocol" />.
-- It operates over a mounted character device at `/devices/graphics/debug/transport`.
-- It supports both interactive graphical operation and headless execution via the `--background` flag.
-- It enforces strict memory bounds on request payloads, response buffers, and task collection trees.
+- An extensible JSON command protocol defined by <HostReference crate="debug_protocol" />.
+- Operation over a mounted character device at `/devices/graphics/debug/transport`.
+- An interactive graphical mode and a headless mode with the `--background` flag.
+- Strict memory bounds on request payloads, response buffers, and task collection trees.
 
 ## How it works
 
 ### Service architecture and transport
 
-The following diagram illustrates how the Debug executable interacts with the transport character device and core kernel subsystems.
+The following diagram shows how the Debug executable interacts with the transport character device and the core subsystems.
 
 ```mermaid
 flowchart LR
@@ -38,42 +38,42 @@ flowchart LR
 
 When Debug launches:
 
-1. **Window initialization**: In foreground mode, it creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> displaying the status message `"Debug agent is ready. Use xila-debug from the host."`. Passing the `--background` flag omits window creation, running purely as a headless service.
-2. **Transport task**: Spawns an independent child task named `Debug agent transport` using <HostReference crate="task" kind="struct" symbol="Manager" />.
-3. **Endpoint connection**: The transport task opens the character device endpoint `/devices/graphics/debug/transport` using <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> with read/write access. The host platform or test harness is responsible for mounting this device node prior to invocation.
-4. **Lifecycle management**: Closing the foreground window signals the transport task to shut down, joins the task handle, and cleanly terminates the executable.
+1. **Window initialization**: In foreground mode, Debug creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> that displays the status message `"Debug agent is ready. Use xila-debug from the host."`. The `--background` flag skips window creation. Debug then runs as a headless service.
+2. **Transport task**: Spawns a child task named `Debug agent transport` with <HostReference crate="task" kind="struct" symbol="Manager" />.
+3. **Endpoint connection**: The transport task opens `/devices/graphics/debug/transport` with <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> for reading and writing. The host platform or test harness must mount this device node before Debug starts.
+4. **Lifecycle management**: Closing the foreground window tells the transport task to shut down. Debug joins the task handle and exits.
 
 ### Request and response framing
 
-Communication over the transport device uses newline-delimited JSON messages governed by strict size constraints:
+The transport device carries newline-delimited JSON messages with strict size limits:
 
-- **Request size**: The transport task reads at most 16,385 bytes (`MAX_REQUEST_BYTES + 1`), rejecting overlong requests.
-- **Response size**: Responses are serialized into JSON and capped at 65,536 bytes (`MAX_RESPONSE_BYTES`). If an introspection response exceeds this limit, the service returns an explicit `response_too_large` error rather than exhausting heap memory.
-- **Binary payloads**: For screenshot requests, the JSON metadata response is followed immediately by the raw uncompressed pixel byte stream.
+- **Request size**: The transport task reads at most 16,385 bytes (`MAX_REQUEST_BYTES + 1`). Longer requests are rejected.
+- **Response size**: Responses are JSON and capped at 65,536 bytes (`MAX_RESPONSE_BYTES`). If an introspection response exceeds this limit, the service returns a `response_too_large` error instead of exhausting heap memory.
+- **Binary payloads**: For screenshot requests, the JSON metadata is followed immediately by the raw uncompressed pixel bytes.
 
 ### Supported diagnostic operations
 
 The transport dispatches requests across several functional areas:
 
-- **Diagnostics (`diagnostics`)**: Collects a snapshot of active tasks (up to 64 unique tasks, capped to avoid cycles or unbounded recursion) and reports global allocator memory metrics: total bytes, used bytes, free bytes, and allocation page size.
+- **Diagnostics (`diagnostics`)**: Collects a snapshot of the active tasks. The snapshot contains at most 64 unique tasks, which avoids cycles and unbounded recursion. It also reports global allocator metrics: total bytes, used bytes, free bytes, and allocation page size.
 - **Capabilities (`capabilities`)**: Returns protocol version 2 and lists supported operations, scene layers, input acknowledgment modes, and resource limits.
-- **Display resolution (`resolution`)**: Queries the graphics manager for the current screen width and height in pixels.
-- **Screen capture (`screenshot`)**: Captures a full composited RGBA8888 snapshot of the current display framebuffer via the graphics subsystem.
-- **UI tree inspection (`ui_tree`)**: Generates a bounded hierarchical snapshot of the active LVGL widget tree, constrained by `max_elements` and `max_depth` parameters.
-- **Pointer injection (`pointer_move`, `pointer_button`, `pointer_click`, `click`)**: Injects synthetic pointer movement, button press/release states, or high-level clicks directed at specific widget roles, identifiers, or button labels.
-- **Keyboard injection (`key`, `press_key`, `text`)**: Injects raw key events (such as arrows, Enter, backspace, and escape) or queues UTF-8 text strings into the graphics input queue.
+- **Display resolution (`resolution`)**: Queries the graphics manager for the screen width and height in pixels.
+- **Screen capture (`screenshot`)**: Captures the current display framebuffer as a full composited RGBA8888 image through the graphics subsystem.
+- **UI tree inspection (`ui_tree`)**: Generates a bounded hierarchical snapshot of the active LVGL widget tree. The `max_elements` and `max_depth` parameters constrain the snapshot.
+- **Pointer injection (`pointer_move`, `pointer_button`, `pointer_click`, `click`)**: Injects synthetic pointer movement, button presses and releases, or high-level clicks. A high-level click targets a widget role, identifier, or button label.
+- **Keyboard injection (`key`, `press_key`, `text`)**: Injects raw key events, such as arrows, Enter, backspace, and escape. It also queues UTF-8 text strings into the graphics input queue.
 
 ## Design choices and trade-offs
 
-- **Strict size caps**: Enforcing hard limits on requests (16 KiB), responses (64 KiB), and diagnostic task enumeration (64 tasks) guarantees deterministic memory consumption on memory-constrained microcontrollers.
-- **Transport decoupling**: Communicating through a generic VFS character device (`/devices/graphics/debug/transport`) allows the underlying transport to be backed by USB serial, TCP sockets, or shared-memory pipes without modifying the application logic.
-- **Headless background mode**: Providing the `--background` option allows CI runners and automation testbeds to execute test suites without dedicating display resources to an informational status window.
+- **Strict size caps**: Hard limits on requests (16 KiB), responses (64 KiB), and task enumeration (64 tasks) keep memory consumption deterministic on memory-constrained microcontrollers.
+- **Transport decoupling**: The generic VFS character device (`/devices/graphics/debug/transport`) can be backed by USB serial, TCP sockets, or shared-memory pipes. The application logic does not change.
+- **Headless background mode**: With `--background`, continuous integration runners and automation systems run test suites without a status window. No display resources are needed.
 
 ## Limits
 
-- **Transport dependency**: The executable does not create the `/devices/graphics/debug/transport` device node itself; a supporting platform driver or harness must mount it.
-- **Graphics manager required**: Introspection and injection operations depend on a functioning graphics subsystem; requesting screenshots or UI trees on headless systems without a graphics manager fails.
-- **No ASCII control characters in text injection**: The `text` injection operation rejects non-printable ASCII control characters.
+- **Transport dependency**: The executable does not create the `/devices/graphics/debug/transport` device node itself. A platform driver or test harness must mount it.
+- **Graphics manager required**: Introspection and injection need a working graphics subsystem. Screenshots and UI trees fail on headless systems without a graphics manager.
+- **No ASCII control characters in text injection**: The `text` operation rejects non-printable ASCII control characters.
 
 ## API reference
 

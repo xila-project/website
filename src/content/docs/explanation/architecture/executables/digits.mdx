@@ -8,15 +8,15 @@ import HostReference from "@/components/HostReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-Digits recognizes handwritten digits. The Applications repository provides `xila-digits` as a WebAssembly (Wasm) guest application (`wasm32-wasip1`).
+Digits recognizes handwritten digits. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) named `xila-digits` in the Applications repository.
 
 ## Context
 
-Digits depends on Pixel Painter's drawing representation and a neural-network device. Its package specifies a Wasm entrypoint; its shortcut launches `/applications/executables/wasm`. The native and browser image profiles include the bundle.
+Digits depends on the drawing representation of Pixel Painter and a neural-network device. Its package specifies a Wasm entrypoint. Its shortcut launches `/applications/executables/wasm`. The native and browser image profiles include the bundle.
 
 ## How it works
 
-Digits crops the drawn ink and fits it into a 28 by 28 input. It embeds a TensorFlow Lite model and opens `/devices/nn/cpu` for reading and writing. The native runtime registers a loader at that path.
+Digits crops the drawn ink and fits it into a 28 by 28 input. It embeds a TensorFlow Lite model. It opens `/devices/nn/cpu` for reading and writing. The native runtime registers a loader at that path.
 
 The following sequence shows model loading and prediction.
 
@@ -33,11 +33,11 @@ sequenceDiagram
     D->>N: Select output, seek and read scores
 ```
 
-Digits writes the model before sending <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>device::neural_network::LOAD</code></HostReference> with a TensorFlow Lite `LoadRequest`. It checks the input and output tensors, writes the input, sends <HostReference crate="device/neural_network" kind="struct" symbol="COMPUTE"><code>device::neural_network::COMPUTE</code></HostReference>, and reads ten scores. It ranks the three highest scores.
+Digits writes the model to the device. It then sends <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>device::neural_network::LOAD</code></HostReference> with a TensorFlow Lite `LoadRequest`. It checks the input and output tensors, writes the input, and sends <HostReference crate="device/neural_network" kind="struct" symbol="COMPUTE"><code>device::neural_network::COMPUTE</code></HostReference>. It reads ten scores and ranks the three highest.
 
 ## Design choices and trade-offs
 
-The embedded model travels with the guest. The device performs inference; the guest prepares the drawing and validates the returned probabilities.
+The embedded model travels with the guest. The neural-network device performs inference. The guest prepares the drawing and validates the returned probabilities.
 
 ## Limits
 

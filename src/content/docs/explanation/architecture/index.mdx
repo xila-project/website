@@ -7,7 +7,7 @@ description: "Understand repository layering, crate roles, and runtime assembly 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-Xila is structured across independent repositories that separate portable kernel services, user-space applications, platform drivers, and packaging tools. This separation enforces clear dependency directions and keeps core operating system logic independent of hardware targets.
+Xila is structured across independent repositories. The repositories separate portable kernel services, user-space applications, platform drivers, and packaging tools. This separation enforces clear dependency directions and keeps core operating system logic independent of hardware targets.
 
 ## Context
 
@@ -46,7 +46,7 @@ flowchart TD
 
 Each repository owns a distinct responsibility in the ecosystem:
 
-- **[Core](https://github.com/xila-project/core)** provides portable operating system subsystems, reusable data structures, and the top-level `xila` façade crate. The crates of the Core workspace depend on no other Xila repository.
+- **[Core](https://github.com/xila-project/core)** provides portable operating system subsystems, reusable data structures, and the top-level `xila` façade crate. Core workspace crates depend on no other Xila repository.
 - **[package_manager](https://github.com/xila-project/package_manager)** is a leaf repository providing package creation, manifest validation, cryptographic signing, and verification. It has no dependencies on any other Xila repository.
 - **[Applications](https://github.com/xila-project/applications)** contains official system executables, shells, user-space utilities, and the WebAssembly (Wasm) host interpreter. Applications depends on Core and package manager.
 - **[Platforms](https://github.com/xila-project/platforms)** contains target drivers, filesystem seed generation tools, and target entry points that assemble full system images. Platforms depends on Core, package manager, and Applications.
@@ -77,8 +77,8 @@ Crates belong to one of five architectural roles:
 1. **Subsystems**: own runtime state and background lifecycles for core services such as task scheduling, graphics rendering, and path resolution.
 2. **Libraries**: provide stateless contracts, data formats, cryptographic utilities, and synchronization primitives.
 3. **Devices**: define unified interface traits and typed control commands for hardware and virtual devices.
-4. **Drivers**: implement concrete hardware or host adapters fulfilling device trait contracts.
-5. **Executables**: programs launched by the system that interact with services through runtime contexts.
+4. **Drivers**: implement concrete hardware or host adapters that fulfill the device trait contracts.
+5. **Executables**: programs that the system launches. They interact with services through runtime contexts.
 
 ### Runtime assembly
 
@@ -95,9 +95,9 @@ Platforms integrates Core subsystems with concrete drivers and Applications exec
 
 ## Design choices and trade-offs
 
-- **Strict dependency directions**: circular dependencies between repositories or crate layers are forbidden, ensuring predictable builds and modular components.
-- **Portable kernel core**: Core does not link against platform SDKs or standard operating system libraries, enabling unit testing on native hosts without hardware dependencies.
-- **Explicit manager lifecycle**: subsystem managers are constructed explicitly and passed to execution contexts, avoiding hidden global state except where required by C libraries or runtime allocators.
+- **Strict dependency directions**: circular dependencies between repositories or crate layers are forbidden. Builds stay predictable and components stay modular.
+- **Portable kernel core**: Core does not link against platform SDKs or standard operating system libraries. Unit tests can run on native hosts without hardware dependencies.
+- **Explicit manager lifecycle**: subsystem managers are constructed explicitly and passed to execution contexts. This avoids hidden global state, except where C libraries or runtime allocators require it.
 
 ## API reference
 

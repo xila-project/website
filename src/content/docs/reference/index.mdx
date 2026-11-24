@@ -5,47 +5,47 @@ description: Look up Xila's APIs, shell syntax, development commands, Wasm runti
 
 import { CardGrid, LinkCard } from "@astrojs/starlight/components";
 
-Use these pages to look up exact interfaces and constraints. For instructions, use the [how-to guides](/how-to/).
+Look up exact interfaces and constraints on these pages. For instructions, use the [how-to guides](/how-to/).
 
 <CardGrid>
   <LinkCard
     title="Host API"
     href="/reference/host/"
-    description="Reference for Xila Core workspace crates, Cargo features, and generated host Rustdoc."
+    description="Xila Core workspace crates, Cargo features, and generated host Rustdoc."
   />
   <LinkCard
     title="Guest API"
     href="/reference/guest/"
-    description="Reference for the xila-wasm guest API, WASI Preview 1 imports, and VFS device control."
+    description="The xila-wasm guest API, WASI Preview 1 imports, and virtual file system (VFS) device control."
   />
   <LinkCard
     title="Shell commands"
     href="/reference/shell/"
-    description="Authoritative reference for built-in commands, command composition, expansion syntax, and execution limits of the Xila command-line shell."
+    description="Built-in commands, command composition, expansion syntax, and execution limits of the Xila command-line shell."
   />
   <LinkCard
     title="Development commands"
     href="/reference/development-commands/"
-    description="Look up repository mise tasks, website commands, and dependency inventory settings."
+    description="Repository mise tasks, website commands, and dependency inventory settings."
   />
   <LinkCard
     title="Experimental package format"
     href="/reference/package-format/"
-    description="Look up the Xila package archive, manifest, signatures and limits."
+    description="The Xila package archive, manifest, signatures, and limits."
   />
   <LinkCard
     title="Wasm runtime"
     href="/reference/wasm-runtime/"
-    description="Reference for the host WebAssembly runtime, CLI options, WASI imports, and execution limits."
+    description="The host WebAssembly runtime: command-line options, WASI imports, and execution limits."
   />
   <LinkCard
     title="Headless Xila runtime"
     href="/reference/container-runtime/"
-    description="Exact shell and guest commands, image defaults, persistence, mounts, and limits of Xila's headless runtime."
+    description="Shell and guest commands, image defaults, persistence, mounts, and limits of Xila's headless runtime."
   />
   <LinkCard
     title="Graphics bindings"
     href="/reference/graphics-bindings/"
-    description="Reference for the graphics WebAssembly ABI, status codes, supported LVGL calls, and resource limits."
+    description="The graphics WebAssembly application binary interface (ABI), status codes, supported LVGL calls, and resource limits."
   />
 </CardGrid>

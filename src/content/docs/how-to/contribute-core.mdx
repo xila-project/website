@@ -13,9 +13,9 @@ This guide shows how to prepare a Core contribution.
 
 ## Steps
 
-1. Make the change in the crate that owns the behavior, and update its tests and documentation as appropriate.
+1. Make the change in the crate that owns the behavior, and update its tests and documentation when the change affects them.
 2. Follow the [workspace dependency rules](https://github.com/xila-project/workspace/blob/main/AGENTS.md) for cross-repository Cargo dependencies: use `branch = "main"` and update the lockfile with `cargo update -p <crate>` when repinning.
-3. Run the checks in [Validate a Core change](/how-to/validate-core/). Check integration in the affected repositories when the change crosses their boundaries.
+3. Run the checks in [Validate a Core change](/how-to/validate-core/). When the change crosses repository boundaries, also check integration in the affected repositories.
 4. Review your diff and follow the affected repository's contribution and commit conventions.
 
 ## Verify the result

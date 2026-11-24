@@ -99,7 +99,7 @@ The compiled `wasm32-wasip1` binaries are placed in `target/wasm32-wasip1/releas
 mise run image:native
 ```
 
-The LittleFS disk image is written to `target/seed/native/seed.img`. For the browser runtime, run `mise run image:browser` instead; it writes `target/seed/browser/seed.img`.
+The LittleFS disk image is written to `target/seed/native/seed.img`. For the browser runtime, run `mise run image:browser` instead. It writes `target/seed/browser/seed.img`.
 
 2. Optional: To seed the guests you built locally instead, bundle them into a new directory and pass it through `XILA_BUNDLES_DIR`. The output directory must not exist yet:
 
@@ -154,7 +154,7 @@ To verify the embedded Arduino Nano 33 BLE build, run:
 mise run build:nano-33-ble
 ```
 
-The check verifies compilation for the `thumbv7em-none-eabihf` target.
+The task compiles the Nano 33 BLE firmware for the `thumbv7em-none-eabihf` target.
 
 ## Troubleshooting
 

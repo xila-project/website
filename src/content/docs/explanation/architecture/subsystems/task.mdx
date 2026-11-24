@@ -59,11 +59,11 @@ Tasks execute cooperatively on single-threaded or multi-threaded Embassy executo
 
 - **Waker-based context**: resolving identity through waker pointers makes logical task contexts available in `no_std` environments without runtime operating system threads.
 - **Multiple spawner support**: registering multiple spawners allows dual-core microcontrollers and multi-threaded desktop targets to distribute asynchronous tasks across execution threads.
-- **Cooperative scheduling**: cooperative multitasking eliminates complex kernel preemptive locking, but tasks that perform heavy synchronous computation without yielding can starve other futures.
+- **Cooperative scheduling**: cooperative multitasking removes the need for complex kernel preemptive locking. A task that performs heavy synchronous computation without yielding can starve other futures.
 
 ## Limits
 
-- Futures must periodically yield execution; tight synchronous loops block other tasks running on the same Embassy executor.
+- Futures must yield periodically. Tight synchronous loops block other tasks on the same Embassy executor.
 - Task identifiers cannot exceed the bounds of `TaskIdentifierInner` (`u64`).
 
 ## API reference

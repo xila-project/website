@@ -4,7 +4,7 @@ docType: tutorial
 description: "One sentence, under 160 characters, naming the skill and the concrete result."
 ---
 
-<!-- Intro, 1–3 sentences: "In this tutorial, you ... At the end, you have ...". Do not repeat the title as a heading. -->
+<!-- Intro, 1-3 sentences: "In this tutorial, you ... At the end, you have ...". Do not repeat the title as a heading. -->
 
 ## Before you begin
 
@@ -24,4 +24,4 @@ description: "One sentence, under 160 characters, naming the skill and the concr
 
 ## Next steps
 
-<!-- 2–4 links: the next tutorial, a related how-to guide and an explanation. -->
+<!-- 2-4 links: the next tutorial, a related how-to guide and an explanation. -->

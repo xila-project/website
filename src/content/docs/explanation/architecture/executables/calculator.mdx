@@ -8,11 +8,11 @@ import HostReference from "@/components/HostReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-Calculator evaluates mathematical expressions. The Applications repository provides it as a WebAssembly (Wasm) guest application (`wasm32-wasip1`).
+Calculator evaluates mathematical expressions. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
 ## Context
 
-The guest uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint, and its shortcut launches it through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
+The guest application uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint. Its shortcut launches the guest through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
 
 ## How it works
 
@@ -25,15 +25,15 @@ flowchart LR
     Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Calculator"] --> API["Guest API"]
 ```
 
-The shortcut starts the Wasm runner with the bundle entrypoint. The guest uses the guest API for its interface.
+The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
 ## Design choices and trade-offs
 
-Expressions are evaluated locally; graphics and input use the guest API.
+The guest evaluates expressions locally. Graphics and input use the guest API.
 
 ## Limits
 
-The interface switches between compact and wide layouts at 560 by 360 pixels.
+The interface switches between a compact and a wide layout at 560 by 360 pixels.
 
 ## API reference
 

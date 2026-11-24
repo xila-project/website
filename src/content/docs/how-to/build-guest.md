@@ -4,13 +4,13 @@ docType: how-to
 description: "Compile a WebAssembly guest application for Xila using the wasm32-wasip1 target and xila-wasm crate."
 ---
 
-This guide shows how to compile a WebAssembly (Wasm) guest application targeting `wasm32-wasip1` for execution in Xila.
+This guide shows how to compile a WebAssembly (Wasm) guest application for the `wasm32-wasip1` target so that it runs in Xila.
 
 ## Before you begin
 
 - Install Rust with the `wasm32-wasip1` target: run `rustup target add wasm32-wasip1`.
 - Install [mise](https://mise.jdx.dev/) if you build existing applications in the Applications repository.
-- Have a guest application project ready, such as the [Wasm application template](https://github.com/xila-project/wasm_application_template).
+- A guest application project, for example the [Wasm application template](https://github.com/xila-project/wasm_application_template).
 
 ## Steps
 
@@ -24,7 +24,7 @@ This guide shows how to compile a WebAssembly (Wasm) guest application targeting
    ```sh
    mise run build:applications
    ```
-   To build a single guest such as Calculator, run:
+   To build one guest, for example Calculator, run:
    ```sh
    cargo build --target wasm32-wasip1 --profile release-wasm -p xila-calculator
    ```
