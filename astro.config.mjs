@@ -163,6 +163,9 @@ export default defineConfig({
           // Honour `collapsed` on sidebar groups; without it every nested
           // Architecture group is always expanded.
           sidebar: { useDropdowns: true },
+          // The theme renders a flat list. On desktop, SiteTitle.astro hides
+          // the four documentation links and shows the "Documentation" menu
+          // (DocsMenu.astro) instead; the mobile menu keeps all of them.
           navLinks: [
             { label: "Tutorials", link: "/tutorials/" },
             { label: "How-to", link: "/how-to/" },
