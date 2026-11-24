@@ -1,7 +1,7 @@
 /*
- * The documentation sections, one for each kind of page in the Diátaxis
- * model. Shared by the "Documentation" header menu. The overview links must
- * match the four links kept in `navLinks` (astro.config.mjs) for the mobile
+ * The entries of the "Documentation" header menu: the documentation overview,
+ * then one section for each kind of page in the Diátaxis model. The links
+ * must match the links kept in `navLinks` (astro.config.mjs) for the mobile
  * menu.
  */
 export interface DocumentationSection {
@@ -11,6 +11,11 @@ export interface DocumentationSection {
 }
 
 export const DOCUMENTATION_SECTIONS: DocumentationSection[] = [
+  {
+    label: "Overview",
+    description: "Find the section that matches your need.",
+    href: "/docs/",
+  },
   {
     label: "Tutorials",
     description: "Learn Xila through a guided first experience.",

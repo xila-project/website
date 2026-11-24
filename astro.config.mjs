@@ -169,6 +169,7 @@ export default defineConfig({
           // list, and SiteTitle.astro marks the current item in it: the
           // data-header-link attribute selects the items to mark.
           navLinks: [
+            { label: "Documentation", link: "/docs/", attrs: headerLink },
             { label: "Tutorials", link: "/tutorials/", attrs: headerLink },
             { label: "How-to", link: "/how-to/", attrs: headerLink },
             { label: "Reference", link: "/reference/", attrs: headerLink },
