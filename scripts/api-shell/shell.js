@@ -59,11 +59,21 @@
     return url;
   }
 
+  // The frame page only: a page of the site that frames an API page for
+  // another reason keeps its own URL and title.
+  function framePageParent() {
+    try {
+      return parent.location.pathname === FRAME_PAGE;
+    } catch (error) {
+      return false; // The parent is on another origin.
+    }
+  }
+
   var path = apiPath();
   if (window.top === window.self) {
     // Not framed: show this page in the frame page of the site instead.
     if (path !== null) location.replace(frameUrl(path));
-  } else if (path !== null) {
+  } else if (path !== null && framePageParent()) {
     // Framed. The frame records its own history entries, so Back and Forward
     // step through the API pages inside the frame, and every load re-syncs
     // the wrapper. The wrapper therefore only mirrors the current position

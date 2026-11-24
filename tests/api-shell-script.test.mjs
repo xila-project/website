@@ -17,10 +17,18 @@ function run({
   storage = {},
   switchTheme = null,
   brokenStorage = false,
+  parentPathname = "/reference/api/",
 } = {}) {
   const calls = { replace: [], replaceState: [], titles: [], themes: [] };
   const listeners = {};
   const parent = {
+    location: {
+      get pathname() {
+        // A parent on another origin denies access to its location.
+        if (parentPathname === null) throw new Error("SecurityError");
+        return parentPathname;
+      },
+    },
     history: {
       replaceState: (data, unused, url) => calls.replaceState.push(String(url)),
     },
@@ -112,6 +120,14 @@ test("syncs the wrapper URL and title when framed", () => {
     "https://www.xila.dev/reference/api/?path=guest%2Fwasm%2Findex.html%23method.run",
   );
   assert.equal(calls.replaceState.length, 2);
+});
+
+test("does not sync a parent that is not the frame page", () => {
+  for (const parentPathname of ["/reference/host/", null]) {
+    const { calls } = run({ framed: true, parentPathname });
+    assert.deepEqual(calls.replaceState, [], String(parentPathname));
+    assert.deepEqual(calls.titles, [], String(parentPathname));
+  }
 });
 
 test("opens links that leave the API in the top window", () => {
