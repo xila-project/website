@@ -4,7 +4,7 @@ docType: reference
 description: "Look up repository mise tasks, website commands, and dependency inventory settings."
 ---
 
-These tasks come from each repository's mise configuration. Run `mise run <task>` in the named repository root; CI and development task availability depends on the selected mise environment.
+These tasks come from each repository's mise configuration. Run `mise run <task>` in the named repository root. Task availability depends on the selected mise environment.
 
 ## Core tasks
 
@@ -184,19 +184,19 @@ These tasks come from each repository's mise configuration. Run `mise run <task>
 
 | Command                  | Arguments | Description                                                                                           |
 | ------------------------ | --------- | ----------------------------------------------------------------------------------------------------- |
-| `npm run docs:dev`       | —         | Runs `astro dev`.                                                                                     |
-| `npm run docs:build`     | —         | Runs `astro build`.                                                                                   |
-| `npm run docs:rustdoc`   | —         | Runs `node scripts/build-rustdoc.mjs`.                                                                |
-| `npm run docs:preview`   | —         | Runs `astro preview`.                                                                                 |
-| `npm run docs:validate`  | —         | Runs `node scripts/check-docs.mjs`.                                                                   |
-| `npm run test:reference` | —         | Runs `node --test tests/*.test.mjs`.                                                                  |
-| `npm run format:fix`     | —         | Runs `prettier --write .`.                                                                            |
-| `npm run format:check`   | —         | Runs `prettier --check .`.                                                                            |
-| `npm run check`          | —         | Runs `npm run test:reference && npm run format:check && npm run docs:build && npm run docs:validate`. |
+| `npm run docs:dev`       | none      | Runs `astro dev`.                                                                                     |
+| `npm run docs:build`     | none      | Runs `astro build`.                                                                                   |
+| `npm run docs:rustdoc`   | none      | Runs `node scripts/build-rustdoc.mjs`.                                                                |
+| `npm run docs:preview`   | none      | Runs `astro preview`.                                                                                 |
+| `npm run docs:validate`  | none      | Runs `node scripts/check-docs.mjs`.                                                                   |
+| `npm run test:reference` | none      | Runs `node --test tests/*.test.mjs`.                                                                  |
+| `npm run format:fix`     | none      | Runs `prettier --write .`.                                                                            |
+| `npm run format:check`   | none      | Runs `prettier --check .`.                                                                            |
+| `npm run check`          | none      | Runs `npm run test:reference && npm run format:check && npm run docs:build && npm run docs:validate`. |
 
 ## Dependency inventory
 
-The workspace [Nanobom workflow](https://github.com/xila-project/workspace/blob/main/.github/workflows/nanobom.yml) accepts optional `project`, `scan-path` and `fail-on` inputs. It requires the `NANOBOM_TOKEN` secret. Callers may trigger it on pushes to main, schedules or manual dispatch, not pull requests. The package manager repository calls it.
+The workspace [Nanobom workflow](https://github.com/xila-project/workspace/blob/main/.github/workflows/nanobom.yml) accepts the optional `project`, `scan-path`, and `fail-on` inputs. It requires the `NANOBOM_TOKEN` secret. Callers can trigger it on pushes to main, on schedules, or manually, but not on pull requests. The package manager repository calls it.
 
 ## Related
 

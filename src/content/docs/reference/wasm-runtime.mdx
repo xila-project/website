@@ -7,7 +7,7 @@ description: "Reference for the host WebAssembly runtime, CLI options, WASI impo
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 
-The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/host/mod.rs" />) implements the WebAssembly (Wasm) host runtime for Xila using the <DocsRsReference crate="wasmi" /> 2.0.0 engine.
+The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/host/mod.rs" />) implements the WebAssembly (Wasm) host runtime for Xila. It uses the <DocsRsReference crate="wasmi" /> 2.0.0 engine.
 
 ## Command syntax
 
@@ -25,7 +25,7 @@ The Wasm runner is mounted in the virtual file system (VFS) at `/applications/ex
 | `--help`, `-h`        | None      | Prints command usage information                 |
 | `--version`, `-v`     | None      | Prints version information                       |
 
-Arguments placed after `--` are passed directly to the guest application and become accessible through standard argument APIs (`std::env::args`).
+Arguments after `--` go directly to the guest application. The guest reads them through standard argument APIs (`std::env::args`).
 
 ## Cargo features
 
@@ -92,7 +92,7 @@ The Platforms browser example compiles the Xila host for `wasm32-unknown-unknown
 | --------------- | ---------------------------------------------------------------------------- |
 | Host target     | Compiled to `wasm32-unknown-unknown`                                         |
 | Guest target    | Compiled to `wasm32-wasip1`                                                  |
-| Storage         | Requires Origin Private File System (OPFS), `createWritable`, and Web Locks  |
+| Storage         | Requires Origin-Private File System (OPFS), `createWritable`, and Web Locks  |
 | Disk format     | 16 MiB MBR and LittleFS image                                                |
 | Disk names      | Uses `xila_YYYY-MM-DD.img` or the default `xila_drive.img`                   |
 | Disk management | Managed through the Xila Help panel                                          |

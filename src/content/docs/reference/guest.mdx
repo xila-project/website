@@ -1,14 +1,14 @@
 ---
 title: "Guest API"
 docType: reference
-description: "Reference for the xila-wasm guest API, WASI Preview 1 imports, and VFS device control."
+description: "Reference for the xila-wasm guest API, WASI Preview 1 imports, and virtual file system (VFS) device control."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
 import ReferenceViewer from "@/components/ReferenceViewer.astro";
 
-The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />) provides the guest API for WebAssembly (Wasm) applications targeting `wasm32-wasip1`. The generated Rust API documentation for <GuestReference repo="applications" crate="wasm" /> is browsable in the embedded viewer below.
+The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />) provides the guest API for WebAssembly (Wasm) applications that target `wasm32-wasip1`. The generated Rust API documentation for <GuestReference repo="applications" crate="wasm" /> is in the viewer below.
 
 <ReferenceViewer architecture="guest" />
 
@@ -16,15 +16,15 @@ The `xila-wasm` crate in the Applications repository (<CodeReference repo="appli
 
 Guest crates depend on `xila-wasm` with `default-features = false` to omit the host Wasmi runtime:
 
-| Feature         | Default | Effect                                                                   |
-| --------------- | ------- | ------------------------------------------------------------------------ |
-| `default_guest` | No      | Enables `guest`, `graphics`, `c_bindings`, and `memory_32`               |
-| `guest`         | No      | Enables the guest module, core error types, and `fd_control`             |
-| `graphics`      | No      | Enables generated LVGL guest wrappers and geometry helpers               |
-| `c_bindings`    | No      | Exports `extern "C"` functions and generates `xila_graphics.h`           |
-| `memory_32`     | Yes     | Configures 32-bit guest pointer width (`usize = u32`)                    |
-| `memory_64`     | No      | Configures 64-bit guest pointer width (`usize = u64`)                    |
-| `host`          | Yes     | Compiles the host Wasmi interpreter (host only; do not enable in guests) |
+| Feature         | Default | Effect                                                                     |
+| --------------- | ------- | -------------------------------------------------------------------------- |
+| `default_guest` | No      | Enables `guest`, `graphics`, `c_bindings`, and `memory_32`                 |
+| `guest`         | No      | Enables the guest module, core error types, and `fd_control`               |
+| `graphics`      | No      | Enables generated LVGL guest wrappers and geometry helpers                 |
+| `c_bindings`    | No      | Exports `extern "C"` functions and generates `xila_graphics.h`             |
+| `memory_32`     | Yes     | Configures 32-bit guest pointer width (`usize = u32`)                      |
+| `memory_64`     | No      | Configures 64-bit guest pointer width (`usize = u64`)                      |
+| `host`          | Yes     | Compiles the host Wasmi interpreter. Host only; do not enable it in guests |
 
 ## Host import namespaces
 
@@ -48,7 +48,7 @@ The host runtime provides the following system calls in the `wasi_snapshot_previ
 
 ## Device control
 
-The <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> function issues typed control commands to VFS character devices, such as audio playback devices or serial interfaces:
+The <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> function sends typed control commands to virtual file system (VFS) character devices, such as audio playback devices or serial interfaces:
 
 ```rust
 pub unsafe fn fd_control(
@@ -63,7 +63,7 @@ pub unsafe fn fd_control(
 
 The host validates four constraints on every call:
 
-1. Write authorization: Commands with the write direction bit set require a descriptor opened with write access.
+1. Write authorization: a command with the write direction bit set requires a descriptor that was opened with write access.
 2. Alignment: Non-empty `input` and `output` pointers must be 16-byte aligned.
 3. Payload size: Neither `input_length` nor `output_length` may exceed 256 bytes.
 4. Non-overlapping buffers: Input and output byte ranges in guest memory must not overlap.
@@ -94,7 +94,7 @@ Error types returned by guest APIs:
 - <GuestReference repo="applications" crate="wasm" kind="type" symbol="Error" />
   : Standard guest error type.
 - <GuestReference repo="applications" crate="wasm" kind="type" symbol="Result" />: Convenience type alias for `Result<T, Error>`.
-- Graphics status codes: Nonzero `i32` values returned by graphics operations indicate failure (such as invalid memory, invalid handle, or resource exhaustion).
+- Graphics status codes: a nonzero `i32` return value from a graphics operation indicates failure, for example invalid memory, an invalid handle, or resource exhaustion.
 
 ## Related
 
