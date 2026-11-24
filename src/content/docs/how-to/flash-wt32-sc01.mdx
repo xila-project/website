@@ -1,0 +1,242 @@
+---
+title: "Flash Xila on a WT32-SC01 or WT32-SC01 Plus"
+docType: how-to
+description: "Build the Xila firmware, flash a WT32-SC01 or WT32-SC01 Plus with espflash, seed its storage, and log in on the first boot."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+
+This guide shows how to put Xila on a Wireless-Tag WT32-SC01 (ESP32) or WT32-SC01 Plus (ESP32-S3) board, and how to log in to the command-line shell. Use it for the first installation and for later firmware updates. For the features of each board, see [Supported hardware](/reference/supported-hardware/).
+
+## Before you begin
+
+- A WT32-SC01 Plus or a WT32-SC01 board and a USB cable that carries data. The Plus uses its USB-C port. The WT32-SC01 uses its USB port with the CP210x serial bridge.
+- A Debian-based Linux computer on x86-64, with [Git](https://git-scm.com/) and [mise](https://mise.jdx.dev/). The native package step uses `apt`. The first build downloads the Espressif Rust toolchain.
+- Write access to the serial port of the board. On Linux, this usually means membership in the `dialout` group.
+- Free disk space for the Rust toolchain and the build.
+- A serial terminal, for example `picocom`.
+- A copy of every file that you want to keep from the board. Two steps below replace the stored data.
+
+No release download exists for these boards. The Xila releases contain the firmware of the Arduino Nano 33 BLE only. Build the firmware from the Platforms repository, as the first step shows.
+
+## Steps
+
+### Build the firmware
+
+1. In a host shell, clone the Platforms repository and enter it:
+
+   ```sh
+   git clone https://github.com/xila-project/platforms.git
+   cd platforms
+   ```
+
+2. In the Platforms repository root, trust the mise configuration and install the native packages:
+
+   ```sh
+   mise trust
+   MISE_ENV=ci mise run ci:packages-espressif
+   ```
+
+3. In the same directory, install the Espressif Rust toolchain and the locked npm packages. Xila converts its fonts at build time with the `lv_font_conv` program from these packages.
+
+   ```sh
+   mise run setup:espressif-rust
+   npm ci
+   ```
+
+4. Build the firmware of your board:
+
+   ```sh
+   mise run build:wt32-sc01-plus
+   ```
+
+   For the WT32-SC01, run `mise run build:wt32-sc01` instead.
+
+   The WT32-SC01 carries ESP32 revision v1.0 silicon. By default, esp-hal requires revision v3.0 or later. The `build:wt32-sc01` task runs `tools/dev/build_espressif_image.sh`, which sets `ESP_HAL_CONFIG_MIN_CHIP_REVISION=100`, so that the firmware accepts revision v1.0. Build this board with the task, not with a direct `cargo build`.
+
+The build writes two files for each board. The ELF file is the firmware. The `-flash.bin` file is a merged image of the boot loader, the partition table and the firmware.
+
+| Board          | Firmware (ELF)                                 | Merged image                                         |
+| -------------- | ---------------------------------------------- | ---------------------------------------------------- |
+| WT32-SC01 Plus | `target/espressif-emulator/wt32-sc01-plus.elf` | `target/espressif-emulator/wt32-sc01-plus-flash.bin` |
+| WT32-SC01      | `target/espressif-emulator/wt32-sc01.elf`      | `target/espressif-emulator/wt32-sc01-flash.bin`      |
+
+This guide flashes the ELF file. The merged image writes the whole flash from offset `0x0` and erases the stored data. Use it only to provision a new or wiped board.
+
+### Find the serial port
+
+1. Connect the board to the computer.
+2. In a host shell, list the serial devices:
+
+   ```sh
+   ls -l /dev/serial/by-id/
+   ```
+
+   The Plus has the USB identifier `303a:1001` (the USB Serial/JTAG controller of the chip). Its link points to a `ttyACM` device. The WT32-SC01 has a CP210x USB-to-UART bridge. Its link points to a `ttyUSB` device.
+
+3. In the same shell, store the `/dev/serial/by-id/` path of your board. Replace `BOARD-NAME` with the name of the link that points to your board:
+
+   ```sh
+   export FLASH_PORT=/dev/serial/by-id/BOARD-NAME
+   ```
+
+Do not use `/dev/ttyACM0` or `/dev/ttyUSB0`. The `ttyACM` number of the Plus can change after you flash it, and other boards on the same computer can take a number. The `/dev/serial/by-id/` path stays the same. Name the port in every `espflash` command, so that `espflash` does not choose a port.
+
+### Seed the storage
+
+A seeded storage image carries the application shortcuts of the graphical shell, the official package registry and the first-installation marker. Without it, the board formats its storage at the first boot and the application menu is empty.
+
+:::caution
+Writing a storage image replaces the whole `storage` partition. The accounts, the installed applications and all stored files are lost.
+:::
+
+Write the storage image only for a first installation or to replace the storage. To update the firmware of a board that already works, follow [Update only the application](#update-only-the-application) instead: it keeps the storage.
+
+1. In the Platforms repository root, build the storage image of your board. The Plus image contains the released Wasm application packages and needs a network connection.
+
+   ```sh
+   mise run image:wt32-sc01-plus
+   ```
+
+   For the WT32-SC01, run `mise run image:wt32-sc01`. The WT32-SC01 image has the native shortcuts only, because this board has no Wasm runtime.
+
+   The task ends with a line that starts with `Verified raw LittleFS (4096-byte blocks)`. The image size is 12517376 bytes for the Plus and 1769472 bytes for the WT32-SC01. Each size equals the `storage` partition of the board.
+
+2. Write the image to the `storage` partition. For the Plus, run:
+
+   ```sh
+   mise run run:espflash -- write-bin --chip esp32s3 --port "$FLASH_PORT" \
+     0x410000 target/seed/wt32-sc01-plus/storage.img
+   ```
+
+   For the WT32-SC01, run:
+
+   ```sh
+   mise run run:espflash -- write-bin --chip esp32 --port "$FLASH_PORT" \
+     0x250000 target/seed/wt32-sc01/storage.img
+   ```
+
+The offsets come from the `partitions.csv` file of each board. If that file changes, read the offset of the `storage` row again.
+
+| Board          | Partition table                                                                                                       | Application (`factory`) | Storage (`storage`)                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------- |
+| WT32-SC01 Plus | <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/partitions.csv">`partitions.csv`</CodeReference> | `0x10000`, 4 MiB        | `0x410000`, 3056 blocks of 4096 bytes |
+| WT32-SC01      | <CodeReference repo="platforms" path="examples/boards/wt32-sc01/partitions.csv">`partitions.csv`</CodeReference>      | `0x10000`, 2.25 MiB     | `0x250000`, 1.6875 MiB                |
+
+### Flash the firmware
+
+1. In the Platforms repository root, flash the Plus. The command writes the boot loader, the partition table and the application. It does not write the `storage` partition.
+
+   ```sh
+   mise run run:espflash -- flash --chip esp32s3 --port "$FLASH_PORT" \
+     --flash-size 16mb --flash-mode qio --flash-freq 80mhz \
+     --partition-table examples/boards/wt32-sc01-plus/partitions.csv --partition-table-offset 0x8000 \
+     --monitor target/espressif-emulator/wt32-sc01-plus.elf
+   ```
+
+   For the WT32-SC01, run:
+
+   ```sh
+   mise run run:espflash -- flash --chip esp32 --port "$FLASH_PORT" \
+     --flash-size 4mb --flash-mode dio \
+     --partition-table examples/boards/wt32-sc01/partitions.csv --partition-table-offset 0x8000 \
+     --monitor target/espressif-emulator/wt32-sc01.elf
+   ```
+
+2. Watch the boot log that `--monitor` prints. Press `Ctrl+C` to close the monitor. With the Plus, the monitor can stop at `Connecting` after the flash. Then press `Ctrl+C`, reset the board and open the console as in [Open the console and log in](#open-the-console-and-log-in).
+
+With the Plus, the boot loader and the application use different flash modes. The second-stage boot loader uses dual I/O at 80 MHz, which the ROM requires, and it switches the flash chip to quad I/O. The application image uses quad I/O at 80 MHz. The boot loader that `espflash` bundles writes both modes. Do not configure a local boot loader in `espflash`: it can bypass the bundled boot loader that selects quad I/O.
+
+### Update only the application
+
+To update the firmware and keep the boot loader, the partition table and the storage, write only the `factory` partition. The partition table of the board must already match the one in the repository.
+
+1. In the Platforms repository root, find the offset of the `factory` partition in the partition table of your board. For the Plus, run:
+
+   ```sh
+   factory_offset=$(awk -F ',' '$1 == "factory" { gsub(/ /, "", $4); print $4 }' \
+     examples/boards/wt32-sc01-plus/partitions.csv)
+   ```
+
+   For the WT32-SC01, use `examples/boards/wt32-sc01/partitions.csv`. Both files give `0x10000`.
+
+2. Build the application image and write it. For the Plus, run:
+
+   ```sh
+   mise run run:espflash -- save-image --chip esp32s3 \
+     --flash-size 16mb --flash-mode qio --flash-freq 80mhz \
+     target/espressif-emulator/wt32-sc01-plus.elf \
+     target/espressif-emulator/wt32-sc01-plus-application.bin
+   mise run run:espflash -- write-bin --chip esp32s3 --port "$FLASH_PORT" \
+     "$factory_offset" target/espressif-emulator/wt32-sc01-plus-application.bin
+   ```
+
+   For the WT32-SC01, run:
+
+   ```sh
+   mise run run:espflash -- save-image --chip esp32 \
+     --flash-size 4mb --flash-mode dio \
+     target/espressif-emulator/wt32-sc01.elf \
+     target/espressif-emulator/wt32-sc01-application.bin
+   mise run run:espflash -- write-bin --chip esp32 --port "$FLASH_PORT" \
+     "$factory_offset" target/espressif-emulator/wt32-sc01-application.bin
+   ```
+
+An application-only update does not change the flash mode of the installed boot loader. A Plus that you flashed earlier with a dual I/O boot loader needs one full `flash` command, as in the previous section, to get the quad I/O boot loader.
+
+### Open the console and log in
+
+The Plus sends the console through its built-in USB Serial/JTAG controller. The WT32-SC01 sends it through UART0 and the CP210x bridge at 115200 baud.
+
+1. In a host shell, open a serial terminal on the port. For the Plus, run:
+
+   ```sh
+   picocom "$FLASH_PORT"
+   ```
+
+   For the WT32-SC01, run `picocom -b 115200 "$FLASH_PORT"`.
+
+2. Reset the board and wait for the `User name:` prompt. Do not type before the prompt shows: the console garbles the input that it receives during the boot, and the login fails.
+3. Enter `administrator` as the user name. Press `Enter` at the `Password:` prompt, because the password of the default account is empty.
+
+The command-line shell starts. A board with a screen also shows the bootsplash and the graphical login. Enter the same user name there and leave the password empty. If the storage holds a seeded image, the Terminal application on the screen opens a command-line shell.
+
+:::note
+The `administrator` account cannot write to `/configuration/system`. Only root and the members of its group can. The `sudo` command runs external commands only, not commands of the shell such as `echo`. For a root task, such as the microSD format request of the Plus, first start a root shell with `sudo command_line_shell`. See the microSD section of the <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/README.md">WT32-SC01 Plus README</CodeReference>.
+:::
+
+## Verify the result
+
+1. In the boot log, find these lines in order. The numbers depend on the board.
+
+   | Board          | Lines                                                                                                                                                                                                                             |
+   | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | WT32-SC01 Plus | `Xila: board WT32-SC01 Plus`, the PSRAM size, `Xila: PSRAM self-test passed`, `Xila: LittleFS mounted`, the panel and touch controller lines, the heap report, `User name:`                                                       |
+   | WT32-SC01      | `Xila: board WT32-SC01`, `Xila: PSRAM 4194304 bytes (registered: true)`, `Xila: PSRAM self-test passed`, `Xila: LittleFS mounted`, `Random generator works`, `Xila: ST7796 on HSPI, FT6336U chip 0x64, vendor 0x11`, `User name:` |
+
+2. Log in as `administrator` on the console. The shell shows its prompt.
+3. On the screen, log in with the same account. The graphical shell opens. With a seeded storage image, the application drawer lists the applications.
+4. Restart the board. The login prompt returns, and your files and the account remain.
+
+## Troubleshooting
+
+| Symptom                                                                                  | Cause                                                                                                   | Fix                                                                                                                                                               |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The build stops with `Expected the Espressif Rust toolchain 1.97.0`                      | The `esp` toolchain is missing or has another version                                                   | Run `mise run setup:espressif-rust`, then build again.                                                                                                            |
+| The build stops with `firmware (... bytes) does not fit in the factory partition of ...` | The firmware is larger than the `factory` partition of `partitions.csv`                                 | Enlarge the `factory` partition and move the `storage` partition behind it. A changed partition table loses the stored data, see the next rows.                   |
+| The log shows `Xila: LittleFS mount failed (...); formatting storage`                    | The storage holds no valid LittleFS: a new board, an old partition layout or an image of the wrong size | The message is normal at the first boot without a seeded image. Otherwise build the image again with the task of your board and write it at the `storage` offset. |
+| `espflash write-bin` of the storage image stops with a `FlashDeflData` timeout           | The write of a large storage image can time out                                                         | If the board already has a working storage, do not write the storage image again. Write only the application at `0x10000`, as in "Update only the application".   |
+| After a flash of the Plus, `espflash` stays at `Connecting`                              | Unknown. It was seen on the Plus in hardware tests                                                      | Press `Ctrl+C`. Reset the board, then open the console with a serial terminal on the `/dev/serial/by-id/` path.                                                   |
+| The console login fails with `Invalid path` or `Failed to get user file path`            | Text typed during the boot reached the login prompt garbled                                             | Wait for the next `User name:` prompt, then type the user name again. After a reset, wait for the prompt before you type.                                         |
+| The storage is empty after a firmware update                                             | The partition table in the firmware differs from the one on the board                                   | Back up your files first. Run the full `flash` command to write the new partition table, then write a storage image.                                              |
+| The log shows a line that starts with `Xila: the screen is off`                          | The display bus or the touch controller did not start. The board then runs without a screen             | Read the reason after `the screen is off`. Check the board, then reset it. The console session still works.                                                       |
+| The application menu is empty                                                            | The storage was formatted by the firmware and holds no shortcuts                                        | Write the seeded storage image, as in the section "Seed the storage".                                                                                             |
+
+## Related
+
+- [Supported hardware](/reference/supported-hardware/)
+- [Run Xila on the Arduino Nano 33 BLE](/how-to/run-nano-33-ble/)
+- [Set up a development environment](/how-to/setup-development/)
+- <CodeReference repo="platforms" path="examples/boards/README.md">
+    Platforms board documentation
+  </CodeReference>
