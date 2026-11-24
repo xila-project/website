@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { API_INDEX_FILE, checkApiUrl, readApiIndex } from "./api-index.mjs";
 import {
   checkCodeReference,
   SOURCE_REPOSITORY_NAMES,
@@ -25,7 +26,10 @@ function decode(value) {
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)));
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    );
 }
 
 const types = {
@@ -95,13 +99,19 @@ export function validateDocs({
   }
 
   // The rustdoc pages under /api/ are link targets only: rustdoc checks its
-  // own links. They are staged only when rustdoc was built (deployment and
-  // the rustdoc job); otherwise links to them are counted as skipped.
+  // own links. Links to them are checked against the API index
+  // (dist/api/api-index.json), which is staged with the pages (deployment and
+  // the rustdoc job) or downloaded from the site (pull requests). Without an
+  // index, they are checked against the staged pages, or counted as skipped.
   const apiOutput = path.join(output, "api");
-  const apiStaged = fs.existsSync(apiOutput);
+  const apiIndex = readApiIndex(path.join(apiOutput, API_INDEX_FILE));
+  const apiPagesStaged = fs.existsSync(path.join(apiOutput, "host"));
   const strictApi = environment.XILA_STRICT_API_LINKS === "1";
   const apiIdentifiers = new Map();
   const warnings = new Set();
+  // Until the documentation links are migrated, a broken API link is an
+  // error only in strict mode.
+  const apiReport = strictApi ? errors : warnings;
   const rendered = files(output, ".html").filter(
     (file) => file !== apiOutput && !file.startsWith(apiOutput + path.sep),
   );
@@ -112,11 +122,61 @@ export function validateDocs({
     }),
   );
 
+  function checkApiPage(target) {
+    if (apiIndex) {
+      const problem = checkApiUrl(
+        apiIndex,
+        "/" + path.relative(output, target.file).split(path.sep).join("/"),
+        target.anchor,
+      );
+      // Pages outside the index (source pages, all.html) are accepted
+      // when they are staged.
+      if (
+        !problem ||
+        (problem === "unknown API page" &&
+          apiPagesStaged &&
+          fs.existsSync(target.file))
+      )
+        return null;
+      return problem === "unknown API page"
+        ? "missing API link"
+        : `missing API anchor`;
+    }
+    if (!fs.existsSync(target.file)) return "missing API link";
+    if (!target.anchor) return null;
+    if (!apiIdentifiers.has(target.file))
+      apiIdentifiers.set(
+        target.file,
+        readIdentifiers(fs.readFileSync(target.file, "utf8")),
+      );
+    return apiIdentifiers.get(target.file).has(target.anchor)
+      ? null
+      : "missing API anchor";
+  }
+
   let links = 0;
   let anchors = 0;
   let apiLinks = 0;
   let skippedApiLinks = 0;
+  let apiTargets = 0;
+  let skippedApiTargets = 0;
   for (const [file, { html }] of documents) {
+    // `rust:` links and the Api component mark the links that they could
+    // not resolve, and those that a build without an index could not check.
+    for (const match of html.matchAll(
+      /<a\b[^>]*\bdata-api(-error|-unchecked)?=(?:"([^"]*)"|'([^']*)')/g,
+    )) {
+      if (match[1] === "-unchecked") {
+        skippedApiTargets += 1;
+        continue;
+      }
+      apiTargets += 1;
+      if (match[1])
+        apiReport.add(
+          `${path.relative(output, file)}: ${decode(match[2] ?? match[3])}`,
+        );
+    }
+
     const visited = new Set();
     for (const match of html.matchAll(
       /<a\b[^>]*\bhref=(?:"([^"]*)"|'([^']*)')/g,
@@ -127,29 +187,16 @@ export function validateDocs({
       const target = resolveTarget(output, file, href);
       if (!target) continue;
       if (target.api) {
-        if (!apiStaged) {
+        if (!apiIndex && !apiPagesStaged) {
           skippedApiLinks += 1;
           continue;
         }
         apiLinks += 1;
-        // Until the documentation links are migrated, a broken API link is
-        // an error only in strict mode.
-        const report = strictApi ? errors : warnings;
-        if (!fs.existsSync(target.file)) {
-          report.add(
-            `${path.relative(output, file)}: missing API link ${decode(href)}`,
+        const problem = checkApiPage(target);
+        if (problem)
+          apiReport.add(
+            `${path.relative(output, file)}: ${problem} ${decode(href)}`,
           );
-        } else if (target.anchor) {
-          if (!apiIdentifiers.has(target.file))
-            apiIdentifiers.set(
-              target.file,
-              readIdentifiers(fs.readFileSync(target.file, "utf8")),
-            );
-          if (!apiIdentifiers.get(target.file).has(target.anchor))
-            report.add(
-              `${path.relative(output, file)}: missing API anchor ${decode(href)}`,
-            );
-        }
         continue;
       }
       links += 1;
@@ -206,6 +253,9 @@ export function validateDocs({
     anchors,
     apiLinks,
     skippedApiLinks,
+    apiTargets,
+    skippedApiTargets,
+    apiIndex: Boolean(apiIndex),
     references,
     sourceChecks,
     omittedRepositories: [...omittedRepositories],
@@ -219,9 +269,9 @@ function main() {
       `Source checkout checks skipped for: ${result.omittedRepositories.join(", ")}`,
     );
   }
-  if (result.skippedApiLinks) {
+  if (result.skippedApiLinks || result.skippedApiTargets) {
     console.log(
-      `API link checks skipped for ${result.skippedApiLinks} links: the API pages are not staged (run npm run docs:rustdoc).`,
+      `API link checks skipped for ${result.skippedApiLinks} links and ${result.skippedApiTargets} rust: and Api links: no API index and no API pages (run npm run docs:rustdoc or npm run docs:api-index).`,
     );
   }
   if (result.warnings?.length) {
@@ -233,7 +283,7 @@ function main() {
     return;
   }
   console.log(
-    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, ${result.apiLinks} API links, and ${result.references} source references (${Object.entries(
+    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, ${result.apiLinks} API links (${result.apiTargets} rust: and Api links), and ${result.references} source references (${Object.entries(
       result.sourceChecks,
     )
       .map(([repository, count]) => `${repository}: ${count}`)

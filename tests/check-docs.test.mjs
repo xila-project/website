@@ -121,3 +121,69 @@ test("checks API links only when the API pages are staged", (t) => {
   });
   assert.equal(strict.errors.length, 2);
 });
+
+test("checks API links and rust: links against the API index", (t) => {
+  const { root, source, output } = createSite(t);
+  writeFile(
+    path.join(output, "api", "api-index.json"),
+    JSON.stringify({
+      version: 1,
+      apis: {
+        host: {
+          items: {
+            xila: { url: "/api/host/xila/index.html", kind: "mod" },
+            "task::Manager": {
+              url: "/api/host/task/struct.Manager.html",
+              kind: "struct",
+              anchors: ["method.spawn"],
+            },
+          },
+          aliases: {},
+        },
+      },
+    }),
+  );
+  writeFile(
+    path.join(output, "reference", "host", "index.html"),
+    [
+      '<a href="/api/host/task/struct.Manager.html#method.spawn" data-api="host:task::Manager">ok</a>',
+      '<a href="/api/host/task/struct.Manager.html#method.stop">anchor</a>',
+      '<a href="/api/host/task/struct.Missing.html">page</a>',
+      '<a href="/api/host/xila/index.html?search=task%3A%3AStop" data-api-error="unknown API item &quot;task::Stop&quot; in &quot;task::Stop&quot;">stop</a>',
+    ].join(""),
+  );
+
+  const result = validateDocs({ root, source, output, environment: {} });
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.apiTargets, 2);
+  assert.deepEqual(result.warnings.sort(), [
+    "reference/host/index.html: missing API anchor /api/host/task/struct.Manager.html#method.stop",
+    "reference/host/index.html: missing API link /api/host/task/struct.Missing.html",
+    'reference/host/index.html: unknown API item "task::Stop" in "task::Stop"',
+  ]);
+
+  const strict = validateDocs({
+    root,
+    source,
+    output,
+    environment: { XILA_STRICT_API_LINKS: "1" },
+  });
+  assert.equal(strict.errors.length, 3);
+});
+
+test("counts rust: and Api links of a build without an index as skipped", (t) => {
+  const { root, source, output } = createSite(t);
+  writeFile(
+    path.join(output, "reference", "host", "index.html"),
+    '<a href="/api/host/xila/index.html?search=task" data-api-unchecked="no api-index.json">task</a>',
+  );
+  const result = validateDocs({
+    root,
+    source,
+    output,
+    environment: { XILA_STRICT_API_LINKS: "1" },
+  });
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.skippedApiTargets, 1);
+  assert.equal(result.skippedApiLinks, 1);
+});

@@ -1,0 +1,48 @@
+---
+/*
+ * A link to an item of the Rust API documentation, resolved at build time
+ * with the API index (scripts/api-links.mjs):
+ *
+ *   <Api path="task::Manager::spawn" />
+ *   <Api path="wasm::Window" api="guest" />
+ *   <Api path="network" />                    (a crate: "network crate")
+ *   <Api path="task::Manager">the manager</Api>
+ *
+ * A path that does not resolve links to the rustdoc search and carries a
+ * `data-api-error` attribute, which the documentation check reports, or a
+ * `data-api-unchecked` attribute when the build has no API index.
+ */
+import { resolveApiLink } from "../../scripts/api-links.mjs";
+
+interface Props {
+  path: string;
+  api?: "host" | "guest";
+}
+
+const { path, api } = Astro.props;
+const link = resolveApiLink(api ? `${api}:${path}` : path);
+// Forward the slot only when it has content, so that the generated label is
+// the fallback.
+const label = Astro.slots.has("default")
+  ? await Astro.slots.render("default")
+  : undefined;
+---
+
+<a
+  href={link.href}
+  class="reference-link"
+  data-api={link.api}
+  data-api-error={link.error}
+  data-api-unchecked={link.unchecked}
+>
+  {
+    label === undefined ? (
+      <>
+        <code>{link.label}</code>
+        {link.crate && " crate"}
+      </>
+    ) : (
+      <Fragment set:html={label} />
+    )
+  }
+</a>

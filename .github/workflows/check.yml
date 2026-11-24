@@ -3,6 +3,10 @@ name: Check
 on:
   pull_request:
   workflow_dispatch:
+  # The rustdoc job builds the API of Core and Applications main: a weekly run
+  # finds API links that a rename in those repositories breaks.
+  schedule:
+    - cron: "17 5 * * 1"
 
 permissions:
   contents: read
@@ -70,6 +74,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: "Setup | Published API index"
+        run: mise exec -- npm run docs:api-index
+
       - name: "Validate | Documentation and references"
         env:
           XILA_STRICT_SOURCE_REFERENCES: "1"
@@ -125,8 +132,17 @@ jobs:
       - name: "Setup | Core native packages"
         run: mise run ci:rustdoc-packages
 
+      - name: "Setup | Node and locked dependencies"
+        uses: xila-project/workspace/.github/actions/setup-node@0adf14f42ce3bb004b2fe6e7e66be813abda9666
+
       - name: "Build | Host and Guest Rustdoc"
         run: mise run documentation:rustdoc
+
+      - name: "Build | Site with the API"
+        run: mise exec -- npm run docs:build
+
+      - name: "Validate | API links against the built API"
+        run: mise exec -- npm run docs:validate
 
   required:
     if: always()
