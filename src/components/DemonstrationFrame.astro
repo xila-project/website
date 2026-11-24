@@ -11,7 +11,9 @@
  * Xila consumes the Escape key, so the page cannot offer Escape to leave the
  * frame. The "Back to the site header" link follows the frame in the
  * keyboard order, and the Tab key leaves the frame because the demonstration
- * does not consume it.
+ * does not consume it. The demonstration also takes the focus when it
+ * starts, so a keyboard user starts in the frame
+ * (xila-project/platforms#224).
  *
  * The demonstration draws on a canvas and has no text field, so a touch
  * screen shows no keyboard for it, and nobody can type the user name. On a
