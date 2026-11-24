@@ -3,6 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { writeApiIndex } from "./api-index.mjs";
 import { applyShell, writeShellAssets } from "./api-shell.mjs";
 import { sourceEnvironmentKey } from "./source-checkouts.mjs";
 
@@ -114,8 +115,9 @@ function buildOne(architecture, { root, output, environment, strict }) {
   return "built";
 }
 
-// The API pages are staged in public/api/: Astro copies them into the site
-// at build time, and the development server serves them.
+// The API pages and their index (api-index.json) are staged in public/api/:
+// Astro copies them into the site at build time, and the development server
+// serves them.
 export function buildRustdoc({
   root = defaultRoot,
   output = path.join(root, "public", "api"),
@@ -131,8 +133,10 @@ export function buildRustdoc({
     host: buildOne("host", options),
     guest: buildOne("guest", options),
   };
-  if (Object.values(result).some((status) => status !== "skipped"))
+  if (Object.values(result).some((status) => status !== "skipped")) {
     writeShellAssets(output);
+    writeApiIndex(output);
+  }
   return result;
 }
 
