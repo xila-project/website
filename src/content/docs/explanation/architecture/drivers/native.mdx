@@ -15,13 +15,13 @@ The native example combines these drivers with shared and standard-library drive
 
 ## How it works
 
-The window screen supplies display, keyboard and pointer integration to the graphics manager. The example can mount its debug transport at `/devices/graphics/debug/transport`. When audio initialization succeeds, it mounts playback at `/devices/audio/playback`.
+The window screen supplies display, keyboard, and pointer integration to the graphics manager. The example can mount its debug transport at `/devices/graphics/debug/transport`. When audio initialization succeeds, it mounts playback at `/devices/audio/playback`.
 
 The crate also provides a host file system. The container runtime mounts host directories explicitly; see [Headless](/explanation/architecture/drivers/headless/).
 
 ## Design choices and trade-offs
 
-Audio is feature gated and initialization can fail; the example continues without playback. Graphics devices are registered with the graphics manager rather than mounted as ordinary device paths.
+Audio is feature-gated, and initialization can fail. The example continues without playback. Graphics devices are registered with the graphics manager rather than mounted as ordinary device paths.
 
 ## API reference
 

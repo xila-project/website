@@ -7,17 +7,17 @@ description: "Standard-library services and devices for host runtimes."
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Platforms `drivers_std` crate supplies standard-library based runtime services and devices.
+The Platforms `drivers_std` crate supplies standard-library-based runtime services and devices.
 
 ## Context
 
-The native runtime uses it for storage, console input and output, time and CPU information.
+The native runtime uses it for storage, console input and output, time, and CPU information.
 
 ## How it works
 
-The native example mounts standard input, output and error at `/devices/standard_io/input`, `/devices/standard_io/output` and `/devices/standard_io/error`. It mounts time at `/devices/time/clock` and CPU information at `/devices/compute/informations`.
+The native example mounts standard input, output, and error at `/devices/standard_io/input`, `/devices/standard_io/output`, and `/devices/standard_io/error`. It mounts time at `/devices/time/clock` and CPU information at `/devices/compute/informations`.
 
-A file-backed drive supplies the block storage for the LittleFS root. The crate also provides a TUN/TAP interface, executor, memory, logging and executable loading support. The example can register a tunnel as `tunnel0`.
+A file-backed drive supplies the block storage for the LittleFS root. The crate also provides a TUN/TAP interface, executor, memory, logging, and executable loading support. The example can register a tunnel as `tunnel0`.
 
 ## Design choices and trade-offs
 

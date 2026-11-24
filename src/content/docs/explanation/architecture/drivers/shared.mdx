@@ -19,7 +19,7 @@ Both examples mount random and hashing devices at `/devices/random/source` and `
 
 ### Terminal input
 
-The terminal line editor echoes accepted input. Backspace or Delete removes the last UTF-8 character; Ctrl-U erases the line. Ctrl-C discards the line, echoes `^C` and a newline, and queues an empty line. Ctrl-D reports end of input on an empty line and is ignored on a nonempty line. Tab inserts one space; other control bytes are ignored. Escape sequences are consumed.
+The terminal line editor echoes accepted input. Backspace or Delete removes the last UTF-8 character. Ctrl-U erases the line. Ctrl-C discards the line, echoes `^C` and a newline, and queues an empty line. Ctrl-D reports end of input on an empty line and is ignored on a nonempty line. Tab inserts one space. Other control bytes are ignored. Escape sequences are consumed.
 
 CR or LF commits the line with a newline and echoes CRLF. An LF immediately following CR is consumed. If the completed queue lacks room for the line and newline, the editor retains the line and rings the bell. It also rings the bell when input cannot fit.
 
