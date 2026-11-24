@@ -48,7 +48,7 @@ The host runtime provides the following system calls in the `wasi_snapshot_previ
 
 ## Device control
 
-The <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> function sends typed control commands to virtual file system (VFS) character devices, such as audio playback devices or serial interfaces:
+The <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> function sends typed control commands to VFS character devices, such as audio playback devices or serial interfaces:
 
 ```rust
 pub unsafe fn fd_control(

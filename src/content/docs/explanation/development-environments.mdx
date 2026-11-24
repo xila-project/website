@@ -97,7 +97,7 @@ The build flow works as follows:
 ## Limits
 
 - **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the budget.
-- **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin-Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
+- **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
 - **Espressif target status:** Although driver sources exist in `drivers/espressif`, ESP32 builds are gated out on host targets and are not currently verified in continuous integration.
 
 ## API reference

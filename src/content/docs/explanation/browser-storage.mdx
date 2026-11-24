@@ -1,13 +1,13 @@
 ---
 title: "Browser storage"
 docType: explanation
-description: "Origin-private file system persistence, main-thread memory caching, Web Locks leases, and autosave in the browser runtime."
+description: "Origin Private File System persistence, main-thread memory caching, Web Locks leases, and autosave in the browser runtime."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The browser runtime persists Xila storage inside the Origin-Private File System (OPFS). It bridges synchronous block device operations with asynchronous browser APIs through a memory cache and exclusive Web Locks leases.
+The browser runtime persists Xila storage inside the Origin Private File System (OPFS). It bridges synchronous block device operations with asynchronous browser APIs through a memory cache and exclusive Web Locks leases.
 
 ## Context
 
@@ -29,7 +29,7 @@ The diagram shows how synchronous block operations interact with the memory cach
 flowchart LR
     VFS["VFS (LittleFS / MBR)"] -->|"synchronous block I/O"| Cache["Main-thread memory cache (16 MiB)"]
     Cache -->|"dirty snapshot (DriveDevice::sync)"| Save["Serialized asynchronous commit"]
-    Save --> OPFS["Origin-Private File System (selected disk image)"]
+    Save --> OPFS["Origin Private File System (selected disk image)"]
     Lock["Web Lock lease (xila-opfs:name)"] -.->|"exclusive single-tab lease"| OPFS
 ```
 
