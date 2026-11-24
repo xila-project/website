@@ -1,12 +1,20 @@
-// The script of the Xila shell on the API pages. It runs in the page head.
+// The script that the build adds to every rustdoc page, in the page head.
 //
-// It keeps the site theme and the rustdoc theme in agreement.
+// A direct visit to an API page is sent to the frame page of the site, which
+// shows the page under the site header. Inside the frame, the page keeps the
+// address bar and the title of the wrapper in agreement with its own URL, and
+// keeps the rustdoc theme in agreement with the site theme.
+//
 // The site (Starlight) stores "light", "dark" or an empty value (follow the
-// system) in `starlight-theme`. Rustdoc stores `rustdoc-use-system-theme`
-// and `rustdoc-theme`. Rustdoc's storage script reads them synchronously in
-// the page head, so this script runs before it. A theme chosen in rustdoc's
-// settings is copied back to the site when the visitor leaves the page.
+// system) in `starlight-theme`. Rustdoc stores `rustdoc-use-system-theme` and
+// `rustdoc-theme`. Rustdoc's storage script reads them synchronously in the
+// page head, so this script runs before it. The site and the frame are on the
+// same origin, so a theme change on the site reaches this page as a storage
+// event, and a theme chosen in the rustdoc settings is copied back to the
+// site when the page is left.
 (function () {
+  var API_ROOT = "/api/"; // keep in sync with scripts/api-shell.mjs
+  var FRAME_PAGE = "/reference/api/"; // keep in sync with scripts/reference-path.mjs
   var SITE_KEY = "starlight-theme";
   var DARK_THEMES = ["dark", "ayu"];
 
@@ -24,6 +32,54 @@
     } catch (error) {
       // Storage is not available, for example in a private window.
     }
+  }
+
+  // The path of this page under /api/, for example "host/xila/index.html".
+  // The browser normalises location.pathname; the checks stay so that a
+  // change in the serving setup cannot point the wrapper elsewhere.
+  function apiPath() {
+    if (!location.pathname.startsWith(API_ROOT)) return null;
+    var path = location.pathname.slice(API_ROOT.length);
+    var decoded;
+    try {
+      decoded = decodeURIComponent(path);
+    } catch (error) {
+      return null;
+    }
+    if (!/^(host|guest)\//.test(decoded)) return null;
+    if (/(^|\/)\.\.(\/|$)/.test(decoded)) return null;
+    return path;
+  }
+
+  // The URL of the frame page for this page, with the fragment inside the
+  // path parameter: /reference/api/?path=host/xila/index.html#method.spawn
+  function frameUrl(path) {
+    var url = new URL(FRAME_PAGE, location.origin);
+    url.searchParams.set("path", path + location.hash);
+    return url;
+  }
+
+  var path = apiPath();
+  if (window.top === window.self) {
+    // Not framed: show this page in the frame page of the site instead.
+    if (path !== null) location.replace(frameUrl(path));
+  } else if (path !== null) {
+    // Framed. The frame records its own history entries, so Back and Forward
+    // step through the API pages inside the frame, and every load re-syncs
+    // the wrapper. The wrapper therefore only mirrors the current position
+    // with replaceState: reload and sharing of the wrapper URL keep the
+    // position, without adding entries to the history of the site.
+    function sync() {
+      try {
+        parent.history.replaceState(null, "", frameUrl(path));
+        parent.document.title = document.title;
+      } catch (error) {
+        // The wrapper is on another origin: nothing to synchronise.
+      }
+    }
+    sync();
+    addEventListener("hashchange", sync);
+    addEventListener("pageshow", sync);
   }
 
   function siteMode() {
@@ -49,6 +105,20 @@
     }
   }
 
+  // Applies the stored rustdoc theme to the page without a reload. The
+  // storage script of rustdoc defines window.switchTheme.
+  function applyRustdocTheme() {
+    if (typeof window.switchTheme !== "function") return;
+    if (read("rustdoc-use-system-theme") !== "false") {
+      var dark =
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      window.switchTheme(dark ? "dark" : "light", false);
+    } else {
+      window.switchTheme(read("rustdoc-theme") || "light", false);
+    }
+  }
+
   siteToRustdoc();
 
   // A page restored from the back-forward cache runs no head script again:
@@ -57,24 +127,17 @@
     if (event.persisted) siteToRustdoc();
   });
 
+  // The theme toggle of the site header writes `starlight-theme`; this frame
+  // receives it as a storage event, because both are on the same origin.
+  addEventListener("storage", function (event) {
+    if (event.key === null || event.key === SITE_KEY) {
+      siteToRustdoc();
+      applyRustdocTheme();
+    }
+  });
+
   addEventListener("pagehide", function () {
     var mode = rustdocMode();
     write(SITE_KEY, mode === "auto" ? "" : mode);
   });
-
-  // The menu of the bar on small screens closes on a click outside it and
-  // on the Escape key, as the menus of the site header do.
-  function closeMenu(event) {
-    var menu = document.querySelector(".xila-shell-menu[open]");
-    if (!menu) return;
-    if (event.type === "keydown") {
-      if (event.key !== "Escape") return;
-      menu.open = false;
-      menu.querySelector("summary").focus();
-    } else if (!menu.contains(event.target)) {
-      menu.open = false;
-    }
-  }
-  addEventListener("pointerdown", closeMenu);
-  addEventListener("keydown", closeMenu);
 })();

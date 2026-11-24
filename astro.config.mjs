@@ -52,6 +52,7 @@ const sidebar = [
       page("Overview", "/reference/"),
       page("Host API", "/reference/host/"),
       page("Guest API", "/reference/guest/"),
+      page("API reference", "/reference/api/"),
       page("Shell", "/reference/shell/"),
       page("Experimental package format", "/reference/package-format/"),
       page("Development commands", "/reference/development-commands/"),

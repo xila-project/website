@@ -2,8 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// The Xila shell of the API pages. Rustdoc writes complete HTML pages; the
-// build adds a top bar, a style sheet and a theme script to each of them, so
+// The glue that the build adds to every rustdoc page under /api/: a script
+// that shows the page in the frame page of the site and keeps the themes in
+// agreement (scripts/api-shell/shell.js), and a style sheet that maps the
+// rustdoc colours and fonts to the site (scripts/api-shell/shell.css).
+// Rustdoc writes complete HTML pages; the build only post-processes them, so
 // that Core and Applications stay the only owners of the rustdoc flags.
 
 const ASSETS = path.join(
@@ -11,73 +14,12 @@ const ASSETS = path.join(
   "api-shell",
 );
 
-/** The directory of the shell files, relative to the API directory. */
+/** The directory of the injected files, relative to the API directory. */
 export const SHELL_DIRECTORY = "xila-shell";
 
-// The site links of the header (src/components/SiteTitle.astro). The
-// demonstration page is DEMONSTRATION_PAGE of src/data/demonstration-locales.ts.
-const SITE_LINKS = Object.freeze([
-  { label: "Documentation", href: "/docs/" },
-  { label: "Packages", href: "/packages/" },
-  { label: "Demonstration", href: "/demonstration/" },
-]);
-
-const APIS = Object.freeze([
-  { architecture: "host", label: "Host", crate: "xila" },
-  { architecture: "guest", label: "Guest", crate: "wasm" },
-]);
-
-function escape(text) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function listItems(links) {
-  return links
-    .map(
-      ({ label, href, current }) =>
-        `<li><a href="${escape(href)}"${current ? ' aria-current="page"' : ""}>${escape(label)}</a></li>`,
-    )
-    .join("");
-}
-
-/** The HTML of the top bar for the API of `architecture`. */
-export function renderShellBar(architecture, base = "/api") {
-  const api = APIS.find((entry) => entry.architecture === architecture);
-  if (!api) throw new Error(`Unsupported API architecture: ${architecture}`);
-  const reference = {
-    label: `${api.label} API reference`,
-    href: `/reference/${architecture}/`,
-  };
-  const switchLinks = APIS.map((entry) => ({
-    label: entry.label,
-    href: `${base}/${entry.architecture}/${entry.crate}/index.html`,
-    current: entry === api,
-  }));
-
-  return [
-    `<header class="xila-shell" data-pagefind-ignore>`,
-    `<a class="xila-shell-brand" href="/">`,
-    `<img class="light" src="/images/logo_light.svg" alt="" width="28" height="28">`,
-    `<img class="dark" src="/images/logo_dark.svg" alt="" width="28" height="28">`,
-    `<span>Xila</span></a>`,
-    `<nav class="xila-shell-site" aria-label="Site"><ul>${listItems(SITE_LINKS)}</ul></nav>`,
-    `<nav class="xila-shell-api" aria-label="API"><ul>`,
-    `<li class="xila-shell-switch">${switchLinks
-      .map(
-        ({ label, href, current }) =>
-          `<a href="${escape(href)}"${current ? ' aria-current="true"' : ""}>${escape(label)}</a>`,
-      )
-      .join("")}</li>`,
-    `<li class="xila-shell-reference"><a href="${reference.href}">Reference</a></li>`,
-    `</ul></nav>`,
-    `<details class="xila-shell-menu"><summary>Menu</summary><ul>${listItems([...SITE_LINKS, reference])}</ul></details>`,
-    `</header>`,
-  ].join("");
-}
+// The API directory of the site. Keep in sync with API_ROOT of
+// scripts/api-shell/shell.js.
+const API_BASE = "/api";
 
 const CHARSET = /<meta charset="utf-8">/i;
 const RUSTDOC_PAGE = /<meta name="rustdoc-vars"/;
@@ -85,20 +27,20 @@ const ICONS = /<link rel="(?:alternate )?icon"[^>]*>/g;
 const BODY = /<body\b[^>]*>/;
 
 /**
- * Adds the shell to one rustdoc page. Returns `null` for files that are not
+ * Adds the glue to one rustdoc page. Returns `null` for files that are not
  * rustdoc pages, such as the redirect pages of re-exported items.
  */
-export function applyShellToPage(html, architecture, base = "/api") {
+export function applyShellToPage(html) {
   if (!RUSTDOC_PAGE.test(html)) return null;
   // A rustdoc page that the patterns do not match means that rustdoc changed
-  // its output: fail instead of publishing pages without the shell.
+  // its output: fail instead of publishing pages without the glue.
   if (!CHARSET.test(html) || !BODY.test(html) || !html.includes("</head>"))
     throw new Error(
       "Unexpected rustdoc page structure: no <meta charset>, </head> or <body>",
     );
-  const assets = `${base}/${SHELL_DIRECTORY}`;
-  // The theme script must run before rustdoc's storage script, which applies
-  // the stored theme as soon as it loads in the head.
+  const assets = `${API_BASE}/${SHELL_DIRECTORY}`;
+  // The script must run before rustdoc's storage script, which applies the
+  // stored theme as soon as it loads in the head.
   return html
     .replace(
       CHARSET,
@@ -110,8 +52,7 @@ export function applyShellToPage(html, architecture, base = "/api") {
       `<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">` +
         `<link rel="stylesheet" href="/fonts/montserrat.css">` +
         `<link rel="stylesheet" href="${assets}/shell.css"></head>`,
-    )
-    .replace(BODY, (tag) => `${tag}${renderShellBar(architecture, base)}`);
+    );
 }
 
 function htmlFiles(directory) {
@@ -122,17 +63,13 @@ function htmlFiles(directory) {
   });
 }
 
-/** Adds the shell to every rustdoc page under `directory`. */
-export function applyShell(directory, architecture, base = "/api") {
+/** Adds the glue to every rustdoc page under `directory`. */
+export function applyShell(directory) {
   let pages = 0;
   for (const file of htmlFiles(directory)) {
     let html;
     try {
-      html = applyShellToPage(
-        fs.readFileSync(file, "utf8"),
-        architecture,
-        base,
-      );
+      html = applyShellToPage(fs.readFileSync(file, "utf8"));
     } catch (error) {
       throw new Error(`${file}: ${error.message}`);
     }
@@ -144,7 +81,7 @@ export function applyShell(directory, architecture, base = "/api") {
   return pages;
 }
 
-/** Copies the shared shell files into the API directory. */
+/** Copies the shared files into the API directory. */
 export function writeShellAssets(apiDirectory) {
   const destination = path.join(apiDirectory, SHELL_DIRECTORY);
   fs.rmSync(destination, { recursive: true, force: true });

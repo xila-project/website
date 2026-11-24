@@ -60,7 +60,7 @@ function runTask(checkout, [task, ...args], environment) {
   });
 }
 
-function stage(source, destination, crate, architecture) {
+function stage(source, destination, crate) {
   if (!fs.existsSync(path.join(source, crate, "index.html"))) {
     throw new Error(
       `Rustdoc output ${source} does not contain ${crate}/index.html`,
@@ -69,7 +69,7 @@ function stage(source, destination, crate, architecture) {
   fs.rmSync(destination, { recursive: true, force: true });
   fs.mkdirSync(destination, { recursive: true });
   fs.cpSync(source, destination, { recursive: true });
-  applyShell(destination, architecture);
+  applyShell(destination);
 }
 
 function buildOne(architecture, { root, output, environment, strict }) {
@@ -79,7 +79,7 @@ function buildOne(architecture, { root, output, environment, strict }) {
     environment[`XILA_${architecture.toUpperCase()}_RUSTDOC_DIR`];
 
   if (prebuilt) {
-    stage(prebuilt, destination, source.crate, architecture);
+    stage(prebuilt, destination, source.crate);
     return "copied";
   }
 
@@ -110,7 +110,6 @@ function buildOne(architecture, { root, output, environment, strict }) {
     path.join(targetDirectory, source.target, "doc"),
     destination,
     source.crate,
-    architecture,
   );
   return "built";
 }

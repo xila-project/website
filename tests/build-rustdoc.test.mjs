@@ -52,11 +52,11 @@ test("stages prebuilt host and guest Rustdoc into separate directories", (t) => 
   assert.deepEqual(result, { host: "copied", guest: "copied" });
   assert.match(
     fs.readFileSync(path.join(output, "host", "xila", "index.html"), "utf8"),
-    /class="xila-shell".*host<\/body>/,
+    /<script src="\/api\/xila-shell\/shell\.js"><\/script>.*>host<\/body>/,
   );
   assert.match(
     fs.readFileSync(path.join(output, "guest", "wasm", "index.html"), "utf8"),
-    /class="xila-shell".*guest<\/body>/,
+    /<script src="\/api\/xila-shell\/shell\.js"><\/script>.*>guest<\/body>/,
   );
   assert.equal(fs.existsSync(path.join(output, "host", "stale.html")), false);
 });

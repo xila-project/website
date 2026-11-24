@@ -50,10 +50,10 @@ src/
     docs/          # Documentation entry point
     tutorials/     # Guided learning experiences
     how-to/        # Task-focused procedures
-    reference/     # Commands, capabilities, limits, and generated API viewers
+    reference/     # Commands, capabilities, limits, and the generated API reference
     explanation/   # Concepts, architecture, component map, and design choices
     about/         # Project information
-  components/      # Reference links, API viewer, footer, and card components
+  components/      # Reference links, API frame, footer, and card components
   styles/          # Xila adjustments to the Starlight Black theme
 public/            # Static assets (fonts, images, robots.txt)
 docs/templates/    # Authoring templates, excluded from the published site

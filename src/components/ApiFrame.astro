@@ -1,0 +1,107 @@
+---
+/*
+ * The generated API documentation, published under /api/, in a frame that
+ * fills the viewport under the site header, as the browser demonstration page
+ * does. The frame loads the page given by the `path` query parameter of this
+ * page, for example `/reference/api/?path=host/xila/index.html#method.spawn`,
+ * and shows the Host API index without a path. Each API page keeps this URL
+ * and the document title in agreement with its own URL (the script that the
+ * build adds to every API page, scripts/api-shell/shell.js), so reload,
+ * sharing and Back keep the position. A direct visit to an /api/ page is
+ * redirected here.
+ *
+ * The `:global` rules at the end remove the title, footer and spacing of the
+ * surrounding page: the frame must not cause a page scroll.
+ */
+import { getApiRootHref } from "../../scripts/reference-path.mjs";
+---
+
+<section class="api-frame not-content" aria-label="API documentation">
+  <iframe class="frame" title="Xila API documentation" data-frame></iframe>
+  <noscript>
+    <p class="notice">
+      The API reference needs JavaScript to show the page in the site frame.
+      <a href={getApiRootHref("host")}>Open the Host API page directly</a>.
+    </p>
+  </noscript>
+</section>
+
+<script>
+  import {
+    getApiFrameSource,
+    getApiRootHref,
+  } from "../../scripts/reference-path.mjs";
+
+  const frame = document.querySelector<HTMLIFrameElement>("[data-frame]")!;
+
+  // The frame has no address until here, so the browser loads only the
+  // requested API page, and the Host API index when the path is missing or
+  // not a page under /api/host/ or /api/guest/.
+  const requested = new URLSearchParams(location.search).get("path");
+  frame.src =
+    (requested && getApiFrameSource(requested)) || getApiRootHref("host");
+</script>
+
+<style>
+  .api-frame {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--sl-nav-height, 4rem));
+    min-height: 0;
+  }
+
+  .frame {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border: 0;
+    background-color: var(--background);
+  }
+
+  .notice {
+    margin: 1rem;
+  }
+
+  :global(body:has(.api-frame)) {
+    overflow: hidden;
+  }
+
+  /* The breadcrumb, the title and the footer must not cause a page scroll.
+     They stay available to assistive technology. */
+  :global(body:has(.api-frame) :is(.page-meta, .page-title)) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The header is fixed: .main-frame keeps its top padding below it. */
+  :global(body:has(.api-frame) :is(.main-frame, .main-pane)) {
+    max-width: none;
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  :global(body:has(.api-frame) .main-pane) {
+    padding-block: 0;
+  }
+
+  :global(body:has(.api-frame) main) {
+    gap: 0;
+    padding: 0;
+  }
+
+  :global(body:has(.api-frame) :is(.content-panel, .sl-container)) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  :global(body:has(.api-frame) :is(footer, .xila-footer, .pagination-links)) {
+    display: none;
+  }
+</style>

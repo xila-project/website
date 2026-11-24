@@ -156,13 +156,13 @@ These tasks come from each repository's mise configuration. Run `mise run <task>
 
 ## Website tasks
 
-| Task                        | Repository | Description                                                                                                 |
-| --------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
-| `documentation:check`       | website    | Validate references, formatting and build the Astro and Starlight documentation                             |
-| `documentation:rustdoc`     | website    | Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it into dist/rustdoc |
-| `ci:rustdoc-toolchain`      | website    | Prepare Core's pinned Rust toolchain and report its cache key                                               |
-| `ci:rustdoc-packages`       | website    | Install Core's native host packages needed to document its graphics stack                                   |
-| `documentation:development` | website    | Start the Astro local development server                                                                    |
+| Task                        | Repository | Description                                                                                                                      |
+| --------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `documentation:check`       | website    | Validate references, formatting and build the Astro and Starlight documentation                                                  |
+| `documentation:rustdoc`     | website    | Build host and WebAssembly guest Rustdoc with Core's and Applications' tasks and stage it into public/api, published under /api/ |
+| `ci:rustdoc-toolchain`      | website    | Prepare Core's pinned Rust toolchain and report its cache key                                                                    |
+| `ci:rustdoc-packages`       | website    | Install Core's native host packages needed to document its graphics stack                                                        |
+| `documentation:development` | website    | Start the Astro local development server                                                                                         |
 
 ## Workspace tasks
 

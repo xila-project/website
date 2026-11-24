@@ -1,11 +1,12 @@
 ---
 /*
- * The entry point of an API on its reference page: a link to the rustdoc
- * pages under /api/, and the redirect of the former viewer links.
+ * The entry point of an API on its reference page: a link to the frame page
+ * of the site that shows the rustdoc pages under /api/, and the redirect of
+ * the former viewer links.
  */
 import { LinkCard } from "@astrojs/starlight/components";
 import ApiRedirect from "./ApiRedirect.astro";
-import { getApiRootHref } from "../../scripts/reference-path.mjs";
+import { getApiFrameRootHref } from "../../scripts/reference-path.mjs";
 
 interface Props {
   architecture: "host" | "guest";
@@ -21,6 +22,6 @@ const title =
 <ApiRedirect architecture={architecture} />
 <LinkCard
   title={title}
-  description="Open the generated rustdoc: crates, modules, types, traits and functions."
-  href={getApiRootHref(architecture)}
+  description="Open the generated rustdoc in the API reference: crates, modules, types, traits and functions."
+  href={getApiFrameRootHref(architecture)}
 />

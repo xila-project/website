@@ -7,7 +7,6 @@ import test from "node:test";
 import {
   applyShell,
   applyShellToPage,
-  renderShellBar,
   writeShellAssets,
 } from "../scripts/api-shell.mjs";
 
@@ -20,15 +19,15 @@ const PAGE =
   '<link rel="icon" type="image/svg+xml" href="../static.files/favicon.svg">' +
   '</head><body class="rustdoc struct"><main></main></body></html>';
 
-test("runs the theme script before rustdoc's storage script", () => {
-  const html = applyShellToPage(PAGE, "host");
-  const theme = html.indexOf('<script src="/api/xila-shell/shell.js">');
+test("runs the frame script before rustdoc's storage script", () => {
+  const html = applyShellToPage(PAGE);
+  const script = html.indexOf('<script src="/api/xila-shell/shell.js">');
   const storage = html.indexOf("storage.js");
-  assert.ok(theme > 0 && theme < storage);
+  assert.ok(script > 0 && script < storage);
 });
 
-test("adds the shell style sheet after rustdoc's and replaces the icons", () => {
-  const html = applyShellToPage(PAGE, "host");
+test("adds the style sheet after rustdoc's and replaces the icons", () => {
+  const html = applyShellToPage(PAGE);
   assert.ok(
     html.indexOf("/api/xila-shell/shell.css") > html.indexOf("rustdoc.css"),
   );
@@ -37,31 +36,18 @@ test("adds the shell style sheet after rustdoc's and replaces the icons", () => 
   assert.ok(html.includes('href="/images/favicon.svg"'));
 });
 
-test("puts the bar first in the body", () => {
-  const html = applyShellToPage(PAGE, "guest");
-  assert.match(html, /<body class="rustdoc struct"><header class="xila-shell"/);
-});
-
-test("marks the current API in the switch and links its reference page", () => {
-  const bar = renderShellBar("guest");
-  assert.match(
-    bar,
-    /<a href="\/api\/guest\/wasm\/index.html" aria-current="true">Guest<\/a>/,
-  );
-  assert.match(bar, /<a href="\/api\/host\/xila\/index.html">Host<\/a>/);
-  assert.match(bar, /href="\/reference\/guest\/"/);
-  assert.match(bar, /href="\/docs\/">Documentation/);
-  assert.match(bar, /href="\/packages\/">Packages/);
-  assert.throws(() => renderShellBar("browser"));
+test("changes nothing in the body of the page", () => {
+  const html = applyShellToPage(PAGE);
+  assert.ok(html.includes('<body class="rustdoc struct"><main></main></body>'));
 });
 
 test("leaves files that are not rustdoc pages unchanged", () => {
   const redirect =
     '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;URL=../x.html"></head><body></body></html>';
-  assert.equal(applyShellToPage(redirect, "host"), null);
+  assert.equal(applyShellToPage(redirect), null);
 });
 
-test("applies the shell to a directory and writes the shared files", (t) => {
+test("applies the glue to a directory and writes the shared files", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "xila-api-shell-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const page = path.join(root, "host", "task", "index.html");
@@ -70,8 +56,8 @@ test("applies the shell to a directory and writes the shared files", (t) => {
   fs.writeFileSync(page, PAGE);
   fs.writeFileSync(redirect, "<html><body>moved</body></html>");
 
-  assert.equal(applyShell(path.join(root, "host"), "host"), 1);
-  assert.match(fs.readFileSync(page, "utf8"), /xila-shell/);
+  assert.equal(applyShell(path.join(root, "host")), 1);
+  assert.match(fs.readFileSync(page, "utf8"), /xila-shell\/shell\.js/);
   assert.equal(
     fs.readFileSync(redirect, "utf8"),
     "<html><body>moved</body></html>",
@@ -82,20 +68,15 @@ test("applies the shell to a directory and writes the shared files", (t) => {
   assert.ok(fs.existsSync(path.join(root, "xila-shell", "shell.js")));
 });
 
-test("links the site pages of the header", () => {
-  const bar = renderShellBar("host");
-  assert.match(bar, /href="\/demonstration\/">Demonstration/);
-});
-
 test("fails on a rustdoc page whose structure is not recognised", () => {
   const changed =
     '<!DOCTYPE html><html><head><meta charset=utf-8><meta name="rustdoc-vars"></head><body class="rustdoc"></body></html>';
-  assert.throws(() => applyShellToPage(changed, "host"), /Unexpected rustdoc/);
+  assert.throws(() => applyShellToPage(changed), /Unexpected rustdoc/);
 });
 
 test("fails when a directory has no rustdoc page", (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "xila-api-shell-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, "index.html"), "<html></html>");
-  assert.throws(() => applyShell(root, "host"), /No rustdoc page/);
+  assert.throws(() => applyShell(root), /No rustdoc page/);
 });
