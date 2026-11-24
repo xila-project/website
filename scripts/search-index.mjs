@@ -115,6 +115,11 @@ function assertResponse(response) {
  *
  * The records of the API bundle are a few words long, so they score far
  * above the pages: the low weight puts a page that matches the query first.
+ * Measured on the pages and the API of 2026-11-24: with a weight of 0.02, API
+ * items ranked above the documentation pages for "file system", "file",
+ * "window", "device" and "driver". With 0.002, the first results for these
+ * queries are pages, and an API item that the pages do not mention still
+ * ranks first (for example "spawn_send" or "SpawnerIdentifier").
  * The API bundle uses Pagefind's default ranking, not the ranking of
  * Starlight, so that a short item name ranks above a long one.
  */
@@ -125,7 +130,7 @@ export function getPagefindOptions(root = process.cwd()) {
     mergeIndex: [
       {
         bundlePath: `/${API_SEARCH_BUNDLE}/`,
-        indexWeight: 0.02,
+        indexWeight: 0.002,
         ranking: {
           pageLength: 0.75,
           termFrequency: 1,
