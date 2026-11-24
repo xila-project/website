@@ -5,7 +5,7 @@ description: "Compose Core managers and platform drivers in a host runtime."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 This guide shows how to compose a host runtime. It uses the native example as a reference.
 
@@ -16,11 +16,11 @@ This guide shows how to compose a host runtime. It uses the native example as a 
 
 ## Steps
 
-1. Create a task manager and initialize logging, users and time using host drivers. The native example provides a static <HostReference crate="task" kind="struct" symbol="Manager" /> and a time device.
+1. Create a task manager and initialize logging, users and time using host drivers. The native example provides a static <Api path="task::Manager" /> and a time device.
 2. If using graphics, initialize graphics with a screen and input devices and start its loop as a task.
 3. Prepare and mount storage, then initialize the virtual file system with the task, users and time managers.
-4. Mount the devices and initialize the network manager and the <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /> that your host requires. Follow the native example for authentication and executable registration.
-5. Mount the executables with <HostReference crate="executable" kind="macro" symbol="mount_executables" />, open the standard streams with <HostReference crate="executable" kind="struct" symbol="Standard" /> and start the first executable, for example the shell, with <HostReference crate="executable" kind="fn" symbol="execute" />.
+4. Mount the devices and initialize the network manager and the <Api path="executable::ExecutableContext" /> that your host requires. Follow the native example for authentication and executable registration.
+5. Mount the executables with <Api path="executable::mount_executables" />, open the standard streams with <Api path="executable::Standard" /> and start the first executable, for example the shell, with <Api path="executable::execute" />.
 
 The following diagram shows the order in the native example.
 

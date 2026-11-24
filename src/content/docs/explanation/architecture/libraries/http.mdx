@@ -5,7 +5,7 @@ description: "Bounded HTTP/1.1 response parsing, in-place chunked decoding, and 
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `xila_http` crate provides bounded, `no_std` HTTP/1.1 response parsing, in-place chunked transfer decoding, and request framing helpers. It lives in the Core repository under `libraries/http/` and is published as the `xila_http` package.
 
@@ -17,7 +17,7 @@ Embedded networking stacks cannot afford arbitrary buffer growth or heap allocat
 
 ### Bounded response head parsing
 
-The <HostReference crate="xila_http" kind="fn" symbol="parse_response_head" /> function parses an HTTP response head without heap allocations:
+The <Api path="xila_http::parse_response_head" /> function parses an HTTP response head without heap allocations:
 
 ```rust
 pub fn parse_response_head<const N: usize>(
@@ -30,13 +30,13 @@ It borrows a caller-managed buffer and allocates a stack array of `[httparse::EM
 
 - If the buffer holds an incomplete head, it returns `Ok(None)`. The caller must receive more data from the network.
 - It parses status codes and headers case-insensitively.
-- Informational responses (1xx), `204 No Content`, `304 Not Modified`, and responses to `HEAD` requests are classified as <HostReference crate="xila_http" kind="enum" symbol="BodyKind" />`::Empty`.
+- Informational responses (1xx), `204 No Content`, `304 Not Modified`, and responses to `HEAD` requests are classified as <Api path="xila_http::BodyKind" />`::Empty`.
 - Protocol upgrade attempts (`101 Switching Protocols`) are rejected with `Error::UnsupportedUpgrade`.
 - It inspects `Transfer-Encoding` for `chunked` framing and reads `Content-Length`.
 
 ### Body framing modes
 
-The <HostReference crate="xila_http" kind="enum" symbol="BodyKind" /> enum distinguishes four framing modes:
+The <Api path="xila_http::BodyKind" /> enum distinguishes four framing modes:
 
 - `Empty`: No response body is expected.
 - `Length(u64)`: The body length is fixed and specified by a valid `Content-Length` header.
@@ -45,7 +45,7 @@ The <HostReference crate="xila_http" kind="enum" symbol="BodyKind" /> enum disti
 
 ### In-place chunked transfer decoding
 
-The <HostReference crate="xila_http" kind="struct" symbol="BodyDecoder" /> struct decodes chunked bodies directly in place inside caller-provided memory:
+The <Api path="xila_http::BodyDecoder" /> struct decodes chunked bodies directly in place inside caller-provided memory:
 
 ```rust
 let mut decoder = BodyDecoder::new(head.body);
@@ -72,12 +72,11 @@ Incoming data contains chunk boundaries, hexadecimal lengths, and carriage-retur
 
 The library also supplies fixed-buffer formatting and parsing abstractions:
 
-- <HostReference crate="xila_http" kind="struct" symbol="HttpRequestBuilder" />:
-  Formats request lines, headers, and payloads into a byte slice.
+- <Api path="xila_http::HttpRequestBuilder" />: Formats request lines, headers,
+  and payloads into a byte slice.
 - `HttpRequestParser`: Parses request method, path, and headers from an input buffer.
-- <HostReference crate="xila_http" kind="struct" symbol="HttpResponseBuilder" />
-  : Formats response status lines, headers, and chunked frames via `add_chunk`
-  and `finish_chunks`.
+- <Api path="xila_http::HttpResponseBuilder" />: Formats response status lines,
+  headers, and chunked frames via `add_chunk` and `finish_chunks`.
 - `HttpResponseParser`: Extracts response status code, headers, and body slices from a buffer.
 
 ## Design choices and trade-offs
@@ -94,17 +93,16 @@ The library also supplies fixed-buffer formatting and parsing abstractions:
 
 ## API reference
 
-- <HostReference crate="xila_http" />: package documentation and root exports.
-- <HostReference crate="xila_http" kind="fn" symbol="parse_response_head" />:
-  non-allocating response head parser.
-- <HostReference crate="xila_http" kind="struct" symbol="BodyDecoder" />:
-  in-place streaming body decoder.
-- <HostReference crate="xila_http" kind="enum" symbol="BodyKind" />:
-  representation of expected response body framing.
-- <HostReference crate="xila_http" kind="struct" symbol="HttpRequestBuilder" />:
-  fixed-buffer HTTP request builder.
-- <HostReference crate="xila_http" kind="struct" symbol="HttpResponseBuilder" />
-  : fixed-buffer HTTP response and chunk builder.
+- <Api path="xila_http" />: package documentation and root exports.
+- <Api path="xila_http::parse_response_head" />: non-allocating response head
+  parser.
+- <Api path="xila_http::BodyDecoder" />: in-place streaming body decoder.
+- <Api path="xila_http::BodyKind" />: representation of expected response body
+  framing.
+- <Api path="xila_http::HttpRequestBuilder" />: fixed-buffer HTTP request
+  builder.
+- <Api path="xila_http::HttpResponseBuilder" />: fixed-buffer HTTP response and
+  chunk builder.
 
 ## Related
 

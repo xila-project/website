@@ -5,7 +5,7 @@ description: "PCM audio formats, device commands, bounded queues, mixing, and VF
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `audio` crate supplies reusable PCM playback primitives, character device control contracts, and a fixed-capacity software mixer. It lives in the Core repository under `libraries/audio/`. The `xila` facade crate exposes it when the `audio` feature is enabled.
 
@@ -17,7 +17,7 @@ Embedded systems need sound synthesis and PCM playback without the memory cost o
 
 ### PCM formats and configuration
 
-The library handles interleaved little-endian PCM audio with 1 to 8 channels. The <HostReference crate="audio" kind="enum" symbol="SampleFormat" /> enum defines the supported formats:
+The library handles interleaved little-endian PCM audio with 1 to 8 channels. The <Api path="audio::SampleFormat" /> enum defines the supported formats:
 
 - `U8` (code 0, silence at 128)
 - `I16` (code 1, signed 16-bit)
@@ -25,7 +25,7 @@ The library handles interleaved little-endian PCM audio with 1 to 8 channels. Th
 - `I32` (code 3, signed 32-bit)
 - `F32` (code 4, nominal full scale -1.0 to 1.0)
 
-The <HostReference crate="audio" kind="struct" symbol="Configuration" /> struct is an 8-byte `repr(C)` descriptor. It contains `sample_rate: u32`, `channels: u8`, `format: u8`, and two reserved bytes.
+The <Api path="audio::Configuration" /> struct is an 8-byte `repr(C)` descriptor. It contains `sample_rate: u32`, `channels: u8`, `format: u8`, and two reserved bytes.
 
 ### PCM control commands
 
@@ -43,7 +43,7 @@ Each command expects an exact payload size and alignment. Otherwise the driver r
 
 ### Single-device playback buffer
 
-The <HostReference crate="audio" kind="struct" symbol="PlaybackBuffer" /> struct provides caller-owned storage for `N` PCM bytes plus cursor and state metadata:
+The <Api path="audio::PlaybackBuffer" /> struct provides caller-owned storage for `N` PCM bytes plus cursor and state metadata:
 
 ```rust
 let mut buffer = PlaybackBuffer::<4096>::new();
@@ -55,7 +55,7 @@ let (device, mut renderer) = buffer.split(configuration);
 
 ### Multi-stream software mixer
 
-The <HostReference crate="audio" kind="struct" symbol="AudioSystem" /> struct implements a multi-stream mixer:
+The <Api path="audio::AudioSystem" /> struct implements a multi-stream mixer:
 
 ```rust
 AudioSystem<const STREAMS: usize = 4, const STREAM_BYTES: usize = 2048, const MIX_FRAMES: usize = 128, const OUTPUTS: usize = 2, const SINK_BYTES: usize = 3072>
@@ -70,7 +70,7 @@ The system mixes active streams to **48 kHz stereo interleaved F32**. It must be
 
 ### Virtual file system integration
 
-The <HostReference crate="audio" kind="struct" symbol="AudioStreamDevice" /> character device mounts the mixer at `/devices/audio/playback`. When a task opens the device file, the driver reserves an independent stream from the pinned `AudioSystem` and attaches it to the open file context. File writes stream PCM directly into that reservation. Closing the file releases the stream.
+The <Api path="audio::AudioStreamDevice" /> character device mounts the mixer at `/devices/audio/playback`. When a task opens the device file, the driver reserves an independent stream from the pinned `AudioSystem` and attaches it to the open file context. File writes stream PCM directly into that reservation. Closing the file releases the stream.
 
 The following diagram shows the audio data flow from applications through stream buffers and mixer blocks to platform output sinks:
 
@@ -100,17 +100,13 @@ Applications write PCM frames into their stream buffers. The `AudioSystem` mixer
 
 ## API reference
 
-- <HostReference crate="audio" />: package documentation and root exports.
-- <HostReference crate="audio" kind="struct" symbol="AudioSystem" />: pinned
-  multi-stream software mixer.
-- <HostReference crate="audio" kind="struct" symbol="AudioStreamDevice" />: VFS
-  character device mounting the mixer.
-- <HostReference crate="audio" kind="struct" symbol="PlaybackBuffer" />:
-  single-device ring buffer storage.
-- <HostReference crate="audio" kind="struct" symbol="Configuration" />: PCM
-  audio configuration descriptor.
-- <HostReference crate="audio" kind="enum" symbol="SampleFormat" />: supported
-  PCM sample formats.
+- <Api path="audio" />: package documentation and root exports.
+- <Api path="audio::AudioSystem" />: pinned multi-stream software mixer.
+- <Api path="audio::AudioStreamDevice" />: VFS character device mounting the
+  mixer.
+- <Api path="audio::PlaybackBuffer" />: single-device ring buffer storage.
+- <Api path="audio::Configuration" />: PCM audio configuration descriptor.
+- <Api path="audio::SampleFormat" />: supported PCM sample formats.
 
 ## Related
 

@@ -5,7 +5,7 @@ description: "Portable cross-cutting primitives, unit conversions, and layout-ba
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `shared` crate provides cross-cutting foundational types, layout-based type erasure, bidirectional collections, unit conversion utilities, and shared HTTP types across the Xila workspace. It lives in the Core repository under `libraries/shared/`. The `xila` facade crate exposes it.
 
@@ -17,7 +17,7 @@ Subsystems, drivers, and libraries need shared primitives for type erasure acros
 
 ### Layout-based type erasure with AnyByLayout
 
-The <HostReference crate="shared" kind="struct" symbol="AnyByLayout" /> struct provides a borrowed, type-erased memory wrapper identified by byte size and memory alignment:
+The <Api path="shared::AnyByLayout" /> struct provides a borrowed, type-erased memory wrapper identified by byte size and memory alignment:
 
 ```rust
 let value: u32 = 42;
@@ -33,7 +33,7 @@ let recovered = any.cast::<u32>()?;
 
 ### Bidirectional collections
 
-The <HostReference crate="shared" kind="struct" symbol="BijectiveBTreeMap" /> struct maintains a one-to-one mapping between keys and values:
+The <Api path="shared::BijectiveBTreeMap" /> struct maintains a one-to-one mapping between keys and values:
 
 ```rust
 let mut map = BijectiveBTreeMap::new();
@@ -48,9 +48,9 @@ Forward and reverse lookups both run in logarithmic time. They track state consi
 
 The library provides several focused utility modules:
 
-- Measurement units: The <HostReference crate="shared" kind="struct" symbol="Unit" /> struct handles quantities with metric and binary prefixes (`PREFIXES`, `BYTES_SUFFIX`, `BITS_SUFFIX`, `FREQUENCY_SUFFIX`).
-- Calendar and time: Functions such as <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" /> convert Unix timestamps into calendar dates. They account for leap years via `is_leap_year` and month day counts via `days_in_month`.
-- Slice operations: Utilities such as <HostReference crate="shared" kind="fn" symbol="align_slice_to" /> align raw memory slices to requested boundary constraints.
+- Measurement units: The <Api path="shared::Unit" /> struct handles quantities with metric and binary prefixes (`PREFIXES`, `BYTES_SUFFIX`, `BITS_SUFFIX`, `FREQUENCY_SUFFIX`).
+- Calendar and time: Functions such as <Api path="shared::decompose_unix_timestamp" /> convert Unix timestamps into calendar dates. They account for leap years via `is_leap_year` and month day counts via `days_in_month`.
+- Slice operations: Utilities such as <Api path="shared::align_slice_to" /> align raw memory slices to requested boundary constraints.
 - UTF-8 handling: `utf8_chunks` provides safe iteration over segmented UTF-8 byte streams.
 - HTTP re-exports: Re-exports request and response builders and parsers from the `xila_http` crate.
 
@@ -81,17 +81,13 @@ The caller wraps a typed payload in an `AnyByLayout`. The virtual file system pa
 
 ## API reference
 
-- <HostReference crate="shared" />: package documentation and root exports.
-- <HostReference crate="shared" kind="struct" symbol="AnyByLayout" />:
-  layout-based type erasure container.
-- <HostReference crate="shared" kind="struct" symbol="BijectiveBTreeMap" />:
-  bidirectional one-to-one map.
-- <HostReference crate="shared" kind="struct" symbol="Unit" />: unit and prefix
-  conversion abstraction.
-- <HostReference crate="shared" kind="fn" symbol="align_slice_to" />: byte slice
-  alignment utility.
-- <HostReference crate="shared" kind="fn" symbol="decompose_unix_timestamp" />:
-  Unix timestamp to calendar date conversion.
+- <Api path="shared" />: package documentation and root exports.
+- <Api path="shared::AnyByLayout" />: layout-based type erasure container.
+- <Api path="shared::BijectiveBTreeMap" />: bidirectional one-to-one map.
+- <Api path="shared::Unit" />: unit and prefix conversion abstraction.
+- <Api path="shared::align_slice_to" />: byte slice alignment utility.
+- <Api path="shared::decompose_unix_timestamp" />: Unix timestamp to calendar
+  date conversion.
 
 ## Related
 

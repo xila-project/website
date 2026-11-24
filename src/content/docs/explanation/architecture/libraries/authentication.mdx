@@ -5,7 +5,7 @@ description: "User and group authentication, password hashing, and file-based ac
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `authentication` crate provides persistent account management, user and group record operations, and salted password hashing for the Xila host runtime. It lives in the Core repository under `libraries/authentication/`. The `xila` facade crate exposes it.
 
@@ -31,7 +31,7 @@ Account records persist as JSON files inside the virtual file system:
 - User records: `/system/accounts/users/<user_name>`
 - Group records: `/system/accounts/groups/<group_name>`
 
-The library serializes and deserializes records with `miniserde`. The <HostReference crate="authentication" kind="struct" symbol="User" /> struct stores:
+The library serializes and deserializes records with `miniserde`. The <Api path="authentication::User" /> struct stores:
 
 - `identifier`: unique 16-bit user identifier (`u16`).
 - `name`: human-readable username string.
@@ -39,7 +39,7 @@ The library serializes and deserializes records with `miniserde`. The <HostRefer
 - `hash`: SHA-512 hexadecimal digest string.
 - `salt`: 16-character random salt string.
 
-The <HostReference crate="authentication" kind="struct" symbol="Group" /> struct stores:
+The <Api path="authentication::Group" /> struct stores:
 
 - `identifier`: unique 16-bit group identifier (`u16`).
 - `name`: human-readable group name string.
@@ -47,7 +47,7 @@ The <HostReference crate="authentication" kind="struct" symbol="Group" /> struct
 
 ### Seeded accounts
 
-First-install provisioning uses the <HostReference crate="authentication" kind="fn" symbol="initialize_seeded" /> helper to initialize reference images:
+First-install provisioning uses the <Api path="authentication::initialize_seeded" /> helper to initialize reference images:
 
 1. Check for the seed marker file at `SEED_PENDING_PATH` (`/system/accounts/.seed-pending`).
 2. Verify that the file contents match `SEED_PENDING_CONTENT` (`b"xila-seed-v1\n"`).
@@ -60,26 +60,21 @@ An unmarked disk never authorizes account creation or password replacement durin
 
 ### Account helpers and runtime operations
 
-The <HostReference crate="authentication" kind="struct" symbol="Context" /> struct bundles references to the virtual file system, the task manager, the users manager, and the caller task identifier. The main functions include:
+The <Api path="authentication::Context" /> struct bundles references to the virtual file system, the task manager, the users manager, and the caller task identifier. The main functions include:
 
-- <HostReference
-    crate="authentication"
-    kind="fn"
-    symbol="load_all_users_and_groups"
-  />
-  : Scan `/system/accounts/groups` and `/system/accounts/users`. Register every
-  record in the users manager.
-- <HostReference crate="authentication" kind="fn" symbol="authenticate_user" />:
-  Read the user record, compute the SHA-512 hash with the stored salt, compare
-  the result, and return the verified user identifier.
-- <HostReference crate="authentication" kind="fn" symbol="create_user" />:
-  Allocate a new user identifier, add the account to the users manager, generate
-  a salt, hash the password, and write the user JSON file.
+- <Api path="authentication::load_all_users_and_groups" />: Scan
+  `/system/accounts/groups` and `/system/accounts/users`. Register every record
+  in the users manager.
+- <Api path="authentication::authenticate_user" />: Read the user record,
+  compute the SHA-512 hash with the stored salt, compare the result, and return
+  the verified user identifier.
+- <Api path="authentication::create_user" />: Allocate a new user identifier,
+  add the account to the users manager, generate a salt, hash the password, and
+  write the user JSON file.
 - `change_user_password`: Generate a new random salt, compute the new password hash, and update the stored record.
 - `change_user_name`: Update the username field and rename the file in `/system/accounts/users/`.
-- <HostReference crate="authentication" kind="fn" symbol="create_group" />:
-  Allocate a group identifier, register it in the users manager, and write the
-  group JSON file.
+- <Api path="authentication::create_group" />: Allocate a group identifier,
+  register it in the users manager, and write the group JSON file.
 
 The following diagram shows the sequence of operations during user authentication:
 
@@ -120,26 +115,19 @@ A client calls `authenticate_user` with a username and password. The library rea
 
 ## API reference
 
-- <HostReference crate="authentication" />: package documentation and root
-  exports.
-- <HostReference crate="authentication" kind="struct" symbol="Context" />:
-  context bundling virtual file system, task, and user managers.
-- <HostReference crate="authentication" kind="struct" symbol="User" />: user
-  account data model.
-- <HostReference crate="authentication" kind="struct" symbol="Group" />: user
-  group data model.
-- <HostReference crate="authentication" kind="fn" symbol="authenticate_user" />:
-  verifies credentials against stored records.
-- <HostReference crate="authentication" kind="fn" symbol="create_user" />:
-  creates and persists a new user account.
-- <HostReference crate="authentication" kind="fn" symbol="initialize_seeded" />:
-  provisions default accounts when a seed marker exists.
-- <HostReference
-    crate="authentication"
-    kind="fn"
-    symbol="load_all_users_and_groups"
-  />
-  : loads persisted accounts into the users manager.
+- <Api path="authentication" />: package documentation and root exports.
+- <Api path="authentication::Context" />: context bundling virtual file system,
+  task, and user managers.
+- <Api path="authentication::User" />: user account data model.
+- <Api path="authentication::Group" />: user group data model.
+- <Api path="authentication::authenticate_user" />: verifies credentials against
+  stored records.
+- <Api path="authentication::create_user" />: creates and persists a new user
+  account.
+- <Api path="authentication::initialize_seeded" />: provisions default accounts
+  when a seed marker exists.
+- <Api path="authentication::load_all_users_and_groups" />: loads persisted
+  accounts into the users manager.
 
 ## Related
 

@@ -4,7 +4,6 @@ docType: explanation
 description: "Reusable devices and terminal line editing shared by Platforms runtimes."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_shared` crate provides devices shared by multiple runtimes.
@@ -29,8 +28,10 @@ The editor uses fixed-capacity line and completed-input buffers. A multibyte cha
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_shared" />: Shared driver
-  source.
+- <CodeReference repo="platforms" path="drivers/shared">
+    <code>drivers_shared</code> crate
+  </CodeReference>
+  : Shared driver source.
 - <CodeReference
     repo="platforms"
     path="drivers/shared/src/devices/terminal/logic.rs"

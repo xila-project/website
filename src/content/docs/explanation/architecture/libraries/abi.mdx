@@ -5,7 +5,7 @@ description: "Understand Xila's native application function table, SDK, and exec
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 Core's `xila-abi-application` crate is Xila's native application binary interface (ABI). It gives trusted native applications a C calling convention for Xila services. Wasm guests use the separate [Wasm runtime and WASI interface](/reference/wasm-runtime/).
 
@@ -17,7 +17,7 @@ Native applications are trusted code. They run in the same address space as Xila
 
 ### Function table and startup
 
-The <HostReference crate="abi_application" kind="struct" symbol="XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs and slot list are committed files. The Core build regenerates them from the table. cbindgen generates the header, and a separate generator writes the SDK files. A test checks that the committed copies match.
+The <Api path="abi_application::XilaApi" /> is a `#[repr(C)]` function table. Its packed version and byte size precede the function pointers. The C header <CodeReference path="libraries/abi/application/include/xila/application.h">`xila/application.h`</CodeReference> and the <CodeReference path="libraries/abi/application/sdk">SDK</CodeReference> stubs and slot list are committed files. The Core build regenerates them from the table. cbindgen generates the header, and a separate generator writes the SDK files. A test checks that the committed copies match.
 
 The host passes an `XilaStartup` pointer to the application entry point. It contains the API pointer, the arguments, and the capabilities the host grants: standard streams, a process heap, and an optional home directory. Built-in applications can call the table directly through `startup->api`. For separately linked applications, the SDK's `_xila_start` checks the startup and table sizes and the version, makes the table available to the stubs, and calls the application's `xila_main`.
 
@@ -49,9 +49,9 @@ Core rejects raw ELF files by default. A platform can opt into running them from
 
 ## Compatibility
 
-The `XilaApi` table layout is currently version `0.1`. The loader requires an exact match for pre-release `0.x` images. Rebuild native applications against the matching SDK when the table or status codes change.
+The ABI has no version number of its own: it follows the Xila version ([Core #276](https://github.com/xila-project/core/issues/276)). <Api path="xila_version::RUNNING" /> is the running Xila version, derived from the `[workspace.package] version` of Core. The build generates `XILA_VERSION_MAJOR` and `XILA_VERSION_MINOR` in the C header from it, and `XilaApi.version` holds it packed as `(major << 16) | minor`.
 
-Core also defines <HostReference crate="abi_application" kind="constant" symbol="APPLICATION_ABI_VERSION" />, currently `1`. This Rust constant covers the application contract for both native and Wasm packages. The package installer compares the manifest's [`xila_version`](/reference/package-format/) field with the running Xila version. The C header exposes the native table version.
+An executable records the Xila `major.minor` that it was built for in its ELF ABI note. The loader runs it only when <Api path="xila_version::compatible" /> accepts the two versions. Before 1.0, the minor versions must be equal. From 1.0, the major versions must be equal and the running minor version must be at least the declared one. Before 1.0, rebuild native applications against the matching SDK for every minor release. The package installer applies the same rule to the [`xila_version`](/reference/package-format/) field of the manifest.
 
 ## Limits
 
@@ -69,12 +69,9 @@ The <CodeReference path="libraries/c_support">`xila-c-support`</CodeReference> c
 
 ## API reference
 
-- <HostReference crate="abi_application" kind="struct" symbol="XilaApi" />
-- <HostReference
-    crate="abi_application"
-    kind="constant"
-    symbol="APPLICATION_ABI_VERSION"
-  />
+- <Api path="abi_application::XilaApi" />
+- <Api path="xila_version::RUNNING" />
+- <Api path="xila_version::compatible" />
 - <CodeReference path="libraries/abi/application/include/xila/application.h">
     `xila/application.h`
   </CodeReference>

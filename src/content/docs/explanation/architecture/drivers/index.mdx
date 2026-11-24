@@ -4,8 +4,8 @@ docType: explanation
 description: "How Xila drivers connect devices to the virtual file system and runtime services."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Drivers connect Xila services to devices. Core and Platforms provide driver crates for different runtimes.
 
@@ -21,15 +21,15 @@ flowchart LR
 
 Runtime setup mounts devices in the VFS. Character devices provide byte-oriented access. Block devices support storage. The native and browser examples mount LittleFS on block storage and register character devices at boot. Both examples mount the Wasm, graphical shell, command-line shell, settings, file manager, terminal, and activity executables under `/applications/executables/`. The native example also mounts the package and, on Unix, debug executables. See [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/).
 
-| Crate                                                        | Package                       | Description                                                                                    |
-| ------------------------------------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------- |
-| <HostReference crate="drivers_core" />                       | `xila-drivers-core`           | [Core](/explanation/architecture/drivers/core/): minimal devices and Wi-Fi mock.               |
-| <HostReference crate="drivers_neural_network" />             | `xila-drivers-neural-network` | [Neural network](/explanation/architecture/libraries/neural_network/): neural network drivers. |
-| <HostReference crate="drivers_peripherals" />                | `xila-drivers-peripherals`    | [Device](/explanation/architecture/libraries/device/): peripheral drivers.                     |
-| <HostReference repo="platforms" crate="drivers_espressif" /> | `xila-drivers-espressif`      | [Espressif](/explanation/architecture/drivers/espressif/): Espressif drivers.                  |
-| <HostReference repo="platforms" crate="drivers_headless" />  | `xila-drivers-headless`       | [Headless](/explanation/architecture/drivers/headless/): headless runtime drivers.             |
-| <HostReference repo="platforms" crate="drivers_native" />    | `xila-drivers-native`         | [Native](/explanation/architecture/drivers/native/): host integrations.                        |
-| <CodeReference repo="platforms" path="drivers/nordic" />     | `xila-drivers-nordic`         | [Nordic](/explanation/architecture/drivers/nordic/): Nordic hardware drivers.                  |
-| <HostReference repo="platforms" crate="drivers_shared" />    | `xila-drivers-shared`         | [Shared](/explanation/architecture/drivers/shared/): reusable devices.                         |
-| <HostReference repo="platforms" crate="drivers_std" />       | `xila-drivers-std`            | [Std](/explanation/architecture/drivers/std/): standard-library services.                      |
-| <HostReference repo="platforms" crate="drivers_wasm" />      | `xila-drivers-wasm`           | [Wasm](/explanation/architecture/drivers/wasm/): browser runtime drivers.                      |
+| Crate                                                                                                         | Package                       | Description                                                                                    |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| <Api path="drivers_core" />                                                                                   | `xila-drivers-core`           | [Core](/explanation/architecture/drivers/core/): minimal devices and Wi-Fi mock.               |
+| <Api path="drivers_neural_network" />                                                                         | `xila-drivers-neural-network` | [Neural network](/explanation/architecture/libraries/neural_network/): neural network drivers. |
+| <Api path="drivers_peripherals" />                                                                            | `xila-drivers-peripherals`    | [Device](/explanation/architecture/libraries/device/): peripheral drivers.                     |
+| <CodeReference repo="platforms" path="drivers/espressif"><code>drivers_espressif</code> crate</CodeReference> | `xila-drivers-espressif`      | [Espressif](/explanation/architecture/drivers/espressif/): Espressif drivers.                  |
+| <CodeReference repo="platforms" path="drivers/headless"><code>drivers_headless</code> crate</CodeReference>   | `xila-drivers-headless`       | [Headless](/explanation/architecture/drivers/headless/): headless runtime drivers.             |
+| <CodeReference repo="platforms" path="drivers/native"><code>drivers_native</code> crate</CodeReference>       | `xila-drivers-native`         | [Native](/explanation/architecture/drivers/native/): host integrations.                        |
+| <CodeReference repo="platforms" path="drivers/nordic" />                                                      | `xila-drivers-nordic`         | [Nordic](/explanation/architecture/drivers/nordic/): Nordic hardware drivers.                  |
+| <CodeReference repo="platforms" path="drivers/shared"><code>drivers_shared</code> crate</CodeReference>       | `xila-drivers-shared`         | [Shared](/explanation/architecture/drivers/shared/): reusable devices.                         |
+| <CodeReference repo="platforms" path="drivers/std"><code>drivers_std</code> crate</CodeReference>             | `xila-drivers-std`            | [Std](/explanation/architecture/drivers/std/): standard-library services.                      |
+| <CodeReference repo="platforms" path="drivers/wasm"><code>drivers_wasm</code> crate</CodeReference>           | `xila-drivers-wasm`           | [Wasm](/explanation/architecture/drivers/wasm/): browser runtime drivers.                      |

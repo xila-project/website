@@ -4,7 +4,6 @@ docType: explanation
 description: "How headless drivers provide screen and audio interfaces without a window."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_headless` crate provides screen and audio implementations for native host platforms without a display window.
@@ -27,8 +26,10 @@ The crate is restricted to Linux, macOS, and Windows targets.
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_headless" />: Driver crate
-  source.
+- <CodeReference repo="platforms" path="drivers/headless">
+    <code>drivers_headless</code> crate
+  </CodeReference>
+  : Driver crate source.
 - <CodeReference path="subsystems/graphics/src/headless_screen.rs" />: Screen
   implementation (in Core).
 - <CodeReference repo="platforms" path="drivers/headless/src/audio.rs" />: Audio

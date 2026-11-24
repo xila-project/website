@@ -5,13 +5,13 @@ description: "Understand unified path resolution, mount tables, device dispatch,
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The virtual file system (VFS) gives every Xila component one unified path namespace for files, devices, and pipes. It resolves hierarchical paths, checks task permissions, and routes operations to mounted filesystems or device drivers.
 
 ## Context
 
-Applications and system services interact with files, hardware peripherals, and inter-task communication through a single path namespace. The <HostReference crate="virtual_file_system" /> crate provides standard file operations across all these resources, instead of separate APIs for storage blocks, UARTs, and network sockets.
+Applications and system services interact with files, hardware peripherals, and inter-task communication through a single path namespace. The <Api path="virtual_file_system" /> provides standard file operations across all these resources, instead of separate APIs for storage blocks, UARTs, and network sockets.
 
 The VFS manages path resolution, mounting tables, and access control policies. Concrete storage driver contracts and filesystem operations are defined separately by the [file_system](/explanation/architecture/libraries/file_system/) library.
 
@@ -19,7 +19,7 @@ The VFS manages path resolution, mounting tables, and access control policies. C
 
 ### Mount table and resource types
 
-The <HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" /> struct maintains mounted resources in synchronized tables:
+The <Api path="virtual_file_system::VirtualFileSystem" /> struct maintains mounted resources in synchronized tables:
 
 - **Mounted filesystems**: an array of filesystems implementing `FileSystemOperations`, starting with the root filesystem at `/`.
 - **Character devices**: a map of stream-oriented character devices mounted under `/devices/` (such as `/devices/time/clock` or `/devices/standard_io/output`).
@@ -44,7 +44,7 @@ flowchart TD
     OpDispatch -->|Pipe| P["Dispatch to Pipe"]
 ```
 
-When an application opens a path through <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> or <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />:
+When an application opens a path through <Api path="virtual_file_system::File" /> or <Api path="virtual_file_system::Directory" />:
 
 1. The VFS validates that the path is non-empty, well-formed, and absolute.
 2. Symbolic links are resolved component-by-component up to loop limits using `read_link_payload`.
@@ -96,20 +96,12 @@ Every file and directory in the filesystem carries user, group, and other permis
 
 ## API reference
 
-- <HostReference crate="virtual_file_system" /> - crate root and type
-  definitions.
-- <HostReference
-    crate="virtual_file_system"
-    kind="struct"
-    symbol="VirtualFileSystem"
-  />
-  - core VFS manager.
-- <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> -
-  asynchronous file handle.
-- <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />
-  - asynchronous directory handle.
-- <HostReference crate="virtual_file_system" kind="fn" symbol="initialize" /> -
-  initializes the VFS with a root filesystem.
+- <Api path="virtual_file_system" /> - crate root and type definitions.
+- <Api path="virtual_file_system::VirtualFileSystem" />- core VFS manager.
+- <Api path="virtual_file_system::File" /> - asynchronous file handle.
+- <Api path="virtual_file_system::Directory" />- asynchronous directory handle.
+- <Api path="virtual_file_system::initialize" /> - initializes the VFS with a
+  root filesystem.
 
 ## Related
 

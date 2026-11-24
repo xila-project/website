@@ -5,7 +5,7 @@ description: "Understand Xila's memory allocator interface, capability requireme
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The memory subsystem provides a portable allocation abstraction for embedded targets, native operating systems, and WebAssembly environments. It decouples memory requests from target-specific heap algorithms and adapts them to Rust's global allocator interface.
 
@@ -13,7 +13,7 @@ The memory subsystem provides a portable allocation abstraction for embedded tar
 
 Different hardware platforms have diverse physical memory layouts. Microcontrollers often separate internal high-speed SRAM from external PSRAM. Only specific memory ranges support Direct Memory Access (DMA) or instruction execution. Desktop operating systems use virtual memory paging instead.
 
-The <HostReference crate="memory" /> crate abstracts these constraints. It defines what an allocation request requires, not how the heap is managed. Target platforms provide concrete allocators that fulfill the <HostReference crate="memory" kind="trait" symbol="ManagerTrait" /> contract. Xila exposes the contract to standard Rust data structures and to specialized subsystem allocators.
+The <Api path="memory" /> abstracts these constraints. It defines what an allocation request requires, not how the heap is managed. Target platforms provide concrete allocators that fulfill the <Api path="memory::ManagerTrait" /> contract. Xila exposes the contract to standard Rust data structures and to specialized subsystem allocators.
 
 ## How it works
 
@@ -31,8 +31,8 @@ flowchart LR
 
 Allocation requests reach the subsystem through two channels:
 
-1. **Standard Rust allocations**: collections such as `Box`, `Vec`, and `String` allocate via Rust's `GlobalAlloc` trait. The <HostReference crate="memory" kind="struct" symbol="Manager" /> translates these calls into `ManagerTrait::allocate` with empty capability requirements.
-2. **Capability-specific requests**: subsystems that need specialized memory call `Manager::allocate` directly. They pass a `core::alloc::Layout` and <HostReference crate="memory" kind="struct" symbol="CapabilityFlags" />.
+1. **Standard Rust allocations**: collections such as `Box`, `Vec`, and `String` allocate via Rust's `GlobalAlloc` trait. The <Api path="memory::Manager" /> translates these calls into `ManagerTrait::allocate` with empty capability requirements.
+2. **Capability-specific requests**: subsystems that need specialized memory call `Manager::allocate` directly. They pass a `core::alloc::Layout` and <Api path="memory::CapabilityFlags" />.
 
 The subsystem defines two capability flags:
 
@@ -59,13 +59,13 @@ Platform crates implement `ManagerTrait` and instantiate the global allocator us
 
 ## API reference
 
-- <HostReference crate="memory" /> - crate root and Layout type alias.
-- <HostReference crate="memory" kind="struct" symbol="Manager" /> - memory
-  manager adapting `ManagerTrait` to `GlobalAlloc`.
-- <HostReference crate="memory" kind="trait" symbol="ManagerTrait" /> -
-  interface implemented by platform heap managers.
-- <HostReference crate="memory" kind="struct" symbol="CapabilityFlags" /> -
-  flags defining allocation constraints such as DMA or execution.
+- <Api path="memory" /> - crate root and Layout type alias.
+- <Api path="memory::Manager" /> - memory manager adapting `ManagerTrait` to
+  `GlobalAlloc`.
+- <Api path="memory::ManagerTrait" /> - interface implemented by platform heap
+  managers.
+- <Api path="memory::CapabilityFlags" /> - flags defining allocation constraints
+  such as DMA or execution.
 
 ## Related
 

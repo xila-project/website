@@ -4,7 +4,6 @@ docType: explanation
 description: "The scope and current build limits of the Espressif driver source."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_espressif` crate contains Espressif-specific source, including GPIO line tables for ESP32, ESP32-C2, ESP32-C3, ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2, ESP32-P4, ESP32-S2, ESP32-S3 and ESP32-S31.
@@ -31,8 +30,10 @@ The crate stays gated out on host targets, so host builds do not prove that an E
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_espressif" />: Driver crate
-  source.
+- <CodeReference repo="platforms" path="drivers/espressif">
+    <code>drivers_espressif</code> crate
+  </CodeReference>
+  : Driver crate source.
 - <CodeReference repo="platforms" path="drivers/espressif/src/chips" />:
   Chip-specific source.
 - <CodeReference repo="platforms" path="drivers/espressif/src/shared" />: Shared

@@ -111,7 +111,7 @@ Link Rust API items with a `rust:` Markdown link or the `Api` component, and sou
 - Paths start with the crate (`task::Manager`) or a `xila::` re-export (`xila::task::Manager`). The end of a unique path also resolves (`Manager::spawn`). Prefix `host:` or `guest:` (`rust:guest:wasm::...`, `api="guest"`) when a name exists in both APIs.
 - `#method.spawn` after a path selects a rustdoc anchor.
 
-The build resolves these links with `public/api/api-index.json`. `npm run docs:rustdoc` writes it with the API pages, and `npm run docs:api-index` downloads the published one. `HostReference` and `GuestReference` are being replaced (website#129).
+The build resolves these links with `public/api/api-index.json`. `npm run docs:rustdoc` writes it with the API pages, and `npm run docs:api-index` downloads the published one.
 
 ### Diagrams
 
@@ -193,7 +193,7 @@ The documentation validator checks:
 - non-empty `description` frontmatter on substantive pages;
 - rendered internal links;
 - rendered anchors;
-- `rust:` links, `Api` components and links to `/api/` against the API index, when an index or the API pages are available (a broken API link is a warning, or an error with `XILA_STRICT_API_LINKS=1`);
+- `rust:` links, `Api` components and links to `/api/` against the API index, when an index or the API pages are available (a broken API link is a warning, or an error with `XILA_STRICT_API_LINKS=1`, which CI sets);
 - `CodeReference` source paths when a Core checkout is available at `XILA_CORE_PATH` or `../core`.
 
 If Core is unavailable, the validator explicitly skips Core source-path checks. Report that limitation rather than implying those references were verified.

@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Text Editor edits UTF-8 text files."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Text Editor edits UTF-8 text files. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
@@ -37,8 +36,11 @@ The editing page size is 4096 bytes.
 
 ## API reference
 
-- <HostReference repo="applications" crate="text_editor" />: application source.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="executables/text_editor">
+    <code>text_editor</code> crate
+  </CodeReference>
+  : application source.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/text_editor.json" />:
   package metadata.
 

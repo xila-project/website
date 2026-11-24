@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Clock shows time and provides an alarm, stopwatch and countdown timer."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Clock shows the time and provides an alarm, a stopwatch, and a countdown timer. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
@@ -37,8 +36,11 @@ The stopwatch keeps at most 32 laps. The countdown timer is limited to 23 hours,
 
 ## API reference
 
-- <HostReference repo="applications" crate="clock" />: application source.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="executables/clock">
+    <code>clock</code> crate
+  </CodeReference>
+  : application source.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/clock.json" />: package
   metadata.
 

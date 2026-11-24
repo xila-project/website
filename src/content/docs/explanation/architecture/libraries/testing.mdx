@@ -5,7 +5,7 @@ description: "In-memory test environment, mock hardware devices, and integration
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `testing` crate provides minimal `std` test infrastructure for Xila unit and integration tests without requiring platform drivers or physical hardware. It lives in the Core repository under `libraries/testing/` and is published as the `xila-testing` package.
 
@@ -19,32 +19,30 @@ Testing operating system components such as the virtual file system, the task ma
 
 The crate provides lightweight, deterministic character devices:
 
-- <HostReference crate="testing" kind="struct" symbol="TimeDevice" />: Mock
-  clock implementing `DirectCharacterDevice`. It responds to `GET_SYSTEM_TIME`
-  control commands and reads microsecond timestamps from the host system time.
-- <HostReference crate="testing" kind="struct" symbol="RandomDevice" />: Entropy
-  source implementing `DirectCharacterDevice`. It fills byte buffers using the
-  host `getrandom` crate.
-- <HostReference crate="testing" kind="enum" symbol="ConsoleDevice" />:
-  Implements `DirectCharacterDevice` with `Input`, `Output`, and `Error`
-  variants. It routes standard I/O through the host standard input, output, and
-  error streams.
-- <HostReference crate="testing" kind="struct" symbol="HashDevice" />:
-  Cryptographic hash device implementing `DirectCharacterDevice`. It handles the
-  `SET_ALGORITHM` control command with SHA-256 and SHA-512 via the `sha2` crate.
-  It streams input data into the internal hash state and outputs the digest on
-  read.
-- <HostReference crate="testing" kind="struct" symbol="Logger" />: Simple logger
-  implementing the `log::Log` trait.
-- <HostReference crate="testing" kind="struct" symbol="MemoryManager" />:
-  In-memory heap manager backed by `std::alloc::System`.
-- <HostReference crate="testing" kind="struct" symbol="HeadlessScreenDevice" />:
-  800×600 pixel in-memory frame buffer (enabled by the `graphics` Cargo feature)
-  implementing graphics device operations without creating host desktop windows.
+- <Api path="testing::TimeDevice" />: Mock clock implementing
+  `DirectCharacterDevice`. It responds to `GET_SYSTEM_TIME` control commands and
+  reads microsecond timestamps from the host system time.
+- <Api path="testing::RandomDevice" />: Entropy source implementing
+  `DirectCharacterDevice`. It fills byte buffers using the host `getrandom`
+  crate.
+- <Api path="testing::ConsoleDevice" />: Implements `DirectCharacterDevice` with
+  `Input`, `Output`, and `Error` variants. It routes standard I/O through the
+  host standard input, output, and error streams.
+- <Api path="testing::HashDevice" />: Cryptographic hash device implementing
+  `DirectCharacterDevice`. It handles the `SET_ALGORITHM` control command with
+  SHA-256 and SHA-512 via the `sha2` crate. It streams input data into the
+  internal hash state and outputs the digest on read.
+- <Api path="testing::Logger" />: Simple logger implementing the `log::Log`
+  trait.
+- <Api path="testing::MemoryManager" />: In-memory heap manager backed by
+  `std::alloc::System`.
+- <Api path="testing::HeadlessScreenDevice" />: 800×600 pixel in-memory frame
+  buffer (enabled by the `graphics` Cargo feature) implementing graphics device
+  operations without creating host desktop windows.
 
 ### In-memory environment bootstrap
 
-With the `environment` Cargo feature enabled, the <HostReference crate="testing" kind="fn" symbol="initialize" /> function sets up a complete in-memory Xila instance:
+With the `environment` Cargo feature enabled, the <Api path="testing::initialize" /> function sets up a complete in-memory Xila instance:
 
 ```rust
 pub async fn initialize(
@@ -75,7 +73,7 @@ The bootstrap runs these steps in order:
 
 ### Host file injection
 
-The <HostReference crate="testing" kind="fn" symbol="load_file" /> helper copies a file from the host filesystem into the virtual file system, truncating any existing file at the destination path.
+The <Api path="testing::load_file" /> helper copies a file from the host filesystem into the virtual file system, truncating any existing file at the destination path.
 
 The following diagram shows the in-memory test environment initialized by `initialize`:
 
@@ -106,19 +104,16 @@ The initializer formats an in-memory LittleFS instance and creates the default d
 
 ## API reference
 
-- <HostReference crate="testing" />: package documentation and root exports.
-- <HostReference crate="testing" kind="fn" symbol="initialize" />: bootstraps
-  the complete in-memory test environment.
-- <HostReference crate="testing" kind="fn" symbol="load_file" />: copies a host
-  file into the in-memory virtual file system.
-- <HostReference crate="testing" kind="struct" symbol="TimeDevice" />: mock
-  clock character device.
-- <HostReference crate="testing" kind="struct" symbol="RandomDevice" />: mock
-  entropy character device.
-- <HostReference crate="testing" kind="struct" symbol="HashDevice" />: mock
-  cryptographic hash character device.
-- <HostReference crate="testing" kind="struct" symbol="HeadlessScreenDevice" />:
-  off-screen 800×600 framebuffer screen device.
+- <Api path="testing" />: package documentation and root exports.
+- <Api path="testing::initialize" />: bootstraps the complete in-memory test
+  environment.
+- <Api path="testing::load_file" />: copies a host file into the in-memory
+  virtual file system.
+- <Api path="testing::TimeDevice" />: mock clock character device.
+- <Api path="testing::RandomDevice" />: mock entropy character device.
+- <Api path="testing::HashDevice" />: mock cryptographic hash character device.
+- <Api path="testing::HeadlessScreenDevice" />: off-screen 800×600 framebuffer
+  screen device.
 
 ## Related
 

@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  getSourceHref,
-  getExternalCrateHref,
-} from "../scripts/source-reference.mjs";
+import { getSourceHref } from "../scripts/source-reference.mjs";
 
 test("Core code references preserve the original default repository", () => {
   assert.equal(
@@ -24,21 +21,9 @@ test("moved source references link to the correct repository", () => {
   );
 });
 
-test("external Rustdoc fallback uses real crate roots instead of nonexistent Core docs", () => {
-  assert.equal(
-    getExternalCrateHref("applications", "wasm"),
-    "https://github.com/xila-project/applications/tree/main/executables/wasm",
-  );
-  assert.equal(
-    getExternalCrateHref("platforms", "drivers_native"),
-    "https://github.com/xila-project/platforms/tree/main/drivers/native",
-  );
-});
-
 test("source links reject unknown repositories and path traversal", () => {
   assert.throws(() => getSourceHref("unknown", "Cargo.toml"));
   assert.throws(() => getSourceHref("core", "../secret"));
   assert.throws(() => getSourceHref("core", "/etc/passwd"));
   assert.throws(() => getSourceHref("core", "foo//bar"));
-  assert.throws(() => getExternalCrateHref("applications", "wrong"));
 });

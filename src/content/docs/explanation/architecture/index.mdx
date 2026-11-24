@@ -5,7 +5,7 @@ description: "Understand repository layering, crate roles, and runtime assembly 
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 Xila is structured across independent repositories. The repositories separate portable kernel services, user-space applications, platform drivers, and packaging tools. This separation enforces clear dependency directions and keeps core operating system logic independent of hardware targets.
 
@@ -101,8 +101,8 @@ Platforms integrates Core subsystems with concrete drivers and Applications exec
 
 ## API reference
 
-- <HostReference crate="xila" /> - the root façade crate re-exporting Core
-  subsystems and libraries.
+- <Api path="xila" /> - the root façade crate re-exporting Core subsystems and
+  libraries.
 - <CodeReference path="core/src/lib.rs" /> - façade module definitions and
   feature re-exports.
 - <CodeReference repo="platforms" path="examples/native/src/main.rs" /> - native

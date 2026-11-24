@@ -5,7 +5,7 @@ description: "Startup logo animation and timeline management using the graphics 
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `bootsplash` crate provides the startup brand logo animation displayed while the operating system boots. It lives in the Core repository under `libraries/bootsplash/`. The `xila` facade crate exposes it when the `bootsplash` feature is enabled.
 
@@ -39,7 +39,7 @@ The animation runs in two phases:
 
 ### Lifecycle management
 
-The <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" /> struct controls animation creation and teardown:
+The <Api path="bootsplash::Bootsplash" /> struct controls animation creation and teardown:
 
 - `Bootsplash::new(graphics_manager)` acquires the graphics manager lock. It retrieves the screen dimensions and computes the logo scaling factor (`Logo::get_factor(screen_size.scale(0.3)).max(1)`). It instantiates `Logo` and centers it on the active screen (`lv_align_t_LV_ALIGN_CENTER`). It initializes an LVGL animation (`lv_anim_t`) with `intro_callback` and starts the intro timeline. When the intro completes (`intro_completed`), it transitions to `first_cycle_callback` and then to `cycle_callback`. `cycle_callback` loops until stopped.
 - `Bootsplash::stop(self, graphics_manager)` acquires the graphics manager lock. It deletes all registered callbacks (`intro_callback`, `first_cycle_callback`, `cycle_callback`) from the logo object via `lv_anim_delete`.
@@ -74,11 +74,9 @@ stateDiagram-v2
 
 ## API reference
 
-- <HostReference crate="bootsplash" />: package documentation and root exports.
-- <HostReference crate="bootsplash" kind="struct" symbol="Bootsplash" />:
-  bootsplash animation handle.
-- <HostReference crate="bootsplash" kind="enum" symbol="Error" />: bootsplash
-  error enum.
+- <Api path="bootsplash" />: package documentation and root exports.
+- <Api path="bootsplash::Bootsplash" />: bootsplash animation handle.
+- <Api path="bootsplash::Error" />: bootsplash error enum.
 
 ## Related
 

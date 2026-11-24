@@ -4,7 +4,6 @@ docType: explanation
 description: "Browser runtime drivers for storage, graphics, input and services."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_wasm` crate supplies drivers for the WebAssembly (Wasm) browser runtime.
@@ -25,8 +24,10 @@ The drive uses a memory cache and asynchronous persistence. Browser storage rest
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_wasm" />: Browser driver
-  source.
+- <CodeReference repo="platforms" path="drivers/wasm">
+    <code>drivers_wasm</code> crate
+  </CodeReference>
+  : Browser driver source.
 - <CodeReference repo="platforms" path="examples/wasm/src/main.rs" />: Browser
   runtime assembly.
 

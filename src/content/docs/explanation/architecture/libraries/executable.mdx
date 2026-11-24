@@ -5,7 +5,7 @@ description: "Executable contracts, execution context, standard streams, and tas
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `executable` crate defines Xila's execution contracts, execution context, standard streams, and task launching facilities. It lives in the Core repository under `libraries/executable/`. The `xila` facade crate exposes it.
 
@@ -17,7 +17,7 @@ In Xila, applications and system utilities run as cooperative asynchronous tasks
 
 ### Executable trait and character device wrapper
 
-Every native program implements the <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> trait:
+Every native program implements the <Api path="executable::ExecutableTrait" /> trait:
 
 ```rust
 pub trait ExecutableTrait: 'static + Send + Sync {
@@ -29,11 +29,11 @@ The future returns `Result<(), NonZeroUsize>` in a pinned box. `ExecutableWrappe
 
 ### Mount executables in the file system
 
-The <HostReference crate="executable" kind="macro" symbol="mount_executables" /> macro mounts executables into the VFS path hierarchy, typically under `/applications/executables/<name>`. It wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
+The <Api path="executable::mount_executables" /> macro mounts executables into the VFS path hierarchy, typically under `/applications/executables/<name>`. It wraps each implementation in `ExecutableWrapper`, mounts it as a character device, and assigns `Permissions::EXECUTABLE`.
 
 ### Execution context and capabilities
 
-The <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /> struct carries the system manager references required during task execution:
+The <Api path="executable::ExecutableContext" /> struct carries the system manager references required during task execution:
 
 - `task_manager`: static reference to the task manager.
 - `users_manager`: static reference to the users manager.
@@ -44,11 +44,11 @@ The <HostReference crate="executable" kind="struct" symbol="ExecutableContext" /
 
 ### Standard streams
 
-The <HostReference crate="executable" kind="struct" symbol="Standard" /> struct holds three VFS file descriptors, `standard_in`, `standard_out`, and `standard_error`, and a static reference to the `ExecutableContext`. Helpers include `read_line` for reading standard input, `split` for extracting individual streams, and `duplicate` for cloning descriptors across tasks.
+The <Api path="executable::Standard" /> struct holds three VFS file descriptors, `standard_in`, `standard_out`, and `standard_error`, and a static reference to the `ExecutableContext`. Helpers include `read_line` for reading standard input, `split` for extracting individual streams, and `duplicate` for cloning descriptors across tasks.
 
 ### Launching an executable
 
-The <HostReference crate="executable" kind="fn" symbol="execute" /> function coordinates execution:
+The <Api path="executable::execute" /> function coordinates execution:
 
 1. Check execute permissions with `is_execute_allowed` against file statistics, the current task user, and group memberships.
 2. Open the target executable file in the virtual file system.
@@ -100,17 +100,17 @@ The caller passes an execution context, target path, arguments, standard streams
 
 ## API reference
 
-- <HostReference crate="executable" />: package documentation and entry point.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  trait defining the executable entry point.
-- <HostReference crate="executable" kind="struct" symbol="ExecutableContext" />:
-  context carrying system manager references.
-- <HostReference crate="executable" kind="struct" symbol="Standard" />: standard
-  input, output, and error stream wrapper.
-- <HostReference crate="executable" kind="fn" symbol="execute" />: launcher
-  function checking permissions and spawning tasks.
-- <HostReference crate="executable" kind="macro" symbol="mount_executables" />:
-  macro mounting executables into the file system.
+- <Api path="executable" />: package documentation and entry point.
+- <Api path="executable::ExecutableTrait" />: trait defining the executable
+  entry point.
+- <Api path="executable::ExecutableContext" />: context carrying system manager
+  references.
+- <Api path="executable::Standard" />: standard input, output, and error stream
+  wrapper.
+- <Api path="executable::execute" />: launcher function checking permissions and
+  spawning tasks.
+- <Api path="executable::mount_executables" />: macro mounting executables into
+  the file system.
 
 ## Related
 

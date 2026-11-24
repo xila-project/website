@@ -5,13 +5,13 @@ description: "Understand Xila's unified logging subsystem, severity levels, and 
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The log subsystem provides a unified logging facade across Xila. It routes messages from standard logging macros through severity-filtering logic to an installed platform backend.
 
 ## Context
 
-Kernel subsystems, libraries, and executables need structured log output without hard-coded output channels such as UART, a serial console, or standard error. The <HostReference crate="log" /> crate adapts the standard Rust `log` crate to Xila's <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> contract.
+Kernel subsystems, libraries, and executables need structured log output without hard-coded output channels such as UART, a serial console, or standard error. The <Api path="log" /> adapts the standard Rust `log` crate to Xila's <Api path="log::LoggerTrait" /> contract.
 
 ## How it works
 
@@ -32,11 +32,11 @@ A log record passes through four stages:
 1. Subsystems and executables invoke standard logging macros: `error!`, `warning!`, `information!`, `debug!`, or `trace!`.
 2. The macros invoke the external Rust `log` crate, which checks the current maximum severity filter.
 3. If enabled, the record passes to Xila's internal `Logger` adapter stored in `LOGGER_INSTANCE`.
-4. The adapter converts the record into a Xila <HostReference crate="log" kind="struct" symbol="Record" /> and forwards it to the active `LoggerTrait` implementation.
+4. The adapter converts the record into a Xila <Api path="log::Record" /> and forwards it to the active `LoggerTrait` implementation.
 
 ### Severity levels and formatting
 
-The subsystem sorts log messages into five levels in <HostReference crate="log" kind="enum" symbol="Level" />:
+The subsystem sorts log messages into five levels in <Api path="log::Level" />:
 
 - `Level::Error` (tag `E`): critical failures and unrecoverable errors.
 - `Level::Warn` (tag `W`): abnormal conditions that do not immediately halt execution.
@@ -48,7 +48,7 @@ The default `LoggerTrait::log` implementation formats records with ANSI color co
 
 ### Initialization and lifetime
 
-During boot, the target platform registers its backend by calling <HostReference crate="log" kind="fn" symbol="initialize" /> with a static reference to its logger implementation (for example, `drivers_std::log::Logger` on native platforms). After registration, the maximum filter level is trace. The backend controls runtime filtering.
+During boot, the target platform registers its backend by calling <Api path="log::initialize" /> with a static reference to its logger implementation (for example, `drivers_std::log::Logger` on native platforms). After registration, the maximum filter level is trace. The backend controls runtime filtering.
 
 ## Design choices and trade-offs
 
@@ -63,15 +63,12 @@ During boot, the target platform registers its backend by calling <HostReference
 
 ## API reference
 
-- <HostReference crate="log" /> - crate root and re-exported macros.
-- <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> - interface
-  required for platform logger implementations.
-- <HostReference crate="log" kind="enum" symbol="Level" /> - severity level
-  enumeration.
-- <HostReference crate="log" kind="struct" symbol="Record" /> - structured log
-  message container.
-- <HostReference crate="log" kind="fn" symbol="initialize" /> - registers the
-  platform logger backend.
+- <Api path="log" /> - crate root and re-exported macros.
+- <Api path="log::LoggerTrait" /> - interface required for platform logger
+  implementations.
+- <Api path="log::Level" /> - severity level enumeration.
+- <Api path="log::Record" /> - structured log message container.
+- <Api path="log::initialize" /> - registers the platform logger backend.
 
 ## Related
 

@@ -80,6 +80,7 @@ jobs:
       - name: "Validate | Documentation and references"
         env:
           XILA_STRICT_SOURCE_REFERENCES: "1"
+          XILA_STRICT_API_LINKS: "1"
           XILA_CORE_PATH: ${{ github.workspace }}/.reference-checkouts/core
           XILA_APPLICATIONS_PATH: ${{ github.workspace }}/.reference-checkouts/applications
           XILA_PLATFORMS_PATH: ${{ github.workspace }}/.reference-checkouts/platforms
@@ -142,6 +143,8 @@ jobs:
         run: mise exec -- npm run docs:build
 
       - name: "Validate | API links against the built API"
+        env:
+          XILA_STRICT_API_LINKS: "1"
         run: mise exec -- npm run docs:validate
 
   required:

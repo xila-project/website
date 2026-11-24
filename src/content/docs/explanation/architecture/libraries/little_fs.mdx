@@ -6,15 +6,15 @@ description: "LittleFS integration, block geometry, cache parameters, and safe m
 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
-The <HostReference crate="little_fs" /> crate provides a fail-safe, power-loss-resilient file system backend for Xila. It integrates the LittleFS C library through the <DocsRsReference crate="littlefs2" /> ecosystem and adapts it to Xila's storage traits.
+The <Api path="little_fs" /> provides a fail-safe, power-loss-resilient file system backend for Xila. It integrates the LittleFS C library through the <DocsRsReference crate="littlefs2" /> ecosystem and adapts it to Xila's storage traits.
 
 ## Context
 
 Microcontrollers need file systems that survive sudden power interruptions and flash wear. Desktop file systems often fail to recover from uncommitted writes and demand large RAM caches.
 
-`little_fs` bridges the C implementation of LittleFS with Xila's <HostReference crate="file_system" kind="trait" symbol="FileSystemOperations" /> trait. It operates over any storage driver that implements <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />, including partition devices, flash memories, and origin-private browser storage.
+`little_fs` bridges the C implementation of LittleFS with Xila's <Api path="file_system::FileSystemOperations" /> trait. It operates over any storage driver that implements <Api path="file_system::DirectBlockDevice" />, including partition devices, flash memories, and origin-private browser storage.
 
 ## How it works
 
@@ -61,18 +61,12 @@ Drivers must complete immediately, because C callbacks run synchronously on the 
 
 `little_fs` supports three mount workflows:
 
-1. <HostReference crate="little_fs" kind="fn" symbol="mount_disk" />: the
-   standard entry point used by production platforms. It reads the Master Boot
-   Record, verifies
-   <HostReference
-     crate="file_system"
-     kind="constant"
-     symbol="XILA_DISK_SIGNATURE"
-   />
-   , checks partition boundaries against the total block count, locates the Xila
-   partition, and mounts it with `FileSystem::new`. If the partition table or
-   the filesystem is invalid, `mount_disk` returns an error and does not modify
-   the disk.
+1. <Api path="little_fs::mount_disk" />: the standard entry point used by
+   production platforms. It reads the Master Boot Record, verifies
+   <Api path="file_system::XILA_DISK_SIGNATURE" />, checks partition boundaries
+   against the total block count, locates the Xila partition, and mounts it with
+   `FileSystem::new`. If the partition table or the filesystem is invalid,
+   `mount_disk` returns an error and does not modify the disk.
 2. `FileSystem::new`: mounts an existing filesystem without formatting. If the root directory lacks internal metadata, it initializes the root attributes (`/` with directory kind) while preserving stored files.
 3. `FileSystem::format`: reformats the entire storage block using `lfs_format`.
 
@@ -94,16 +88,14 @@ Calling `FileSystem::format` or `FileSystem::get_or_format` wipes existing direc
 
 ## API reference
 
-- <HostReference crate="little_fs" />: crate root.
-- <HostReference crate="little_fs" kind="struct" symbol="FileSystem" />:
-  concrete LittleFS filesystem instance.
-- <HostReference crate="little_fs" kind="fn" symbol="mount_disk" />: safe disk
-  mounting without reformatting.
-- <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />:
-  underlying block device contract.
-- <HostReference crate="file_system/block_device" kind="struct" symbol="ERASE">
+- <Api path="little_fs" />: crate root.
+- <Api path="little_fs::FileSystem" />: concrete LittleFS filesystem instance.
+- <Api path="little_fs::mount_disk" />: safe disk mounting without reformatting.
+- <Api path="file_system::DirectBlockDevice" />: underlying block device
+  contract.
+- <Api path="file_system::block_device::ERASE">
     <code>file_system::block_device::ERASE</code>
-  </HostReference>
+  </Api>
   : sector erase command.
 
 ## Related

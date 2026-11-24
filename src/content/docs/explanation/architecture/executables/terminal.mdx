@@ -4,10 +4,10 @@ docType: explanation
 description: "Graphical terminal window exposed as a character device to host the command-line shell."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The Terminal executable (<HostReference repo="applications" crate="terminal" />) is a graphical console window for Xila. It implements a virtual character device and mounts it in the virtual file system (VFS). It connects the standard I/O streams to that device and runs the [Command-line shell](/explanation/architecture/executables/command_line_shell/).
+The Terminal executable (<CodeReference repo="applications" path="executables/terminal"><code>terminal</code> crate</CodeReference>) is a graphical console window for Xila. It implements a virtual character device and mounts it in the virtual file system (VFS). It connects the standard I/O streams to that device and runs the [Command-line shell](/explanation/architecture/executables/command_line_shell/).
 
 ## Context
 
@@ -54,18 +54,18 @@ flowchart LR
 
 When Terminal starts:
 
-1. It creates a `Terminal` instance through the graphics manager (<HostReference crate="graphics" />). The instance owns an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with a scrollable output display and a bottom toolbar.
-2. It generates a task-specific device path `/devices/terminal_{task}` based on its current <HostReference crate="task" kind="struct" symbol="TaskIdentifier" />.
-3. It mounts the terminal instance into the VFS as a static character device via <HostReference crate="virtual_file_system" kind="enum" symbol="ItemStatic" />.
-4. It creates a <HostReference crate="executable" kind="struct" symbol="Standard" /> descriptor. Its standard input, standard output, and standard error paths all point to `/devices/terminal_{task}`.
-5. It executes `/applications/executables/command_line_shell` with those standard streams via <HostReference crate="executable" kind="fn" symbol="execute" />.
+1. It creates a `Terminal` instance through the graphics manager (<Api path="graphics" />). The instance owns an <Api path="graphics::OwnedWindow" /> with a scrollable output display and a bottom toolbar.
+2. It generates a task-specific device path `/devices/terminal_{task}` based on its current <Api path="task::TaskIdentifier" />.
+3. It mounts the terminal instance into the VFS as a static character device via <Api path="virtual_file_system::ItemStatic" />.
+4. It creates a <Api path="executable::Standard" /> descriptor. Its standard input, standard output, and standard error paths all point to `/devices/terminal_{task}`.
+5. It executes `/applications/executables/command_line_shell` with those standard streams via <Api path="executable::execute" />.
 6. It runs an event loop every 20 milliseconds to process LVGL events and forward I/O until the window is closed.
 
 ### Character device interface
 
-Terminal implements <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" /> and <HostReference crate="file_system" kind="trait" symbol="BaseOperations" /> directly on the `Terminal` struct:
+Terminal implements <Api path="file_system::CharacterDevice" /> and <Api path="file_system::BaseOperations" /> directly on the `Terminal` struct:
 
-- **Open**: Allocates a per-handle <HostReference crate="file_system" kind="struct" symbol="Waiter" /> and stores it in the private data of the file context.
+- **Open**: Allocates a per-handle <Api path="file_system::Waiter" /> and stores it in the private data of the file context.
 - **Read**: Pulls pending bytes from the validated input queue. If the queue is empty, the calling task registers its waker in `input_waiters` and returns `Poll::Pending`.
 - **Write**: Appends the UTF-8 chunks written by the shell to the text buffer of the window. It updates the display label and scrolls to show the latest output.
 - **Close & cancel**: Removes the registered waker from the wait queue and cleans up the private data of the context.
@@ -87,7 +87,7 @@ Hardware without a display uses a serial line discipline instead. For example, t
 ## Design choices and trade-offs
 
 - **Per-task device node paths**: Mounting at `/devices/terminal_{task}` instead of one static path lets multiple terminal windows run at the same time. Streams do not cross, and multi-user systems have no permission conflicts.
-- **Asynchronous wait queue notifications**: Decoupling LVGL input events from asynchronous VFS readers through <HostReference crate="file_system" kind="struct" symbol="WaitQueue" /> prevents GUI blocking while the shell processes input.
+- **Asynchronous wait queue notifications**: Decoupling LVGL input events from asynchronous VFS readers through <Api path="file_system::WaitQueue" /> prevents GUI blocking while the shell processes input.
 - **Monospaced font rendering**: Output uses a medium monospaced font. Columns stay aligned in outputs such as tables and directory listings.
 - **Selective escape code parsing**: Supporting only the ANSI clear and home sequences avoids the memory and code complexity of a full VT100/xterm terminal emulator.
 
@@ -99,16 +99,15 @@ Hardware without a display uses a serial line discipline instead. For example, t
 
 ## API reference
 
-- <HostReference repo="applications" crate="terminal" />: Terminal executable
-  crate.
-- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
-  VFS character device trait.
-- <HostReference crate="file_system" kind="trait" symbol="BaseOperations" />:
-  Core file system I/O operation trait.
-- <HostReference crate="executable" kind="struct" symbol="Standard" />: Standard
-  streams container.
-- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />:
-  Graphics subsystem window wrapper.
+- <CodeReference repo="applications" path="executables/terminal">
+    <code>terminal</code> crate
+  </CodeReference>
+  : Terminal executable crate.
+- <Api path="file_system::CharacterDevice" />: VFS character device trait.
+- <Api path="file_system::BaseOperations" />: Core file system I/O operation
+  trait.
+- <Api path="executable::Standard" />: Standard streams container.
+- <Api path="graphics::OwnedWindow" />: Graphics subsystem window wrapper.
 
 ## Related
 

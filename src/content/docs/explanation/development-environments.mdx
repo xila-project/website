@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand the target architectures, repository boundaries, and toolchains across Core, Applications, and Platforms."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Xila spans multiple compilation targets and development environments across three main repositories. Core provides portable operating system logic. Applications implements guest applications and user-facing executables. Platforms produces concrete runtimes for desktop, browser, and microcontroller targets.
 
@@ -104,13 +103,10 @@ The build flow works as follows:
 
 ## API reference
 
-- <HostReference crate="virtual_file_system" /> for the host virtual file
-  system.
-- <HostReference crate="task" /> for the task management subsystem.
-- <HostReference crate="file_system" /> for file system traits and
-  implementations.
-- <GuestReference repo="applications" crate="wasm" /> for the guest WebAssembly
-  API.
+- <Api path="virtual_file_system" /> for the host virtual file system.
+- <Api path="task" /> for the task management subsystem.
+- <Api path="file_system" /> for file system traits and implementations.
+- <Api api="guest" path="wasm" /> for the guest WebAssembly API.
 - <CodeReference repo="platforms" path="examples/native/README.md" /> for the
   native runtime specification.
 - <CodeReference repo="platforms" path="examples/nano_33_ble/README.md" /> for

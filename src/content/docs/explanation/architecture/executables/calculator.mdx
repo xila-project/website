@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Calculator evaluates mathematical expressions."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Calculator evaluates mathematical expressions. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
@@ -37,8 +36,11 @@ The interface switches between a compact and a wide layout at 560 by 360 pixels.
 
 ## API reference
 
-- <HostReference repo="applications" crate="calculator" />: application source.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="executables/calculator">
+    <code>calculator</code> crate
+  </CodeReference>
+  : application source.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/calculator.json" />:
   package metadata.
 

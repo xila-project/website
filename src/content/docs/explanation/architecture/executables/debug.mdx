@@ -4,10 +4,10 @@ docType: explanation
 description: "Host diagnostics service providing bounded task inspection, memory metrics, screen captures, UI trees, and synthetic input over a character device."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The Debug executable (<HostReference repo="applications" crate="debug_application">Debug executable</HostReference>) is a diagnostics and automation service on the host side of Xila. It provides task inspection, heap metrics, screen capture, user interface tree introspection, and synthetic pointer and keyboard input. It communicates over a character device.
+The Debug executable (<CodeReference repo="applications" path="executables/debug">Debug executable</CodeReference>) is a diagnostics and automation service on the host side of Xila. It provides task inspection, heap metrics, screen capture, user interface tree introspection, and synthetic pointer and keyboard input. It communicates over a character device.
 
 ## Context
 
@@ -15,7 +15,7 @@ Automated tests, continuous integration, and remote diagnosis on embedded device
 
 Debug provides:
 
-- An extensible JSON command protocol defined by <HostReference crate="debug_protocol" />.
+- An extensible JSON command protocol defined by <Api path="debug_protocol" />.
 - Operation over a mounted character device at `/devices/graphics/debug/transport`.
 - An interactive graphical mode and a headless mode with the `--background` flag.
 - Strict memory bounds on request payloads, response buffers, and task collection trees.
@@ -38,9 +38,9 @@ flowchart LR
 
 When Debug launches:
 
-1. **Window initialization**: In foreground mode, Debug creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> that displays the status message `"Debug agent is ready. Use xila-debug from the host."`. The `--background` flag skips window creation. Debug then runs as a headless service.
-2. **Transport task**: Spawns a child task named `Debug agent transport` with <HostReference crate="task" kind="struct" symbol="Manager" />.
-3. **Endpoint connection**: The transport task opens `/devices/graphics/debug/transport` with <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> for reading and writing. The host platform or test harness must mount this device node before Debug starts.
+1. **Window initialization**: In foreground mode, Debug creates an <Api path="graphics::OwnedWindow" /> that displays the status message `"Debug agent is ready. Use xila-debug from the host."`. The `--background` flag skips window creation. Debug then runs as a headless service.
+2. **Transport task**: Spawns a child task named `Debug agent transport` with <Api path="task::Manager" />.
+3. **Endpoint connection**: The transport task opens `/devices/graphics/debug/transport` with <Api path="virtual_file_system::File" /> for reading and writing. The host platform or test harness must mount this device node before Debug starts.
 4. **Lifecycle management**: Closing the foreground window tells the transport task to shut down. Debug joins the task handle and exits.
 
 ### Request and response framing
@@ -77,20 +77,16 @@ The transport dispatches requests across several functional areas:
 
 ## API reference
 
-- <HostReference repo="applications" crate="debug_application">
+- <CodeReference repo="applications" path="executables/debug">
     Debug executable
-  </HostReference>
+  </CodeReference>
   : Debug application crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Core host executable contract.
-- <HostReference crate="debug_protocol" />: Reusable debug protocol schema and
-  request definitions.
-- <HostReference crate="task" kind="struct" symbol="Manager" />: Task subsystem
-  management service.
-- <HostReference crate="graphics" kind="struct" symbol="Manager" />: Graphics
-  subsystem manager.
-- <HostReference crate="virtual_file_system" kind="struct" symbol="File" />: VFS
-  file and device handle.
+- <Api path="executable::ExecutableTrait" />: Core host executable contract.
+- <Api path="debug_protocol" />: Reusable debug protocol schema and request
+  definitions.
+- <Api path="task::Manager" />: Task subsystem management service.
+- <Api path="graphics::Manager" />: Graphics subsystem manager.
+- <Api path="virtual_file_system::File" />: VFS file and device handle.
 
 ## Related
 

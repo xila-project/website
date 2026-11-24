@@ -5,12 +5,19 @@ description: "Reference for the xila-wasm guest API, WASI Preview 1 imports, and
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
-import ReferenceViewer from "@/components/ReferenceViewer.astro";
+import { LinkCard } from "@astrojs/starlight/components";
+import Api from "@/components/Api.astro";
+import ApiRedirect from "@/components/ApiRedirect.astro";
 
-The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />) provides the guest API for WebAssembly (Wasm) applications that target `wasm32-wasip1`. The generated Rust API documentation for <GuestReference repo="applications" crate="wasm" /> opens in the API reference below.
+<ApiRedirect architecture="guest" />
 
-<ReferenceViewer architecture="guest" />
+The `xila-wasm` crate in the Applications repository (<CodeReference repo="applications" path="executables/wasm/src/guest/mod.rs" />) provides the guest API for WebAssembly (Wasm) applications that target `wasm32-wasip1`. The guest API documentation is the rustdoc of <Api api="guest" path="wasm" /> for this target. Each item has its own page under `/api/guest/`.
+
+<LinkCard
+  title="Guest API: wasm"
+  description="Types and functions for Wasm guest applications (wasm32-wasip1)."
+  href="/api/guest/wasm/index.html"
+/>
 
 ## Cargo features
 
@@ -48,7 +55,7 @@ The host runtime provides the following system calls in the `wasi_snapshot_previ
 
 ## Device control
 
-The <GuestReference repo="applications" crate="wasm" kind="fn" symbol="fd_control" /> function sends typed control commands to VFS character devices, such as audio playback devices or serial interfaces:
+The <Api api="guest" path="wasm::fd_control" /> function sends typed control commands to VFS character devices, such as audio playback devices or serial interfaces:
 
 ```rust
 pub unsafe fn fd_control(
@@ -72,9 +79,9 @@ The host validates four constraints on every call:
 
 When compiled with the `graphics` feature, `xila-wasm` provides safe wrappers around the LVGL graphics subsystem:
 
-- Constructors: <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="button_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="label_create" />.
-- Destruction: <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" /> releases the native widget and frees the handle slot.
-- Types: <GuestReference repo="applications" crate="wasm" kind="type" symbol="ObjectHandle" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="Color" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="Point" />, <GuestReference repo="applications" crate="wasm" kind="struct" symbol="Area" />, <GuestReference repo="applications" crate="wasm" kind="enum" symbol="EventCode" />.
+- Constructors: <Api api="guest" path="wasm::window_create" />, <Api api="guest" path="wasm::button_create" />, <Api api="guest" path="wasm::label_create" />.
+- Destruction: <Api api="guest" path="wasm::object_delete" /> releases the native widget and frees the handle slot.
+- Types: <Api api="guest" path="wasm::ObjectHandle" />, <Api api="guest" path="wasm::Color" />, <Api api="guest" path="wasm::Point" />, <Api api="guest" path="wasm::Area" />, <Api api="guest" path="wasm::EventCode" />.
 
 ## Limits
 
@@ -91,9 +98,8 @@ When compiled with the `graphics` feature, `xila-wasm` provides safe wrappers ar
 
 Error types returned by guest APIs:
 
-- <GuestReference repo="applications" crate="wasm" kind="type" symbol="Error" />
-  : Standard guest error type.
-- <GuestReference repo="applications" crate="wasm" kind="type" symbol="Result" />: Convenience type alias for `Result<T, Error>`.
+- <Api api="guest" path="wasm::Error" />: Standard guest error type.
+- <Api api="guest" path="wasm::Result" />: Convenience type alias for `Result<T, Error>`.
 - Graphics status codes: a nonzero `i32` return value from a graphics operation indicates failure, for example invalid memory, an invalid handle, or resource exhaustion.
 
 ## Related

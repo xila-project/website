@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Pixel Painter lets you draw and save indexed-color images."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Pixel Painter lets the user draw and save indexed-color images. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
@@ -37,9 +36,11 @@ The encoded drawing contains an eight-byte header followed by 16,000 pixel indic
 
 ## API reference
 
-- <HostReference repo="applications" crate="pixel_painter" />: application
-  source.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="executables/pixel_painter">
+    <code>pixel_painter</code> crate
+  </CodeReference>
+  : application source.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/pixel_painter.json" />:
   package metadata.
 

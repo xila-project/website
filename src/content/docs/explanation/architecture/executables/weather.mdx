@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Weather shows forecasts for a selected location."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Weather shows forecasts for a selected location. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
 
@@ -37,8 +36,11 @@ The interface displays up to 24 hours and 10 days of forecast data.
 
 ## API reference
 
-- <HostReference repo="applications" crate="weather" />: application source.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <CodeReference repo="applications" path="executables/weather">
+    <code>weather</code> crate
+  </CodeReference>
+  : application source.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/weather.json" />: package
   metadata.
 

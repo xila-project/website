@@ -21,21 +21,21 @@ This guide shows how to write and validate a Xila documentation page.
 
 2. Choose a page type and its template. Tutorials teach one path. How-to guides solve a task. Reference pages describe exact interfaces. Explanation pages describe concepts and trade-offs.
 3. Give substantive pages a title, `docType`, and one-sentence description in frontmatter. Use sentence-case headings, starting at level two. Follow the section order in the chosen template.
-4. Write direct, short sentences. Introduce each command with its working directory and context. Use language-tagged code blocks. Link related pages with root-relative paths ending in `/`. Use the reference components for source and Rustdoc links. Introduce diagrams and explain their relationships in text.
+4. Write direct, short sentences. Introduce each command with its working directory and context. Use language-tagged code blocks. Link related pages with root-relative paths ending in `/`. Link Rust API items with a `rust:` link, for example ``[`Manager::spawn`](rust:task::Manager::spawn)``, or with the `Api` component, for example `<Api path="task::Manager::spawn" />`. Link source files with `CodeReference`. Introduce diagrams and explain their relationships in text.
 5. In the website repository root, start a local preview in a host shell:
 
    ```sh
    npm run docs:dev
    ```
 
-6. In the website repository root, build Rustdoc when needed and run the site checks in a host shell:
+6. In the website repository root, get the API index and run the site checks in a host shell. `docs:rustdoc` builds the API pages and their index from Core and Applications checkouts. `docs:api-index` downloads the published index instead, which is enough to check API links:
 
    ```sh
-   npm run docs:rustdoc
+   npm run docs:api-index
    npm run check
    ```
 
-   `check` runs reference tests, formatting, the site build, and the documentation validator. The validator can also run separately as `npm run docs:validate`.
+   `check` runs reference tests, formatting, the site build, and the documentation validator. The validator can also run separately as `npm run docs:validate`. It reports an API link that does not resolve as a warning, or as an error with `XILA_STRICT_API_LINKS=1`, as in CI.
 
 ## Verify the result
 
