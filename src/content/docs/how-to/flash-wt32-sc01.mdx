@@ -52,6 +52,8 @@ No release download exists for these boards. The Xila releases contain the firmw
 
    For the WT32-SC01, run `mise run build:wt32-sc01` instead.
 
+   The WT32-SC01 carries ESP32 revision v1.0 silicon. By default, esp-hal requires revision v3.0 or later. The `build:wt32-sc01` task runs `tools/dev/build_espressif_image.sh`, which sets `ESP_HAL_CONFIG_MIN_CHIP_REVISION=100`, so that the firmware accepts revision v1.0. Build this board with the task, not with a direct `cargo build`.
+
 The build writes two files for each board. The ELF file is the firmware. The `-flash.bin` file is a merged image of the boot loader, the partition table and the firmware.
 
 | Board          | Firmware (ELF)                                 | Merged image                                         |
