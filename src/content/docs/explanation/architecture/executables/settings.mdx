@@ -19,7 +19,7 @@ Settings provides:
 - Loading and saving of user-level appearance preferences in the virtual file system (VFS).
 - Direct access to the Core users manager to update authentication credentials.
 - Live network status monitoring and interface configuration.
-- Cleanup of interface panels when it closes, and of password input fields after a successful password change.
+- Cleanup of interface panels and of the Wi-Fi password input field when it closes, and of password input fields after a successful password change.
 
 ## How it works
 
@@ -55,7 +55,7 @@ Settings creates an <HostReference crate="graphics" kind="struct" symbol="OwnedW
 Settings runs a responsive event loop that dispatches user actions to the active tab:
 
 - **Window close**: On a close or delete event, the event loop stops and the application exits.
-- **Resource cleanup**: Settings implements `Drop`. It releases the open network interface panel under the graphics lock before the window widget tree is deleted. The password tab clears its input fields after a successful password change.
+- **Resource cleanup**: Settings implements `Drop`. It releases the open network interface panel under the graphics lock before the window widget tree is deleted. Releasing the panel empties its Wi-Fi password input field. The password tab empties its input fields after a successful password change.
 
 ### Desktop discovery
 
@@ -65,7 +65,7 @@ Settings does not write its own shortcut at runtime. Platforms seeds the shortcu
 
 - **Instant appearance persistence**: Appearance updates are written to the per-user VFS configuration file and applied to all open windows. The user sees the change immediately, without a restart.
 - **Periodic network polling**: While the network panel is open, the event loop polls the link state every 250 milliseconds. Link changes appear promptly, without kernel socket callbacks.
-- **No password zeroization**: Clearing a password input field empties the widget text. The password strings themselves are not zeroized in memory.
+- **No password zeroization**: Emptying a password input field replaces the widget text with an empty string. Settings does not overwrite the memory that held the password.
 
 ## Limits
 
