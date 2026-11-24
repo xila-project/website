@@ -166,3 +166,38 @@ test("falls back to the rustdoc search", () => {
     "/api/host/xila/index.html?search=task%3A%3AMissing",
   );
 });
+
+test("links a required trait method to its declaration, not to an implementor", () => {
+  const index = {
+    version: 1,
+    apis: {
+      host: {
+        items: {
+          "task::Spawn": {
+            url: "/api/host/task/trait.Spawn.html",
+            kind: "trait",
+            anchors: ["method.run", "tymethod.run", "method.provided"],
+          },
+          "task::Manager": {
+            url: "/api/host/task/struct.Manager.html",
+            kind: "struct",
+            anchors: ["method.run", "tymethod.run"],
+          },
+        },
+        aliases: {},
+      },
+    },
+  };
+  assert.equal(
+    resolveApiTarget(index, "task::Spawn::run").href,
+    "/api/host/task/trait.Spawn.html#tymethod.run",
+  );
+  assert.equal(
+    resolveApiTarget(index, "task::Spawn::provided").href,
+    "/api/host/task/trait.Spawn.html#method.provided",
+  );
+  assert.equal(
+    resolveApiTarget(index, "task::Manager::run").href,
+    "/api/host/task/struct.Manager.html#method.run",
+  );
+});

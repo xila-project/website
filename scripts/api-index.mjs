@@ -245,7 +245,12 @@ function expandAliases(api, itemPath) {
 }
 
 function memberAnchor(item, name) {
-  for (const prefix of MEMBER_PREFIXES) {
+  // The page of a trait also lists the methods of its implementors under the
+  // `method.` anchors: a required method of the trait itself has a
+  // `tymethod.` anchor, which names the declaration.
+  const prefixes =
+    item.kind === "trait" ? ["tymethod", ...MEMBER_PREFIXES] : MEMBER_PREFIXES;
+  for (const prefix of prefixes) {
     const anchor = `${prefix}.${name}`;
     if (item.anchors?.includes(anchor)) return anchor;
   }
