@@ -7,12 +7,12 @@ description: "Compose Core managers and platform drivers in a host runtime."
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-This guide shows how to compose a host runtime using the native example as a reference.
+This guide shows how to compose a host runtime. It uses the native example as a reference.
 
 ## Before you begin
 
 - Set up the [development environment](/how-to/setup-development/) and inspect the <CodeReference repo="platforms" path="examples/native/src/main.rs">native example</CodeReference>.
-- Choose drivers for your host and the Core `xila` features your runtime needs. The <CodeReference path="core/Cargo.toml">facade manifest</CodeReference> enables `network` by default. Enable other Cargo features, such as `graphics`, as needed.
+- Choose the drivers for your host and the Core `xila` features that your runtime needs. The <CodeReference path="core/Cargo.toml">facade manifest</CodeReference> enables `network` by default. Enable other Cargo features, for example `graphics`, when needed.
 
 ## Steps
 
@@ -20,7 +20,7 @@ This guide shows how to compose a host runtime using the native example as a ref
 2. If using graphics, initialize graphics with a screen and input devices and start its loop as a task.
 3. Prepare and mount storage, then initialize the virtual file system with the task, users and time managers.
 4. Mount the devices and initialize the network manager and application context required by your host. Follow the native example for authentication and executable registration.
-5. Mount the executables with <HostReference crate="executable" kind="macro" symbol="mount_executables" />, open the standard streams with <HostReference crate="executable" kind="struct" symbol="Standard" /> and start the first executable, such as the shell, with <HostReference crate="executable" kind="fn" symbol="execute" />.
+5. Mount the executables with <HostReference crate="executable" kind="macro" symbol="mount_executables" />, open the standard streams with <HostReference crate="executable" kind="struct" symbol="Standard" /> and start the first executable, for example the shell, with <HostReference crate="executable" kind="fn" symbol="execute" />.
 
 The following diagram shows the order in the native example.
 
@@ -42,7 +42,7 @@ sequenceDiagram
     Host->>VFS: Open standard streams and execute shell
 ```
 
-The host initializes managers before optional graphics, then mounts storage and initializes the virtual file system (VFS). It then mounts devices, initializes networking, mounts the executables under `/applications/executables/`, opens the standard streams and executes the shell.
+The host initializes the managers first, then optional graphics. It mounts storage and initializes the virtual file system (VFS). It then mounts the devices, initializes the network manager, mounts the executables under `/applications/executables/`, opens the standard streams and executes the shell.
 
 ## Verify the result
 
