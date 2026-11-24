@@ -225,6 +225,7 @@ export default defineConfig({
         EditLink: "./src/components/EditLink.astro",
         Hero: "./src/components/Hero.astro",
         Footer: "./src/components/Footer.astro",
+        Header: "./src/components/Header.astro",
         LastUpdated: "./src/components/LastUpdated.astro",
         PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",
