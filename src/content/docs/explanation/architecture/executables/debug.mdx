@@ -38,7 +38,7 @@ flowchart LR
 
 When Debug launches:
 
-1. **Window initialization**: In foreground mode, Debug creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> that displays the status message `\"Debug agent is ready. Use xila-debug from the host.\"`. The `--background` flag skips window creation. Debug then runs as a headless service.
+1. **Window initialization**: In foreground mode, Debug creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> that displays the status message `"Debug agent is ready. Use xila-debug from the host."`. The `--background` flag skips window creation. Debug then runs as a headless service.
 2. **Transport task**: Spawns a child task named `Debug agent transport` with <HostReference crate="task" kind="struct" symbol="Manager" />.
 3. **Endpoint connection**: The transport task opens `/devices/graphics/debug/transport` with <HostReference crate="virtual_file_system" kind="struct" symbol="File" /> for reading and writing. The host platform or test harness must mount this device node before Debug starts.
 4. **Lifecycle management**: Closing the foreground window tells the transport task to shut down. Debug joins the task handle and exits.

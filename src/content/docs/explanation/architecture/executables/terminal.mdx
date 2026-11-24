@@ -75,11 +75,11 @@ Terminal implements <HostReference crate="file_system" kind="trait" symbol="Char
 Line editing and input dispatch in the graphical terminal are split between the widget toolkit and an internal byte queue:
 
 1. **Typing and editing**: The LVGL `lv_textarea` widget handles in-field cursor movement, text insertion, selection, and backspacing.
-2. **Submission**: Pressing the Enter key or clicking the Send button calls `submit()`. This echoes the line to the display buffer, pushes the UTF-8 bytes and a newline (`\\n`) into a `VecDeque<u8>` queue, and clears the input field.
+2. **Submission**: Pressing the Enter key or clicking the Send button calls `submit()`. This echoes the line to the display buffer, pushes the UTF-8 bytes and a newline (`\n`) into a `VecDeque<u8>` queue, and clears the input field.
 3. **Reader notification**: The event loop wakes all readers registered in `input_waiters`. The shell's `read` call then returns the queued line.
 4. **ANSI escape sequence support**: When writing output, Terminal checks for specific ANSI control sequences:
-   - `\\x1b[2J`: Clears the scrollback display buffer.
-   - `\\x1b[H`: Resets the display cursor to home position.
+   - `\x1b[2J`: Clears the scrollback display buffer.
+   - `\x1b[H`: Resets the display cursor to home position.
 5. **Clear button**: Clicking the trash icon clears the scrollback history. The line currently being typed stays.
 
 Hardware without a display uses a serial line discipline instead. For example, the Arduino Nano 33 BLE uses the USB console driver in the Platforms repository (<CodeReference repo="platforms" path="drivers/nordic/src/usb_console" />). The driver handles local echo, backspace erasure, and carriage return normalization over UART. See [Nordic drivers](/explanation/architecture/drivers/nordic/) for driver-level details.

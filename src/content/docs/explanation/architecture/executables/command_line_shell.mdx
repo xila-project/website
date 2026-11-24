@@ -59,7 +59,7 @@ The tokenizer converts input strings up to 4,096 bytes into at most 256 tokens:
 
 ### Expansion rules
 
-Before executing a command, the shell expands variables in unquoted text and double-quoted strings (`\"...\"`):
+Before executing a command, the shell expands variables in unquoted text and double-quoted strings (`"..."`):
 
 - `$VARIABLE` and `${VARIABLE}`: Replaced by the value of the task environment variable with the same name.
 - `$?`: Replaced by the exit status of the previous foreground command.
