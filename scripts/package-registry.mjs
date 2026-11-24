@@ -2,6 +2,18 @@ export const DEFAULT_REGISTRY_URL = "https://registry.xila.dev";
 export const DEFAULT_FETCH_CONCURRENCY = 6;
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
+// Patterns from package_manager `schemas/registry-entry.schema.json`. The
+// package name pattern accepts the format 1 and format 2 rules. The name and
+// the version go into the install command, so they must not hold spaces or
+// shell characters.
+const PACKAGE_NAME_RE =
+  /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+$/;
+const PACKAGE_VERSION_RE = /^[A-Za-z0-9.+-]{1,64}$/;
+const TARGET_RE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
+const PUBLISHER_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+// Control characters are not allowed in catalog summaries.
+const CONTROL_CHARACTER_RE = /[\u0000-\u001f\u007f]/;
+const MAXIMUM_URL_LENGTH = 256;
 const PACKAGE_ENTRY_PATH_RE =
   /^packages\/[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+\.json$/;
 const XILA_VERSION_RE =
@@ -16,7 +28,13 @@ function isNonEmptyString(value) {
 }
 
 function isHttpsUrl(value) {
-  if (typeof value !== "string" || /\s/.test(value)) return false;
+  if (
+    typeof value !== "string" ||
+    value.length > MAXIMUM_URL_LENGTH ||
+    /\s/.test(value)
+  ) {
+    return false;
+  }
   try {
     const parsed = new URL(value);
     return parsed.protocol === "https:";
@@ -91,25 +109,49 @@ export function parseRegistryEntry(raw) {
       `Unsupported registry entry format version: ${String(raw.format_version)}.`,
     );
   }
-  if (!isNonEmptyString(raw.name)) {
-    throw new Error("Registry entry is missing package name.");
+  if (
+    typeof raw.name !== "string" ||
+    raw.name.length > 96 ||
+    !PACKAGE_NAME_RE.test(raw.name)
+  ) {
+    throw new Error("Registry entry has an invalid package name.");
   }
-  if (!isNonEmptyString(raw.version)) {
-    throw new Error(`Registry entry ${raw.name} is missing version.`);
+  if (
+    typeof raw.version !== "string" ||
+    !PACKAGE_VERSION_RE.test(raw.version)
+  ) {
+    throw new Error(`Registry entry ${raw.name} has an invalid version.`);
   }
-  if (!isNonEmptyString(raw.target)) {
-    throw new Error(`Registry entry ${raw.name} is missing target.`);
+  if (
+    typeof raw.target !== "string" ||
+    raw.target.length > 64 ||
+    !TARGET_RE.test(raw.target)
+  ) {
+    throw new Error(`Registry entry ${raw.name} has an invalid target.`);
   }
-  if (!isNonEmptyString(raw.publisher)) {
-    throw new Error(`Registry entry ${raw.name} is missing publisher.`);
+  if (
+    typeof raw.publisher !== "string" ||
+    raw.publisher.length > 64 ||
+    !PUBLISHER_RE.test(raw.publisher)
+  ) {
+    throw new Error(`Registry entry ${raw.name} has an invalid publisher.`);
   }
   if (
     !Array.isArray(raw.capabilities) ||
-    !raw.capabilities.every((item) => typeof item === "string")
+    raw.capabilities.length > 32 ||
+    !raw.capabilities.every(
+      (item) =>
+        typeof item === "string" && item.length >= 1 && item.length <= 64,
+    )
   ) {
     throw new Error(`Registry entry ${raw.name} has invalid capabilities.`);
   }
-  if (raw.display_name !== null && typeof raw.display_name !== "string") {
+  if (
+    raw.display_name !== null &&
+    (typeof raw.display_name !== "string" ||
+      raw.display_name.length < 1 ||
+      raw.display_name.length > 128)
+  ) {
     throw new Error(`Registry entry ${raw.name} has invalid display_name.`);
   }
 
@@ -139,7 +181,11 @@ export function parseRegistryEntry(raw) {
     }
     if (
       !isNonEmptyString(raw.metadata.summary) ||
+      raw.metadata.summary.length > 256 ||
+      CONTROL_CHARACTER_RE.test(raw.metadata.summary) ||
       !isNonEmptyString(raw.metadata.license) ||
+      raw.metadata.license.length > 64 ||
+      CONTROL_CHARACTER_RE.test(raw.metadata.license) ||
       !isHttpsUrl(raw.metadata.source)
     ) {
       throw new Error(
@@ -404,34 +450,53 @@ export async function fetchRegistryCatalog({
   }
   const index = parseRegistryIndex(await indexResponse.json());
 
+  // A failed entry request skips that entry only. The catalog shows the
+  // other entries and reports the skipped ones. A cancelled load stops.
   const fetched = await mapWithConcurrency(
     index.entryPaths,
     concurrency,
     async (entryPath) => {
-      const response = await fetchImpl(`${root}/${entryPath}`, { signal });
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch registry entry ${entryPath} (HTTP ${response.status}).`,
-        );
+      try {
+        const response = await fetchImpl(`${root}/${entryPath}`, { signal });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}.`);
+        }
+        return { entryPath, payload: await response.json(), error: null };
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        return {
+          entryPath,
+          payload: null,
+          error: `Failed to fetch the entry: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        };
       }
-      return {
-        entryPath,
-        payload: await response.json(),
-      };
     },
   );
 
   const entries = [];
   const skippedEntries = [];
-  for (const { entryPath, payload } of fetched) {
+  for (const { entryPath, payload, error } of fetched) {
+    if (error !== null) {
+      skippedEntries.push({ entryPath, reason: error });
+      continue;
+    }
     try {
       entries.push(parseRegistryEntry(payload));
-    } catch (error) {
+    } catch (parseError) {
       skippedEntries.push({
         entryPath,
-        reason: error instanceof Error ? error.message : String(error),
+        reason:
+          parseError instanceof Error ? parseError.message : String(parseError),
       });
     }
+  }
+
+  if (entries.length === 0 && skippedEntries.length > 0) {
+    throw new Error(
+      `No registry entry could be loaded. First failure: ${skippedEntries[0].entryPath}: ${skippedEntries[0].reason}`,
+    );
   }
 
   return {

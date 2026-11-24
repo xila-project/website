@@ -153,6 +153,38 @@ test("rejects unsafe or invalid registry entries", () => {
   );
 });
 
+test("rejects entry fields that do not match the registry entry schema", () => {
+  for (const overrides of [
+    { name: "xila.clock; reboot" },
+    { name: "Xila.Clock" },
+    { name: "clock" },
+    { version: "0.1.0 --allow-untrusted" },
+    { target: "wasm32 wasip1" },
+    { publisher: "Xila Project" },
+    { capabilities: [""] },
+    { display_name: "" },
+    {
+      metadata: {
+        summary: "Line one\nLine two",
+        license: "MIT",
+        source: "https://github.com/xila-project/applications",
+      },
+    },
+  ]) {
+    assert.throws(
+      () => parseRegistryEntry(makeFormat2Entry(overrides)),
+      undefined,
+      JSON.stringify(overrides),
+    );
+  }
+
+  assert.equal(
+    parseRegistryEntry(makeFormat2Entry({ name: "example.xila.weather_app" }))
+      .name,
+    "example.xila.weather_app",
+  );
+});
+
 test("sorts versions latest first and picks latest version for package cards", () => {
   assert.ok(compareVersions("0.10.0", "0.2.0") > 0);
   assert.ok(compareVersions("1.0.0", "1.0.0-rc.1") > 0);
@@ -308,4 +340,74 @@ test("fetches catalog entries with bounded concurrency", async () => {
   assert.equal(catalog.packages.length, 1);
   assert.equal(catalog.packages[0].latestVersion, "0.2.0");
   assert.equal(catalog.skippedEntries.length, 0);
+});
+
+function fixtureFetch(fixtures) {
+  return async (url) => {
+    const payload = fixtures.get(url);
+    if (!payload) return { ok: false, status: 404 };
+    return { ok: true, status: 200, json: async () => payload };
+  };
+}
+
+const PARTIAL_INDEX = {
+  format_version: 1,
+  version: 10,
+  expires: 20,
+  files: [
+    {
+      path: "packages/xila/clock/0.2.0.json",
+      sha256: VALID_SHA256,
+      size: 200,
+    },
+    {
+      path: "packages/xila/digits/0.2.0.json",
+      sha256: VALID_SHA256,
+      size: 200,
+    },
+  ],
+};
+
+test("skips an entry that cannot be fetched and keeps the other entries", async () => {
+  const catalog = await fetchRegistryCatalog({
+    baseUrl: "https://registry.example.org",
+    fetchImpl: fixtureFetch(
+      new Map([
+        ["https://registry.example.org/index.json", PARTIAL_INDEX],
+        [
+          "https://registry.example.org/packages/xila/clock/0.2.0.json",
+          makeFormat2Entry(),
+        ],
+      ]),
+    ),
+  });
+
+  assert.equal(catalog.packages.length, 1);
+  assert.deepEqual(
+    catalog.skippedEntries.map((entry) => entry.entryPath),
+    ["packages/xila/digits/0.2.0.json"],
+  );
+  assert.match(catalog.skippedEntries[0].reason, /HTTP 404/);
+});
+
+test("fails when no registry entry can be loaded", async () => {
+  await assert.rejects(
+    fetchRegistryCatalog({
+      baseUrl: "https://registry.example.org",
+      fetchImpl: fixtureFetch(
+        new Map([["https://registry.example.org/index.json", PARTIAL_INDEX]]),
+      ),
+    }),
+    /No registry entry could be loaded/,
+  );
+});
+
+test("fails when the registry index cannot be fetched", async () => {
+  await assert.rejects(
+    fetchRegistryCatalog({
+      baseUrl: "https://registry.example.org",
+      fetchImpl: fixtureFetch(new Map()),
+    }),
+    /HTTP 404/,
+  );
 });
