@@ -21,7 +21,11 @@ import { navigationState } from "../data/navigation-state";
 const packagesState = navigationState(Astro.url.pathname, "/packages/");
 ---
 
-<div class="site-title-with-menus" data-demo-url={DEMO_URL}>
+<div
+  class="site-title-with-menus"
+  data-demo-url={DEMO_URL}
+  data-pathname={Astro.url.pathname}
+>
   <ThemeSiteTitle />
   <DocsMenu class="header-menu" />
   <a class="header-link" href="/packages/" aria-current={packagesState}>
@@ -33,12 +37,18 @@ const packagesState = navigationState(Astro.url.pathname, "/packages/");
 <script>
   import { navigationState } from "../data/navigation-state";
 
+  // The path of the rendered page, not location.pathname: the 404 page is
+  // served at any missing path, and the header items are not marked on it.
+  const pathname =
+    document.querySelector<HTMLElement>(".site-title-with-menus")?.dataset
+      .pathname ?? location.pathname;
+
   for (const link of document.querySelectorAll<HTMLAnchorElement>(
     ".mobile-nav a[data-header-link]",
   )) {
     const url = new URL(link.href);
     if (url.origin !== location.origin) continue;
-    const state = navigationState(location.pathname, url.pathname);
+    const state = navigationState(pathname, url.pathname);
     if (state) link.setAttribute("aria-current", state);
   }
 </script>
