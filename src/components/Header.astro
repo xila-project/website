@@ -138,7 +138,11 @@ const shouldRenderSearch =
 
   @media (min-width: 64rem) {
     .header {
-      grid-template-columns: 1fr auto 1fr;
+      /* The left column may shrink to zero, so a long title is clipped by
+         its wrapper instead of overlapping the navigation. The right
+         column keeps the width of its content: wide actions push the
+         navigation off center instead of overlapping it. */
+      grid-template-columns: minmax(0, 1fr) auto 1fr;
       /* The theme insets the right edge on pages with a sidebar; drop the
          inset so the middle column is centered on the page. */
       padding-inline: 0;
@@ -146,6 +150,7 @@ const shouldRenderSearch =
 
     .title-wrapper {
       justify-self: start;
+      max-width: 100%;
     }
 
     :global(.header-nav) {
