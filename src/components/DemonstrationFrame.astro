@@ -15,9 +15,11 @@
  *
  * The demonstration draws on a canvas and has no text field, so a touch
  * screen shows no keyboard for it, and nobody can type the user name. On a
- * narrow touch screen the page shows a note and the full screen link instead
- * of the frame, and it does not load the demonstration. Remove the note when
- * xila-project/platforms#223 is done.
+ * phone the page shows a note and the full screen link instead of the frame,
+ * and it does not load the demonstration. A phone is a touch screen that is
+ * narrower than 40rem in portrait or lower than 30rem in landscape. A tablet
+ * or a touch laptop is larger in both orientations and shows the frame.
+ * Remove the note when xila-project/platforms#223 is done.
  *
  * The `:global` rules at the end remove the title, footer and spacing of the
  * surrounding page: the frame must not cause a page scroll.
@@ -101,7 +103,9 @@ const initial = DEMONSTRATION_LOCALES.find(
   const leave = document.querySelector<HTMLAnchorElement>("[data-leave-link]")!;
 
   // The same condition hides the frame in the styles below.
-  const phone = matchMedia("(pointer: coarse) and (max-width: 40rem)");
+  const phone = matchMedia(
+    "(pointer: coarse) and (max-width: 40rem), (pointer: coarse) and (max-height: 30rem)",
+  );
 
   // The frame has no address until here, so the browser loads only the
   // demonstration in the requested locale, and not at all on a phone.
@@ -325,7 +329,8 @@ const initial = DEMONSTRATION_LOCALES.find(
   }
 
   /* After the page rules above, which it overrides. */
-  @media (pointer: coarse) and (max-width: 40rem) {
+  @media (pointer: coarse) and (max-width: 40rem),
+    (pointer: coarse) and (max-height: 30rem) {
     .toolbar,
     .frame,
     .leave-link {
