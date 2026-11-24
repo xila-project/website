@@ -35,7 +35,7 @@ function makeFormat2Entry(overrides = {}) {
       source: "https://github.com/xila-project/applications",
       homepage: "https://www.xila.dev/",
     },
-    publisher: "xila-project",
+    publisher: "xila",
     archive: {
       url: "https://github.com/xila-project/applications/releases/download/xila.clock-v0.2.0/xila.clock-0.2.0-wasm32-wasip1.xpk",
       sha256: VALID_SHA256,
@@ -52,7 +52,7 @@ test("parses registry index and extracts package entry paths only", () => {
     expires: 1797424854,
     files: [
       {
-        path: "keys/developers/xila-project.json",
+        path: "keys/developers/xila.json",
         sha256: VALID_SHA256,
         size: 281,
       },
@@ -113,7 +113,7 @@ test("parses format 2 entries including metadata: null and format 1 compatibilit
     capabilities: [],
     display_name: "Clock",
     metadata: null,
-    publisher: "xila-project",
+    publisher: "xila",
     archive: {
       url: "https://github.com/xila-project/applications/releases/download/xila.clock-v0.1.0/xila.clock-0.1.0-wasm32-wasip1.xpk",
       sha256: VALID_SHA256,
@@ -232,13 +232,9 @@ test("filters packages by search query, target, and publisher", () => {
 
   assert.equal(filterPackages(packages, { query: "timer" }).length, 1);
   assert.equal(filterPackages(packages, { target: "native" }).length, 1);
+  assert.equal(filterPackages(packages, { publisher: "xila" }).length, 1);
   assert.equal(
-    filterPackages(packages, { publisher: "xila-project" }).length,
-    1,
-  );
-  assert.equal(
-    filterPackages(packages, { target: "native", publisher: "xila-project" })
-      .length,
+    filterPackages(packages, { target: "native", publisher: "xila" }).length,
     0,
   );
 });
@@ -300,7 +296,7 @@ test("fetches catalog entries with bounded concurrency", async () => {
         expires: 20,
         files: [
           {
-            path: "keys/developers/xila-project.json",
+            path: "keys/developers/xila.json",
             sha256: VALID_SHA256,
             size: 100,
           },
