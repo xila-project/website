@@ -25,7 +25,7 @@ The project builds a guest. The runtime runs the guest in developer mode. The pa
 - [Git](https://git-scm.com/) and [Rustup](https://www.rust-lang.org/tools/install). Rustup reads the `rust-toolchain.toml` file of the template. It installs Rust 1.97.0 and the `wasm32-wasip1` target.
 - [Docker](https://docs.docker.com/engine/install/), set up so that you can start containers. Docker runs Xila's headless runtime.
 - A network connection. The first build downloads the Xila guest library from GitHub.
-- A GitHub account, for the last stage only.
+- A GitHub account and the [GitHub CLI](https://cli.github.com/), for the last stage only.
 
 :::note
 This tutorial builds a Wasm application. The Xila project also has a [Rust native template](https://github.com/xila-project/native_rust_application_template) and a [C native template](https://github.com/xila-project/native_c_application_template). No released Xila build runs native executables yet. See [Platforms issue 115](https://github.com/xila-project/platforms/issues/115).
@@ -199,20 +199,26 @@ Xila runs only guests from an installed package. The `--developer-mode` option a
 
 The registry lists a package by its download address. You must therefore publish the `.xpk` file first. The registry stores only the metadata of each version, and published versions cannot change.
 
+:::note
+The steps of this stage were not run when this tutorial was written. They follow the [registry README](https://github.com/xila-project/registry#publishing-a-version).
+:::
+
 1. Push your project to a public GitHub repository. Its URL must be the `source` value of your package metadata.
-2. In the project directory, create a GitHub release that has the package as an asset:
+2. In the project directory, create a GitHub release that has the package as an asset. This command uses the [GitHub CLI](https://cli.github.com/):
 
    ```sh
    gh release create v0.1.0 target/HelloXila.xpk --title "Hello Xila 0.1.0" --notes "First release."
    ```
 
-3. Submit the released package to the registry. Follow [Submit a package](/how-to/submit-package/). You need your public key as base64 text:
+3. In a host shell, print your public key as base64 text. A new publisher gives this text in the submission form:
 
    ```sh
    base64 -w0 ../hello-xila-keys/public.key
    ```
 
-The submission then appears as a pull request in the [registry repository](https://github.com/xila-project/registry). The registry checks the signature, the hashes and the metadata of the archive. A guide for the registry's submission form is planned.
+4. Open the [Submit a package](https://github.com/xila-project/registry/issues/new?template=submit-package.yml) issue form of the registry. Give the HTTPS address of the released `.xpk` file, your publisher identifier, your base64 public key and your author name.
+
+The **Package submission** workflow of the registry downloads the archive and checks its signature, hashes and metadata. It writes the result as a comment on the issue and opens a pull request with the registry entry. For an identifier in `io.github.<account>` that you submit from that GitHub account, the workflow also creates the namespace of your account. A maintainer reviews the first submission of a new publisher. To submit a pull request without the form, see [Submit a package](/how-to/submit-package/).
 
 ## Check your result
 
