@@ -7,7 +7,7 @@ description: "Minimal devices and the optional Wi-Fi mock supplied by Core."
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Core repository’s `drivers_core` crate supplies minimal devices and an optional Wi-Fi mock.
+The Core repository's `drivers_core` crate supplies minimal devices and an optional Wi-Fi mock.
 
 ## Context
 
@@ -15,13 +15,13 @@ These implementations use the device interfaces shared with the virtual file sys
 
 ## How it works
 
-The null character device returns zero bytes on reads and accepts all bytes on writes. The native and browser examples mount it at `/devices/standard_io/null`; the browser example also uses it for standard input, output and error.
+The null character device returns zero bytes on reads and accepts all bytes on writes. The native and browser examples mount it at `/devices/standard_io/null`. The browser example also uses it for standard input, output, and error.
 
 The `wifi_mock` feature exposes a deterministic Wi-Fi controller and runner. The native example can register it as `wlan0` for control-plane testing.
 
 ## Design choices and trade-offs
 
-The crate is `no_std`. The mock is feature gated and does not operate a host radio.
+The crate is `no_std`. The mock is feature-gated and does not operate a host radio.
 
 ## API reference
 

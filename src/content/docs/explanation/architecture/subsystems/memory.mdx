@@ -7,13 +7,13 @@ description: "Understand Xila's memory allocator interface, capability requireme
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The memory subsystem provides a portable allocation abstraction for embedded targets, native operating systems, and WebAssembly environments. It decouples memory requests from target-specific heap algorithms while adapting to Rust's global allocator interface.
+The memory subsystem provides a portable allocation abstraction for embedded targets, native operating systems, and WebAssembly environments. It decouples memory requests from target-specific heap algorithms and adapts them to Rust's global allocator interface.
 
 ## Context
 
-Different hardware platforms possess diverse physical memory layouts. Microcontrollers often separate internal high-speed SRAM from external PSRAM, where only specific memory ranges support Direct Memory Access (DMA) or instruction execution. Desktop operating systems rely instead on virtual memory paging.
+Different hardware platforms have diverse physical memory layouts. Microcontrollers often separate internal high-speed SRAM from external PSRAM. Only specific memory ranges support Direct Memory Access (DMA) or instruction execution. Desktop operating systems use virtual memory paging instead.
 
-The <HostReference crate="memory" /> crate abstracts these constraints by defining what an allocation request requires rather than how the heap is managed. Target platforms provide concrete allocators fulfilling the <HostReference crate="memory" kind="trait" symbol="ManagerTrait" /> contract, which Xila exposes both to standard Rust data structures and to specialized subsystem allocators.
+The <HostReference crate="memory" /> crate abstracts these constraints. It defines what an allocation request requires, not how the heap is managed. Target platforms provide concrete allocators that fulfill the <HostReference crate="memory" kind="trait" symbol="ManagerTrait" /> contract. Xila exposes the contract to standard Rust data structures and to specialized subsystem allocators.
 
 ## How it works
 
@@ -29,10 +29,10 @@ flowchart LR
     Trait --> Heap["Platform heap<br/>(linked_list_allocator, OS heap)"]
 ```
 
-Allocation requests enter the subsystem through two primary channels:
+Allocation requests reach the subsystem through two channels:
 
-1. **Standard Rust allocations**: collections like `Box`, `Vec`, and `String` allocate via Rust's `GlobalAlloc` trait. The <HostReference crate="memory" kind="struct" symbol="Manager" /> translates these calls into `ManagerTrait::allocate` with empty capability requirements.
-2. **Capability-specific requests**: subsystems requiring specialized memory invoke `Manager::allocate` directly, passing a `core::alloc::Layout` alongside <HostReference crate="memory" kind="struct" symbol="CapabilityFlags" />.
+1. **Standard Rust allocations**: collections such as `Box`, `Vec`, and `String` allocate via Rust's `GlobalAlloc` trait. The <HostReference crate="memory" kind="struct" symbol="Manager" /> translates these calls into `ManagerTrait::allocate` with empty capability requirements.
+2. **Capability-specific requests**: subsystems that need specialized memory call `Manager::allocate` directly. They pass a `core::alloc::Layout` and <HostReference crate="memory" kind="struct" symbol="CapabilityFlags" />.
 
 The subsystem defines two capability flags:
 
@@ -48,13 +48,13 @@ Platform crates implement `ManagerTrait` and instantiate the global allocator us
 
 ## Design choices and trade-offs
 
-- **Trait-based abstraction**: separating the allocator contract from Core allows switching memory managers without modifying operating system logic.
+- **Trait-based abstraction**: separating the allocator contract from Core lets you switch memory managers without modifying operating system logic.
 - **Unsafe trait contract**: all methods in `ManagerTrait` (`allocate`, `deallocate`, `reallocate`) are marked `unsafe` because incorrect pointers or layouts can cause undefined behavior.
 - **Null-safe zero-size allocations**: requests with a layout size of zero return a null pointer immediately without querying the backend allocator.
 
 ## Limits
 
-- The memory manager does not perform memory compaction or automatic garbage collection; fragmented heaps must be managed by the underlying platform allocator.
+- The memory manager does not compact memory or collect garbage. The underlying platform allocator must manage fragmented heaps.
 - Microcontroller targets with bounded physical RAM return null when heap capacity is exhausted.
 
 ## API reference

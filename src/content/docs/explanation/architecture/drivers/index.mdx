@@ -19,7 +19,7 @@ flowchart LR
   Block --> Storage["Storage"]
 ```
 
-Runtime setup mounts devices in the VFS. Character devices provide byte-oriented access; block devices support storage. The native and browser examples mount LittleFS on block storage and register character devices at boot. Both examples mount the Wasm, graphical shell, command line shell, settings, file manager, terminal and activity executables under `/applications/executables/`. The native example also mounts package and, on Unix, debug executables. See [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/).
+Runtime setup mounts devices in the VFS. Character devices provide byte-oriented access. Block devices support storage. The native and browser examples mount LittleFS on block storage and register character devices at boot. Both examples mount the Wasm, graphical shell, command-line shell, settings, file manager, terminal, and activity executables under `/applications/executables/`. The native example also mounts the package and, on Unix, debug executables. See [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/).
 
 | Crate                                                        | Package                       | Description                                                                                    |
 | ------------------------------------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------- |

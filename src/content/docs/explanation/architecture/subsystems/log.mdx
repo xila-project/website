@@ -11,7 +11,7 @@ The log subsystem provides a unified logging facade across Xila. It routes messa
 
 ## Context
 
-Kernel subsystems, libraries, and executables need structured log output without hard-coding concrete output channels like UART, serial console, or standard error. The <HostReference crate="log" /> crate adapts the standard Rust `log` crate to Xila's <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> contract.
+Kernel subsystems, libraries, and executables need structured log output without hard-coded output channels such as UART, a serial console, or standard error. The <HostReference crate="log" /> crate adapts the standard Rust `log` crate to Xila's <HostReference crate="log" kind="trait" symbol="LoggerTrait" /> contract.
 
 ## How it works
 
@@ -27,7 +27,7 @@ flowchart LR
     Trait --> Output["Platform destination<br/>(UART, console, null)"]
 ```
 
-Logging flows through four main stages:
+A log record passes through four stages:
 
 1. Subsystems and executables invoke standard logging macros: `error!`, `warning!`, `information!`, `debug!`, or `trace!`.
 2. The macros invoke the external Rust `log` crate, which checks the current maximum severity filter.
@@ -36,7 +36,7 @@ Logging flows through four main stages:
 
 ### Severity levels and formatting
 
-The subsystem categorizes log messages into five distinct levels in <HostReference crate="log" kind="enum" symbol="Level" />:
+The subsystem sorts log messages into five levels in <HostReference crate="log" kind="enum" symbol="Level" />:
 
 - `Level::Error` (tag `E`): critical failures and unrecoverable errors.
 - `Level::Warn` (tag `W`): abnormal conditions that do not immediately halt execution.
@@ -48,18 +48,18 @@ The default `LoggerTrait::log` implementation formats records with ANSI color co
 
 ### Initialization and lifetime
 
-During system boot, the target platform registers its backend by calling <HostReference crate="log" kind="fn" symbol="initialize" /> with a static reference to its logger implementation (for example, `drivers_std::log::Logger` on native platforms). Once registered, the maximum filter level is set to trace, allowing the backend to control runtime filtering.
+During boot, the target platform registers its backend by calling <HostReference crate="log" kind="fn" symbol="initialize" /> with a static reference to its logger implementation (for example, `drivers_std::log::Logger` on native platforms). After registration, the maximum filter level is trace. The backend controls runtime filtering.
 
 ## Design choices and trade-offs
 
 - **Zero-allocation records**: the `Record` structure references borrowed string slices and `core::fmt::Arguments`, avoiding heap allocations in `no_std` environments.
-- **Static backend dispatch**: using `OnceLock` and a static trait reference ensures logging remains accessible from any execution context without passing manager instances.
+- **Static backend dispatch**: using `OnceLock` and a static trait reference keeps logging accessible from any execution context without passing manager instances.
 - **Compatibility with standard macros**: re-exporting standard logging macros maintains familiar Rust idioms throughout all repositories.
 
 ## Limits
 
-- The logging backend can only be initialized once; subsequent calls to `log::initialize` fail.
-- Log message formatting in the default handler includes ANSI escape sequences, which may require stripping when redirected to raw binary storage.
+- The logging backend can be initialized only once. Later calls to `log::initialize` fail.
+- The default handler formats log messages with ANSI escape sequences. You may need to strip them when redirecting output to raw binary storage.
 
 ## API reference
 

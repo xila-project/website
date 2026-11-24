@@ -7,7 +7,7 @@ description: "Authoritative reference for built-in commands, command composition
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-This page provides the authoritative reference for the command syntax, execution rules, built-in commands, and resource limits implemented by Xila's command-line shell (<HostReference repo="applications" crate="command_line_shell" />, <CodeReference repo="applications" path="executables/shell/command_line/src/commands/mod.rs" />).
+This page is the reference for the command syntax, execution rules, built-in commands, and resource limits of Xila's command-line shell (<HostReference repo="applications" crate="command_line_shell" />, <CodeReference repo="applications" path="executables/shell/command_line/src/commands/mod.rs" />).
 
 ## Invocation
 
@@ -20,7 +20,7 @@ The shell executable accepts the following invocation modes:
 | Script file            | `-s PATH`          | Reads and executes lines sequentially from a file in the virtual file system (VFS).                     |
 | Programmatic arguments | `COMMAND [ARG]...` | Executes the command and arguments literally without re-tokenizing or performing shell expansion.       |
 
-Nested script executions track recursion depth using the `XILA_SHELL_DEPTH` environment variable. Invocations exceeding the maximum depth of four stop with exit status 2.
+Nested script executions track the recursion depth in the `XILA_SHELL_DEPTH` environment variable. An invocation that exceeds the maximum depth of four stops with exit status 2.
 
 ## Command composition
 
@@ -42,21 +42,21 @@ The shell parser splits input lines into pipeline stages and conditional executi
 
 ## Variable expansion
 
-The shell performs parameter and status expansion prior to command execution:
+The shell expands parameters and status values before command execution:
 
-- `$NAME` or `${NAME}`: Expands to the value of the task environment variable `NAME`. Unset variables expand to an empty string.
-- `$?`: Expands to the decimal exit status of the most recently executed foreground command.
-- Double quotes (`"..."`): Preserve literal whitespace while enabling variable expansion and escape sequences for `\$`, `\"`, and `\\`.
-- Single quotes (`'...'`): Preserve all enclosed characters literally without variable expansion or escape sequences.
-- Command substitution: Constructing command substitutions with `$(...)` or backticks is unsupported and triggers a syntax error.
+- `$NAME` or `${NAME}`: the value of the task environment variable `NAME`. An unset variable expands to an empty string.
+- `$?`: the decimal exit status of the most recent foreground command.
+- Double quotes (`"..."`): keep literal whitespace and enable variable expansion and the escape sequences `\$`, `\"`, and `\\`.
+- Single quotes (`'...'`): keep all enclosed characters literal, without variable expansion or escape sequences.
+- Command substitution: `$(...)` and backticks are not supported and cause a syntax error.
 
 ## Resolution
 
 When a command line does not match an internal built-in, the shell resolves an external executable target:
 
-1. **Path contains `/`**: If the command contains any forward slash, the shell treats it as a path. Absolute paths (`/applications/executables/...`) execute directly. Relative paths are resolved against the task's `Current_directory` environment variable.
-2. **Path contains no `/`**: The shell reads the colon-separated directory list stored in the `Paths` environment variable (for example, `/applications/executables`). It scans each directory in order and executes the first matching executable file.
-3. **Execution dispatch**: The resolved path is passed to <HostReference crate="executable" kind="fn" symbol="execute" />, which verifies permissions and spawns the target task. If no matching command is found, the shell emits exit status 127.
+1. **Path contains `/`**: a command with any forward slash is a path. Absolute paths (`/applications/executables/...`) execute directly. The shell resolves relative paths against the task's `Current_directory` environment variable.
+2. **Path contains no `/`**: the shell reads the colon-separated directory list in the `Paths` environment variable (for example, `/applications/executables`). It scans each directory in order and executes the first matching executable file.
+3. **Execution dispatch**: the shell passes the resolved path to <HostReference crate="executable" kind="fn" symbol="execute" />. The function verifies permissions and spawns the target task. If no command matches, the command fails with exit status 127.
 
 ## Built-in commands
 
@@ -98,12 +98,12 @@ The command-line shell provides the following built-in commands:
 | `mv`          | `SOURCE DESTINATION`                                                         | Rename or move a file or directory within the same mounted filesystem.                                        |
 | `cp`          | `SOURCE DESTINATION`                                                         | Copy a file to a destination path or directory.                                                               |
 | `sleep`       | `DURATION`                                                                   | Pause execution for a nonnegative integer duration with unit suffix (`ms`, `s`, `m`, `h`).                    |
-| `chmod`       | `MODE PATH`                                                                  | Change octal permissions (000–777) of the file or directory at `PATH`.                                        |
+| `chmod`       | `MODE PATH`                                                                  | Change octal permissions (000-777) of the file or directory at `PATH`.                                        |
 | `touch`       | `FILE...`                                                                    | Create missing files and update modification timestamps.                                                      |
 
 ## Limits
 
-The shell enforces strict resource boundaries:
+The shell enforces these resource limits:
 
 | Limit                | Value       | Description                                                                                              |
 | -------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |

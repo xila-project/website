@@ -7,15 +7,15 @@ description: "Locate runtime owners, libraries, drivers, and executables across 
 import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-The Xila workspace organizes code into four primary architectural roles across its repositories: subsystems, libraries, drivers, and executables. Every component is an individual Rust crate with distinct ownership and lifecycle semantics.
+The Xila workspace organizes code into four main architectural roles across its repositories: subsystems, libraries, drivers, and executables. Every component is an individual Rust crate with distinct ownership and lifecycle semantics.
 
 ## Context
 
-Understanding the boundaries of each crate helps developers identify where functionality belongs and prevents accidental coupling. Core provides portable subsystem and library crates, Applications owns official executables, and Platforms implements target-specific drivers and final runtime assembly.
+Understanding the boundary of each crate helps developers place functionality in the right place and prevents accidental coupling. Core provides portable subsystem and library crates. Applications owns the official executables. Platforms implements target-specific drivers and final runtime assembly.
 
 ## How it works
 
-The following sections catalogue all active crates and examples in the Xila workspace.
+The following sections list all active crates and examples in the Xila workspace.
 
 ### Core subsystems
 
@@ -59,7 +59,7 @@ Libraries define reusable data structures, serialization formats, and subsystem 
 
 ### Drivers
 
-Drivers implement platform-specific hardware controllers fulfilling device interface contracts.
+Drivers implement platform-specific hardware controllers that fulfill the device interface contracts.
 
 | Crate                                                             | Package                  | Description                                                                     |
 | ----------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------- |
@@ -107,8 +107,8 @@ Examples assemble drivers, subsystems, and executables into runnable target bina
 
 ## Design choices and trade-offs
 
-- **Crate-level modularity**: each capability is maintained as an isolated crate, allowing platforms to omit unused components to reduce binary size.
-- **Clear ownership boundaries**: stateful runtime services are strictly segregated from stateless utility libraries, ensuring that dependencies remain predictable.
+- **Crate-level modularity**: each capability is an isolated crate. Platforms can omit unused components to reduce binary size.
+- **Clear ownership boundaries**: stateful runtime services are strictly segregated from stateless utility libraries. Dependencies stay predictable.
 
 ## API reference
 

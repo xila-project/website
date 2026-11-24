@@ -8,11 +8,11 @@ import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The graphics subsystem coordinates display rendering, input handling, and window management by hosting LVGL 9.6.0. It exposes thread-safe abstractions that bridge platform-specific character devices to graphical interface windows.
+The graphics subsystem coordinates display rendering, input handling, and window management. It hosts LVGL 9.6.0. It exposes thread-safe abstractions that bridge platform-specific character devices to graphical interface windows.
 
 ## Context
 
-Embedded graphical user interfaces require efficient drawing primitives without coupling applications to concrete display hardware. The <HostReference crate="graphics" /> crate encapsulates <DocsRsReference crate="lvgl" /> version 9.6.0. It coordinates between platform display drivers implementing direct character device traits, physical and synthetic input devices, and user-space application windows.
+Embedded graphical user interfaces need efficient drawing primitives without coupling applications to concrete display hardware. The <HostReference crate="graphics" /> crate encapsulates <DocsRsReference crate="lvgl" /> version 9.6.0. It coordinates platform display drivers that implement direct character device traits, physical and synthetic input devices, and user-space application windows.
 
 ## How it works
 
@@ -30,9 +30,9 @@ flowchart LR
     Win --> LVGL
 ```
 
-The <HostReference crate="graphics" kind="struct" symbol="Manager" /> struct maintains display descriptors and registered input devices within an internal read-write lock. Because LVGL is written in C and maintains process-global state, every interaction with LVGL is guarded by a central mutex (`global_lock`).
+The <HostReference crate="graphics" kind="struct" symbol="Manager" /> struct keeps display descriptors and registered input devices in an internal read-write lock. LVGL is written in C and keeps process-global state. A central mutex (`global_lock`) therefore guards every interaction with LVGL.
 
-The runtime initializes graphics by calling <HostReference crate="graphics" kind="fn" symbol="initialize_with_input_devices" /> with a time manager reference, a display device, and input devices. It registers a static pointer via `graphics::set_ffi_manager` so that C callbacks can access the manager instance without carrying Rust references.
+The runtime initializes graphics by calling <HostReference crate="graphics" kind="fn" symbol="initialize_with_input_devices" /> with a time manager reference, a display device, and input devices. It registers a static pointer through `graphics::set_ffi_manager` so that C callbacks can reach the manager instance without carrying Rust references.
 
 ### Display and input loop
 
@@ -68,8 +68,8 @@ Fonts are compiled into C archive members through the `selected_fonts!` macro us
 
 ## Limits
 
-- Screen snapshots are capped at `SCREEN_SNAPSHOT_MAX_PIXELS` (64,000,000 pixels) to avoid unbounded memory allocations.
-- Font variants must be selected at compile time; loading dynamic TrueType or OpenType fonts at runtime is not supported.
+- Screen snapshots are capped at `SCREEN_SNAPSHOT_MAX_PIXELS` (64,000,000 pixels). This avoids unbounded memory allocations.
+- Font variants must be selected at compile time. Loading dynamic TrueType or OpenType fonts at runtime is not supported.
 
 ## API reference
 

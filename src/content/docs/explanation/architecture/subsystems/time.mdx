@@ -7,11 +7,11 @@ description: "Understand monotonic elapsed time, adjustable UTC realtime clocks,
 import CodeReference from "@/components/CodeReference.astro";
 import HostReference from "@/components/HostReference.astro";
 
-The time subsystem maintains monotonic elapsed time and adjustable UTC calendar time. It separates high-resolution interval measurements from civil clock adjustments, ensuring system timers remain stable when real-time clocks are synchronized.
+The time subsystem maintains monotonic elapsed time and adjustable UTC calendar time. It separates high-resolution interval measurements from civil clock adjustments. System timers therefore stay stable when real-time clocks are synchronized.
 
 ## Context
 
-Operating systems require monotonic timers for timeouts, animation frames, and scheduling deadlines that must never decrease or stall. Concurrently, applications and filesystems require UTC timestamps for civil calendar time.
+Operating systems need monotonic timers for timeouts, animation frames, and scheduling deadlines. These timers must never decrease or stall. Applications and filesystems also need UTC timestamps for civil calendar time.
 
 The <HostReference crate="time" /> crate isolates these two concerns. Real-time clock adjustments do not alter monotonic timers or disrupt network retransmissions and display loops.
 
@@ -48,7 +48,7 @@ Monotonic readings never decrease during a boot session. The subsystem uses this
 
 ### UTC clock and synchronization
 
-The manager calculates UTC time by applying a checked signed offset to the monotonic clock reading rather than polling hardware clock peripherals on every read:
+The manager calculates UTC time by applying a checked signed offset to the monotonic clock reading. It does not poll hardware clock peripherals on every read:
 
 - **Initialization**: targets with a hardware real-time clock call `Manager::new` with an initial <HostReference crate="time" kind="trait" symbol="RealtimeSource" />.
 - **Unsynchronized boots**: targets without an initial time source call `Manager::unsynchronized()`, leaving monotonic time active while UTC reads return an error until synchronized.
@@ -58,13 +58,13 @@ The manager calculates UTC time by applying a checked signed offset to the monot
 ## Design choices and trade-offs
 
 - **Derived UTC**: anchoring UTC to monotonic time allows fast in-memory timestamp reads protected by a brief critical section, avoiding bus contention with I2C/SPI real-time clocks.
-- **Immediate step corrections**: Xila does not implement gradual frequency slewing in kernel space; clock updates take effect instantly.
+- **Immediate step corrections**: Xila does not implement gradual frequency slewing in kernel space. Clock updates take effect instantly.
 - **No timezone or DST logic**: timezone conversions, daylight saving time, and network time synchronization protocols are handled by user-space libraries.
 
 ## Limits
 
 - Calling `realtime_now` on an unsynchronized manager returns an error until a valid realtime sample is supplied.
-- Monotonic timestamps do not survive hardware resets; every boot begins a new arbitrary monotonic epoch.
+- Monotonic timestamps do not survive hardware resets. Every boot begins a new arbitrary monotonic epoch.
 
 ## API reference
 

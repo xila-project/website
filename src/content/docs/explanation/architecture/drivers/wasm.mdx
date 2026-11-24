@@ -11,11 +11,11 @@ The Platforms `drivers_wasm` crate supplies drivers for the WebAssembly (Wasm) b
 
 ## Context
 
-The browser runtime targets `wasm32-unknown-unknown`; guest applications use a separate target, `wasm32-wasip1`.
+The browser runtime targets `wasm32-unknown-unknown`. Guest applications use a separate target, `wasm32-wasip1`.
 
 ## How it works
 
-The browser example uses an origin private file system (OPFS) drive as block storage for its LittleFS root. Canvas display, keyboard and mouse connect to the graphics manager.
+The browser example uses an Origin Private File System (OPFS) drive as block storage for its LittleFS root. Canvas display, keyboard, and mouse connect to the graphics manager.
 
 It mounts time and CPU information at `/devices/time/clock` and `/devices/compute/informations`. Its HTTP device is mounted at both `/devices/network/http_client` and `/devices/network/https_client`. Audio playback is mounted at `/devices/audio/playback` after the user enables audio.
 

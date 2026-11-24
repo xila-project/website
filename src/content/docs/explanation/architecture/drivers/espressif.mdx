@@ -19,11 +19,11 @@ The chip source lists GPIO pin numbers and delegates mounting to shared pin code
 
 ## Design choices and trade-offs
 
-Target gating allows host builds to exclude the Espressif source. It also means a successful host build does not establish that an ESP32 runtime builds.
+Target gating allows host builds to exclude the Espressif source. A successful host build therefore does not prove that an ESP32 runtime builds.
 
 ## Limits
 
-Platforms CI does not build an ESP32 runtime. The Platforms README says no ESP32 build is established by its host checks.
+Platforms CI does not build an ESP32 runtime. The Platforms README states that its host checks do not establish an ESP32 build.
 
 ## API reference
 

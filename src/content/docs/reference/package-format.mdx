@@ -10,7 +10,7 @@ The experimental package format describes the `.xpk` archive and its signed inve
 
 ## Archive
 
-The writer produces an uncompressed USTAR archive of ordinary files. `.xila/manifest.json` is first, followed by `.xila/manifest.sig` when signed, then payload files in manifest order. The writer uses zero timestamps and owner IDs and mode `0644`. The signature is 64 raw Ed25519 bytes. Unsigned packages omit it.
+The writer produces an uncompressed USTAR archive of ordinary files. `.xila/manifest.json` comes first. When the package is signed, `.xila/manifest.sig` follows. Payload files come last, in manifest order. The writer uses zero timestamps, zero owner IDs, and mode `0644`. The signature is 64 raw Ed25519 bytes. Unsigned packages omit the signature.
 
 ## Manifest
 
@@ -19,13 +19,13 @@ The writer produces an uncompressed USTAR archive of ordinary files. `.xila/mani
 | `$schema`                   | Optional editor schema URL.                                                         |
 | `format_version`            | Format version, `1`.                                                                |
 | `name`, `version`, `target` | Package identity and target.                                                        |
-| `minimum_xila_abi`          | Minimum ABI as an unsigned 32-bit integer.                                          |
+| `minimum_xila_abi`          | Minimum application binary interface (ABI) as an unsigned 32-bit integer.           |
 | `capabilities`              | Requested capability strings.                                                       |
 | `files`                     | Ordered inventory of `path`, `size` and lowercase hexadecimal `sha256`.             |
 | `application`               | Null or an object with `entrypoint`, `display_name`, `icon` and `show_in_launcher`. |
 | `metadata`                  | Optional descriptive `summary`, `license`, `source` and `homepage`.                 |
 
-A bundle-local entrypoint and nonempty icon must name inventory files. A system entrypoint can instead refer to an existing executable under `/system/executables/` or `/applications/executables/`.
+A bundle-local entrypoint and a nonempty icon must name files in the inventory. A system entrypoint can instead refer to an existing executable under `/system/executables/` or `/applications/executables/`.
 
 ## Signature
 
@@ -33,9 +33,9 @@ The developer signs the exact stored manifest bytes with Ed25519. The signed mes
 
 ## Limits
 
-- A manifest is at most 65,536 bytes; it lists at most 128 files and 256 MiB total payload.
-- Paths are relative, at most 200 bytes, and cannot contain empty, `.` or `..` segments, backslashes, control characters or the reserved `.xila/` prefix. The USTAR writer has a stricter 99-byte ASCII path limit.
-- Names are at most 96 bytes; versions and targets are at most 64 bytes. There are at most 32 capabilities, each at most 64 bytes.
+- A manifest is at most 65,536 bytes. It lists at most 128 files and 256 MiB of total payload.
+- Paths are relative and at most 200 bytes long. They cannot contain empty, `.`, or `..` segments, backslashes, control characters, or the reserved `.xila/` prefix. The USTAR writer has a stricter 99-byte ASCII path limit.
+- Names are at most 96 bytes. Versions and targets are at most 64 bytes. There are at most 32 capabilities, each at most 64 bytes.
 - The streaming reader consumes 512-byte TAR blocks. It retains bounded manifest data while processing payloads.
 
 ## Related
