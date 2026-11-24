@@ -17,6 +17,7 @@ function run({
   storage = {},
   switchTheme = null,
   brokenStorage = false,
+  userAgent = "Mozilla/5.0 (X11; Linux x86_64)",
   parentPathname = "/reference/api/",
 } = {}) {
   const calls = { replace: [], replaceState: [], titles: [], themes: [] };
@@ -62,6 +63,7 @@ function run({
       replace: (url) => calls.replace.push(String(url)),
     },
     localStorage,
+    navigator: { userAgent },
     document: { title: "xila::task - Rust" },
     addEventListener: (name, listener) => {
       (listeners[name] ??= []).push(listener);
@@ -120,6 +122,20 @@ test("syncs the wrapper URL and title when framed", () => {
     "https://www.xila.dev/reference/api/?path=guest%2Fwasm%2Findex.html%23method.run",
   );
   assert.equal(calls.replaceState.length, 2);
+});
+
+test("leaves a search engine crawler on the API page", () => {
+  for (const userAgent of [
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+    "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+  ]) {
+    const { calls } = run({
+      framed: false,
+      pathname: "/api/host/task/struct.Manager.html",
+      userAgent,
+    });
+    assert.deepEqual(calls.replace, [], userAgent);
+  }
 });
 
 test("does not sync a parent that is not the frame page", () => {

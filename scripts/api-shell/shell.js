@@ -59,6 +59,14 @@
     return url;
   }
 
+  // Search engine crawlers that run scripts would follow the redirect to the
+  // frame page, whose canonical URL is /reference/api/ for every API page:
+  // the API pages would drop out of the search results. A crawler therefore
+  // stays on the API page, which has the same content as the frame.
+  function isCrawler() {
+    return /bot|crawl|spider|slurp/i.test(navigator.userAgent || "");
+  }
+
   // The frame page only: a page of the site that frames an API page for
   // another reason keeps its own URL and title.
   function framePageParent() {
@@ -72,7 +80,7 @@
   var path = apiPath();
   if (window.top === window.self) {
     // Not framed: show this page in the frame page of the site instead.
-    if (path !== null) location.replace(frameUrl(path));
+    if (path !== null && !isCrawler()) location.replace(frameUrl(path));
   } else if (path !== null && framePageParent()) {
     // Framed. The frame records its own history entries, so Back and Forward
     // step through the API pages inside the frame, and every load re-syncs
