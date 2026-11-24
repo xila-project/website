@@ -14,8 +14,8 @@ hero:
   tagline: Embedded, Rust, and WebAssembly — a modular, portable system for devices and developers.
   actions:
     - text: Try Xila
-      link: https://platforms.xila.dev/
-      icon: external
+      link: /demonstration/
+      icon: right-arrow
       variant: primary
     - text: Documentation
       link: /docs/
@@ -32,14 +32,14 @@ hero:
 ---
 
 import { Card, CardGrid, TabItem, Tabs } from "@astrojs/starlight/components";
-import DemoLanguages from "@/components/DemoLanguages.astro";
+import DemonstrationLanguages from "@/components/DemonstrationLanguages.astro";
 import IconLinkCard from "@/components/IconLinkCard.astro";
 
 ## Get started
 
 <Tabs>
   <TabItem label="In the browser" icon="laptop">
-    Open the [hosted demonstration](https://platforms.xila.dev/), create or select a disk if prompted, then log in as `administrator` with an empty password. Requires a web browser supporting Origin Private File System (OPFS) and Web Locks. <DemoLanguages />
+    Open the [demonstration](/demonstration/), create or select a disk if prompted, then log in as `administrator` with an empty password. Requires a web browser supporting Origin Private File System (OPFS) and Web Locks. <DemonstrationLanguages />
 
     [Follow the browser tutorial →](/tutorials/browser/)
 

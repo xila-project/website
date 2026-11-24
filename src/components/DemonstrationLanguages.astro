@@ -1,0 +1,28 @@
+---
+/*
+ * Inline links to the demonstration page in its other locales, for prose
+ * that already links to the English demonstration.
+ */
+import {
+  DEFAULT_LOCALE,
+  DEMONSTRATION_LOCALES,
+  DEMONSTRATION_PAGE,
+} from "../data/demonstration-locales";
+
+const others = DEMONSTRATION_LOCALES.filter(
+  ({ code }) => code !== DEFAULT_LOCALE,
+);
+---
+
+<span class="demonstration-languages">
+  Also available in{" "}
+  {others.map(({ code, label }, index) => (
+    <>
+      <a href={`${DEMONSTRATION_PAGE}?language=${code}`} hreflang={code} lang={code}>
+        {label}
+      </a>
+      {index < others.length - 1 && <span aria-hidden="true"> · </span>}
+    </>
+  ))}
+  .
+</span>
