@@ -75,12 +75,12 @@ Keep one primary reader need per substantive page. Split mixed content when read
 Write every page in the style of ASD-STE100 Simplified Technical English. Apply it as a guideline, not as a strict vocabulary restriction.
 
 - Use precise, concise and unambiguous language.
-- Use active voice and short sentences. Express one idea or instruction per sentence.
+- Use active voice, short sentences and short paragraphs. Express one idea or instruction per sentence.
 - Use the same term for the same concept on every page. Prefer established technical terms over invented abstractions. Define an unfamiliar term before you use it.
 - Avoid jargon, synonyms, filler, repetition, promotional language and redundant summaries.
-- Spell words out (`device`, not `dev`; `configuration`, not `config`; `/demonstration/`, not `/demo/`). This applies to text, file names and page paths. Keep a short form only when an external name imposes it.
+- Spell words out (`device`, not `dev`; `configuration`, not `config`; `/demonstration/`, not `/demo/`). This applies to text, file names and page paths. Keep a short form only when an external API, format or existing name imposes it, or for an established acronym such as API, URL or CI.
 - Do not use em dashes or en dashes. Use a hyphen or a comma. Check a page with `grep -n "[—–]"` before you publish it.
-- Document actual behaviour, not hypothetical or intended behaviour. State limitations, assumptions and requirements explicitly.
+- Document actual behavior, not hypothetical or intended behavior. State limitations, assumptions and requirements explicitly.
 - Explain non-obvious design decisions. Do not describe obvious implementation details.
 - Keep identifiers, commands, paths and API names exactly as they are.
 - Do not sacrifice technical accuracy or completeness for brevity.
