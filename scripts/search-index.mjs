@@ -17,6 +17,7 @@ import { API_INDEX_FILE, readApiIndex } from "./api-index.mjs";
 // documentation pages.
 
 export const API_SEARCH_BUNDLE = "api/pagefind";
+const API_DIRECTORY = "/api";
 
 const KIND_LABELS = Object.freeze({
   attr: "Attribute macro",
@@ -87,7 +88,9 @@ export function apiSearchRecords(index, output) {
       const kind = KIND_LABELS[item.kind] ?? item.kind;
       const summary = `${kind} in the ${API_LABELS[architecture] ?? architecture}.${description ? ` ${description}` : ""}`;
       records.push({
-        url: item.url,
+        // The search prefixes the URLs of a merged bundle with the directory
+        // that holds it (/api/): the record URL is relative to that directory.
+        url: item.url.slice(API_DIRECTORY.length),
         content:
           `<html lang="en"><body><main data-pagefind-body>` +
           `<h1>${escape(itemPath)}</h1>` +

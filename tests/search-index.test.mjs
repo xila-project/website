@@ -40,7 +40,7 @@ test("builds one record for each API item", (t) => {
   assert.equal(records.length, count);
 
   const manager = records.find(
-    (record) => record.url === "/api/host/task/struct.Manager.html",
+    (record) => record.url === "/host/task/struct.Manager.html",
   );
   assert.match(manager.content, /<h1>task::Manager<\/h1>/);
   assert.match(
@@ -54,11 +54,11 @@ test("leaves out the description that rustdoc generates", (t) => {
   const { output, api } = fixture(t);
   const records = apiSearchRecords(buildApiIndex(api), output);
   const sleep = records.find(
-    (record) => record.url === "/api/host/task/fn.sleep.html",
+    (record) => record.url === "/host/task/fn.sleep.html",
   );
   assert.match(sleep.content, /<p>Function in the host API\.<\/p>/);
   const window = records.find(
-    (record) => record.url === "/api/guest/wasm/struct.Window.html",
+    (record) => record.url === "/guest/wasm/struct.Window.html",
   );
   assert.match(window.content, /Struct in the guest API\./);
 });
