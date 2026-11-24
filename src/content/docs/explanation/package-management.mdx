@@ -6,11 +6,11 @@ description: "Understand how Xila packages are published and verified before ins
 
 import CodeReference from "@/components/CodeReference.astro";
 
-Package management connects signed application files to registry metadata and installation. The [package manager repository](https://github.com/xila-project/package_manager) owns the formats and tools; Applications owns the on-device installer.
+Package management connects signed application files to registry metadata and installation. The [package manager repository](https://github.com/xila-project/package_manager) owns the formats and tools. Applications owns the on-device installer.
 
 ## Context
 
-A package (`.xpk` file) carries a manifest and payload. The [registry repository](https://github.com/xila-project/registry) holds metadata and developer keys; project releases host the packages themselves.
+A package (a `.xpk` file) carries a manifest and payload. The [registry repository](https://github.com/xila-project/registry) holds metadata and developer keys. Project releases host the packages.
 
 ## How it works
 
@@ -26,7 +26,7 @@ flowchart LR
     Release --> Install
 ```
 
-The desktop tool builds and signs a bundle, then makes a package. A registry entry is generated from that package. Registry publication signs the entry and developer key; the device obtains the package from its release URL.
+The desktop tool builds and signs a bundle, then makes a package from it. A registry entry is generated from the package. Registry publication signs the entry and the developer key. The device downloads the package from its release URL.
 
 The following diagram shows the trust chain for a repository install.
 
@@ -40,11 +40,11 @@ flowchart LR
     Signature --> Hashes[File hashes]
 ```
 
-The root key authenticates repository keys. A repository key signs the entry and developer-key record. The entry identifies the authorized developer, archive digest and size. The developer key authenticates the manifest, which contains each file's SHA-256 digest. The installer checks the downloaded package and its payload against these records.
+The root key authenticates repository keys. A repository key signs the entry and the developer-key record. The entry identifies the authorized developer, the archive digest, and the archive size. The developer key authenticates the manifest, which contains a SHA-256 digest for each file. The installer checks the downloaded package and its payload against these records.
 
 ## Design choices and trade-offs
 
-A repository install verifies signed root and index metadata, checks the entry and developer key, and checks the archive and manifest. The installer remembers accepted root and index versions, but does not check index expiry without a trustworthy clock. A local archive instead uses a directly trusted developer key; it does not authenticate registry metadata.
+A repository install verifies the signed root and index metadata, the entry and developer key, and the archive and manifest. The installer remembers the accepted root and index versions, but it does not check index expiry without a trustworthy clock. A local archive uses a directly trusted developer key instead. It does not authenticate registry metadata.
 
 ## Limits
 
@@ -58,15 +58,15 @@ The installer stages files before moving the verified bundle into place. It does
   >
     Repository installation
   </CodeReference>
-  — metadata and archive checks.
+  : metadata and archive checks.
 - <CodeReference repo="applications" path="executables/package/src/install.rs">
     Local installation
   </CodeReference>
-  — staging and verification.
+  : staging and verification.
 - <CodeReference repo="package_manager" path="crates/manifest/src/trust.rs">
     Trust metadata
   </CodeReference>
-  — root and index formats.
+  : root and index formats.
 
 ## Related
 

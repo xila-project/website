@@ -8,19 +8,19 @@ import HostReference from "@/components/HostReference.astro";
 import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
-Xila spans multiple compilation targets and development environments across three primary repositories. Core provides portable operating system logic, Applications implements guest applications and user-facing executables, and Platforms produces concrete runtimes for desktop, browser, and microcontroller targets.
+Xila spans multiple compilation targets and development environments across three main repositories. Core provides portable operating system logic. Applications implements guest applications and user-facing executables. Platforms produces concrete runtimes for desktop, browser, and microcontroller targets.
 
 ## Context
 
-Operating systems for embedded and portable devices face conflicting architectural requirements. Desktop workstations require rapid iteration, graphical debugging, and host testing. Web browsers require sandboxed WebAssembly execution and web storage integration. Microcontrollers require bare-metal real-time execution with constrained RAM and flash budgets.
+Operating systems for embedded and portable devices face conflicting requirements. Desktop workstations need rapid iteration, graphical debugging, and host testing. Web browsers need sandboxed WebAssembly execution and web storage integration. Microcontrollers need bare-metal real-time execution within tight RAM and flash budgets.
 
-Xila addresses these demands by decoupling portable operating system subsystems from concrete platform drivers and guest applications.
+Xila addresses these demands by decoupling portable operating system subsystems from platform drivers and guest applications.
 
 ## How it works
 
 ### Repository responsibilities
 
-The codebase is organized into three primary repositories:
+The codebase is organized into three main repositories:
 
 - **Core** (`github.com/xila-project/core`): Architecture-independent operating system subsystems and libraries. Owns the virtual file system (VFS), task management, memory allocation abstractions, authentication, graphics primitives, and device interfaces.
 - **Applications** (`github.com/xila-project/applications`): User applications (such as Calculator, Clock, Weather, Pixel Painter, Text Editor, Synth, and Digits), system shells (graphical shell, command-line shell, terminal), and WebAssembly guest runtime bindings (`xila-wasm`).
@@ -80,24 +80,24 @@ flowchart LR
     T_ARM --> OUT_NANO
 ```
 
-As illustrated:
+The build flow works as follows:
 
 1. Core provides portable operating system logic as a library dependency to Applications and Platforms.
-2. Applications compiles guest applications into `wasm32-wasip1` WebAssembly binaries.
+2. Applications compiles the guest applications to `wasm32-wasip1` WebAssembly binaries.
 3. Platforms provisions those compiled guest binaries into reference LittleFS disk images using `xila-fs-image`.
 4. Platforms compiles final runtime executables for host Linux (`x86_64-unknown-linux-gnu`), web browsers (`wasm32-unknown-unknown`), and the Arduino Nano 33 BLE (`thumbv7em-none-eabihf`).
 
 ## Design choices and trade-offs
 
-- **Strict guest isolation via WASI Preview 1:** Guest applications run within isolated Wasmi instances compiled to `wasm32-wasip1`. Guests cannot inspect host memory or invoke arbitrary host syscalls; all interactions occur through typed Xila device paths and ABI calls.
-- **`no_std` kernel core:** Core subsystems avoid dependencies on standard OS libraries. This allows the identical VFS, task scheduler, and authentication logic to execute on Linux, in browser WebAssembly, and on bare-metal ARM microcontrollers.
-- **Cooperative scheduling for constrained targets:** While desktop Linux can utilize preemptive threads, browser and bare-metal targets employ cooperative task execution with fuel-based limits and explicit yield points.
-- **Build-time disk provisioning:** Application bundles and filesystem hierarchies are assembled at build time into reference disk images. This avoids running heavy package installations or compilations on memory-limited microcontrollers.
+- **Strict guest isolation via WASI Preview 1:** Guest applications run in isolated Wasmi instances compiled to `wasm32-wasip1`. Guests cannot inspect host memory or invoke arbitrary host syscalls. All interactions go through typed Xila device paths and application binary interface (ABI) calls.
+- **`no_std` kernel core:** Core subsystems avoid dependencies on standard operating system libraries. The same VFS, task scheduler, and authentication logic therefore run on Linux, in browser WebAssembly, and on bare-metal ARM microcontrollers.
+- **Cooperative scheduling for constrained targets:** desktop Linux can use preemptive threads. Browser and bare-metal targets use cooperative task execution with fuel-based limits and explicit yield points.
+- **Build-time disk provisioning:** Application bundles and filesystem hierarchies are assembled at build time into reference disk images. This avoids heavy package installations or compilations on memory-limited microcontrollers.
 
 ## Limits
 
-- **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the resource budget.
-- **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
+- **Microcontroller memory constraints:** The Arduino Nano 33 BLE provides 256 KiB of RAM and 1 MiB of internal flash. The graphical desktop and networking subsystems are disabled on this target to fit the budget.
+- **Browser storage durability:** The browser runtime caches the disk image in memory and commits snapshots asynchronously to the Origin-Private File System (OPFS). Abrupt tab closures can lose uncommitted modifications.
 - **Espressif target status:** Although driver sources exist in `drivers/espressif`, ESP32 builds are gated out on host targets and are not currently verified in continuous integration.
 
 ## API reference
