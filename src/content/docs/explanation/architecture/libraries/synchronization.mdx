@@ -27,7 +27,7 @@ The crate re-exports concurrency tools from `embassy-sync`:
 
 ### Portable reference counting
 
-The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types are re-exports from `portable_atomic_util` (<CodeReference path="libraries/synchronization/src/arc/mod.rs" />). That crate provides reference counting on every supported target, including microcontrollers without atomic pointer instructions.
+The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types are re-exports from `portable_atomic_util` (<CodeReference path="libraries/synchronization/src/arc/mod.rs" />). That crate provides atomic reference counting. A target without atomic compare-and-swap instructions, such as the ESP32-C2, ESP32-C3 and ESP32-S2, needs a backend from `portable-atomic`: the firmware must enable its `unsafe-assume-single-core` or `critical-section` feature. The `synchronization` crate does not select the backend.
 
 The following diagram shows the categorization of synchronization primitives and the reference-counted pointer re-export:
 
@@ -45,12 +45,13 @@ The `embassy-sync` primitives coordinate cooperative tasks without blocking. The
 ## Design choices and trade-offs
 
 - Cooperative async focus: `embassy-sync` primitives do not rely on OS thread preemption or kernel locks. They match Xila's cooperative task executor.
-- Broad target compatibility: `portable_atomic_util` supplies `Arc` and `Weak` on every target, including microcontrollers without atomic pointer instructions.
+- Broad target compatibility: `portable_atomic_util` supplies `Arc` and `Weak` on targets with and without atomic compare-and-swap instructions. The firmware chooses the `portable-atomic` backend for the targets without them.
 - Unified import path: Subsystems import all concurrency abstractions directly from `xila::synchronization`.
 
 ## Limits
 
 - Do not hold an async mutex across CPU-intensive blocking work. This starves other tasks on the cooperative scheduler.
+- On a target without atomic compare-and-swap instructions, the `portable-atomic` backend emulates the atomic operations. The backend can disable interrupts (`unsafe-assume-single-core`) or take a critical section (`critical-section`) while an `Arc` counter changes.
 
 ## API reference
 
