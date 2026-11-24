@@ -86,6 +86,32 @@ import Default from "@astrojs/starlight/components/Search.astro";
 </script>
 
 <style is:global>
+  /*
+    Wide screens (1024px and above): the header gives the search its own
+    action block on the right, so the button is compact instead of the
+    theme's fixed wide field: the magnifier, the word "Search" and the
+    shortcut keys. Below 1280px the word no longer fits beside the centered
+    navigation, so only the magnifier and the keys remain.
+  */
+  @media (min-width: 64rem) {
+    site-search {
+      width: auto;
+    }
+    site-search > button[data-open-modal] {
+      width: auto;
+      padding-inline: 0.75rem;
+    }
+    site-search > button[data-open-modal] > span {
+      display: none;
+    }
+  }
+
+  @media (min-width: 80rem) {
+    site-search > button[data-open-modal] > span {
+      display: block;
+    }
+  }
+
   /* Header button: show the magnifier and the shortcut keys. */
   @media (min-width: 48rem) {
     site-search > button[data-open-modal] {

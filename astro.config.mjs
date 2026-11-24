@@ -189,14 +189,14 @@ export default defineConfig({
           // Honour `collapsed` on sidebar groups; without it every nested
           // Architecture group is always expanded.
           sidebar: { useDropdowns: true },
-          // The theme renders a flat list. On desktop, SiteTitle.astro
+          // The theme renders a flat list. On desktop, HeaderNav.astro
           // replaces it with its own header items. The mobile menu keeps this
           // list, and SiteTitle.astro marks the current item in it: the
           // data-header-link attribute selects the items to mark.
           navLinks: [
             { label: "Documentation", link: "/docs/", attrs: headerLink },
             { label: "Tutorials", link: "/tutorials/", attrs: headerLink },
-            { label: "How-to", link: "/how-to/", attrs: headerLink },
+            { label: "How-to guides", link: "/how-to/", attrs: headerLink },
             { label: "Reference", link: "/reference/", attrs: headerLink },
             { label: "Explanation", link: "/explanation/", attrs: headerLink },
             { label: "Packages", link: "/packages/", attrs: headerLink },
@@ -251,6 +251,7 @@ export default defineConfig({
         EditLink: "./src/components/EditLink.astro",
         Hero: "./src/components/Hero.astro",
         Footer: "./src/components/Footer.astro",
+        Header: "./src/components/Header.astro",
         LastUpdated: "./src/components/LastUpdated.astro",
         PageSidebar: "./src/components/PageSidebar.astro",
         PageTitle: "./src/components/PageTitle.astro",

@@ -1,42 +1,20 @@
 ---
 /*
- * Wraps the theme's site title and navigation. On desktop the theme's header
- * links are replaced by: the "Documentation" menu (the documentation overview
- * and its four sections), the "Packages" link and the "Demonstration" link.
- * They are rendered here, after the title, so that the keyboard order follows
- * the visual order. The theme's mobile menu keeps the flat `navLinks` of
- * astro.config.mjs: the documentation and section overviews, Packages and
- * Demonstration.
+ * Wraps the theme's site title (the logo and the name). On desktop (1024px
+ * and above) the theme's nav bar is hidden here and the header renders its
+ * own centered navigation (HeaderNav.astro, placed by Header.astro); below
+ * that width the brand and the menu button stay visible, and the mobile
+ * menu keeps the flat `navLinks` of astro.config.mjs.
  *
  * The current item is marked with aria-current and an underline, in the
  * header and in the mobile menu. The theme renders the mobile menu without
  * knowledge of the page, so a script marks its items.
  */
 import ThemeSiteTitle from "starlight-theme-black/overrides/SiteTitle.astro";
-import DocsMenu from "./DocsMenu.astro";
-import { DEMONSTRATION_PAGE } from "../data/demonstration-locales";
-import { navigationState } from "../data/navigation-state";
-
-const packagesState = navigationState(Astro.url.pathname, "/packages/");
-const demonstrationState = navigationState(
-  Astro.url.pathname,
-  DEMONSTRATION_PAGE,
-);
 ---
 
-<div class="site-title-with-menus" data-pathname={Astro.url.pathname}>
+<div class="site-title-block" data-pathname={Astro.url.pathname}>
   <ThemeSiteTitle />
-  <DocsMenu class="header-menu" />
-  <a class="header-link" href="/packages/" aria-current={packagesState}>
-    Packages
-  </a>
-  <a
-    class="header-link"
-    href={DEMONSTRATION_PAGE}
-    aria-current={demonstrationState}
-  >
-    Demonstration
-  </a>
 </div>
 
 <script>
@@ -45,7 +23,7 @@ const demonstrationState = navigationState(
   // The path of the rendered page, not location.pathname: the 404 page is
   // served at any missing path, and the header items are not marked on it.
   const pathname =
-    document.querySelector<HTMLElement>(".site-title-with-menus")?.dataset
+    document.querySelector<HTMLElement>(".site-title-block")?.dataset
       .pathname ?? location.pathname;
 
   for (const link of document.querySelectorAll<HTMLAnchorElement>(
@@ -59,97 +37,44 @@ const demonstrationState = navigationState(
 </script>
 
 <style>
-  .site-title-with-menus {
+  .site-title-block {
     display: flex;
     align-items: center;
   }
 
   /* The theme otherwise removes the brand entirely below 1024px. */
-  .site-title-with-menus :global(.site-title) {
+  .site-title-block :global(.site-title) {
     display: flex;
     flex-shrink: 0;
   }
 
   @media (max-width: 1023px) {
-    .site-title-with-menus {
+    .site-title-block {
       --sl-nav-gap: 0.75rem;
     }
   }
 
   @media (max-width: 26rem) {
     /* The trigger retains its screen-reader label beside the brand. */
-    .site-title-with-menus :global(black-menu-button .label) {
+    .site-title-block :global(black-menu-button .label) {
       display: none;
     }
   }
 
-  .site-title-with-menus :global(.header-menu),
-  .header-link {
-    display: none;
-  }
-
   /* The current item of the mobile menu: an underline, which does not rely
      on colour. */
-  .site-title-with-menus :global(.mobile-nav-links a[aria-current]) {
+  .site-title-block :global(.mobile-nav-links a[aria-current]) {
     text-decoration: underline 2px;
     text-underline-offset: 0.3em;
   }
 
   @media (min-width: 1024px) {
-    .site-title-with-menus {
-      gap: 0.375rem;
-    }
-
-    /* The theme's links are replaced by the items below. Its mobile menu
-       button is hidden by the theme at this width, but the element would
-       still take a gap. */
-    .site-title-with-menus :global(.nav-bar),
-    .site-title-with-menus :global(black-menu-button) {
+    /* The theme's links are replaced by the header's centered navigation.
+       Its mobile menu button is hidden by the theme at this width, but the
+       element would still take a gap. */
+    .site-title-block :global(.nav-bar),
+    .site-title-block :global(black-menu-button) {
       display: none;
-    }
-
-    .site-title-with-menus :global(.header-menu) {
-      display: inline-block;
-    }
-
-    /* The theme separates the title and its nav links by --sl-nav-gap. */
-    .site-title-with-menus :global(.docs-menu) {
-      margin-inline-start: calc(var(--sl-nav-gap) - 0.375rem);
-    }
-
-    /* Starlight clips the title area to protect narrow screens from long
-       titles; on desktop it would also clip the menus' lists. */
-    :global(.header .title-wrapper) {
-      overflow: visible;
-    }
-
-    /* Same look as the theme's nav links. */
-    .header-link {
-      display: inline-flex;
-      align-items: center;
-      min-height: 2rem;
-      padding: 0 0.625rem;
-      border-radius: calc(var(--radius) - 2px);
-      color: var(--foreground);
-      font-size: 0.875rem;
-      font-weight: 500;
-      line-height: 1.25rem;
-      text-decoration: none;
-      transition: background-color 0.15s;
-    }
-
-    .header-link[aria-current] {
-      text-decoration: underline 2px;
-      text-underline-offset: 0.35em;
-    }
-
-    .header-link:hover {
-      background-color: color-mix(in oklab, var(--accent) 80%, transparent);
-    }
-
-    .header-link:focus-visible {
-      outline: 2px solid var(--foreground);
-      outline-offset: 2px;
     }
   }
 </style>
