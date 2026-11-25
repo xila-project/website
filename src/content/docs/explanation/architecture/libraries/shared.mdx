@@ -63,16 +63,12 @@ direction: down
 input: Caller with typed input T { class: io }
 any: "AnyByLayout::from(&input)" { class: component }
 vfs: VFS character device control { class: component }
-cast: "cast::<T>(): verified size and alignment" { class: component }
-driver: Device driver execution { class: hardware }
-cast_out: "cast_output::<O>()" { class: component }
+driver: "Device driver: cast::<T>(), execute, cast_output::<O>()" { class: component }
 output: Caller with typed output O { class: io }
 input -> any: wraps
 any -> vfs: control(command, input, output)
-vfs -> cast
-cast -> driver: verified layout
-driver -> cast_out
-cast_out -> output
+vfs -> driver: passes the layout reference
+driver -> output: typed output
 ```
 
 </div>

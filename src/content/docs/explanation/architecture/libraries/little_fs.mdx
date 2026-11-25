@@ -54,14 +54,15 @@ app: VFS file and directory operations { class: io }
 fs: FileSystem (little_fs) { class: focus }
 engine: LittleFS C engine (littlefs2-sys) { class: component }
 callbacks: C callbacks (read, program, erase, flush) { class: component }
-device: DirectBlockDevice (PartitionDevice, MemoryDevice) { class: hardware }
-erase: Sector erase { class: component }
+device: DirectBlockDevice (PartitionDevice, MemoryDevice) { class: component }
+erase: Block erase { class: component }
+clear: Block clear by write_pattern_sync { class: component }
 app -> fs
 fs -> engine
 engine -> callbacks: synchronous C calls
 callbacks -> device
 device -> erase: ERASE control command
-device -> erase: write_pattern_sync fallback { class: optional }
+device -> clear: when erase is unsupported { class: optional }
 ```
 
 </div>

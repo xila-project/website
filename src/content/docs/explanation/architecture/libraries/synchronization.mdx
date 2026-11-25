@@ -34,24 +34,19 @@ The following diagram shows the categorization of synchronization primitives and
 <div className="diagram">
 
 ```d2 title="Re-exports of the synchronization crate"
-direction: down
-sync: synchronization crate { class: focus }
-reexports: Re-exports {
+direction: right
+sync: synchronization crate { class: component }
+async: Async primitives (embassy-sync) {
   class: layer
   grid-columns: 1
-  async: Async primitives (embassy-sync) {
-    class: layer
-    grid-columns: 1
-    mutex: "mutex::Mutex, rwlock::RwLock" { class: component }
-    comm: "channel::Channel, signal::Signal" { class: component }
-  }
-  blocking: "blocking_mutex::Mutex (CriticalSectionRawMutex)" { class: component }
-  pointers: "Arc and Weak (portable_atomic_util)" { class: component }
+  mutex: "mutex::Mutex, rwlock::RwLock" { class: component }
+  comm: "channel::Channel, signal::Signal" { class: component }
 }
-sync -> reexports.async.mutex
-sync -> reexports.async.comm
-sync -> reexports.blocking
-sync -> reexports.pointers
+blocking: "blocking_mutex::Mutex (CriticalSectionRawMutex)" { class: component }
+pointers: "Arc and Weak (portable_atomic_util)" { class: component }
+sync -> async
+sync -> blocking
+sync -> pointers
 ```
 
 </div>

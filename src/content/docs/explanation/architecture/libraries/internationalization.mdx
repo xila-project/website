@@ -88,18 +88,22 @@ The following diagram shows how translation catalogs are extracted, synchronized
 
 ```d2 title="Compile-time translation flow"
 direction: down
-source: Rust source code (t! calls) { class: io }
-extractor: Tolgee extractor (tolgee.extractor.mjs) { class: component }
-tolgee: Tolgee platform { class: component }
-catalogs: "Translation catalogs (locales/*.json)" { class: stored }
-macros: embedded-i18n macros { class: component }
-binary: Compiled binary (host or Wasm guest) { class: io }
-source -> extractor: scans t! calls
-extractor -> tolgee: synchronizes keys
-tolgee -> catalogs: updates
-catalogs -> macros
-source -> macros
-macros -> binary: compiles translations in
+pipeline: Pipeline {
+  class: layer
+  grid-columns: 3
+  source: Rust source (t! calls) { class: io }
+  extractor: Tolgee extractor { class: component }
+  tolgee: Tolgee platform { class: component }
+  catalogs: Translation catalogs { class: stored }
+  macros: embedded-i18n macros { class: component }
+  binary: Compiled binary { class: io }
+}
+pipeline.source -> pipeline.extractor: scans t! calls
+pipeline.extractor -> pipeline.tolgee: synchronizes keys
+pipeline.tolgee -> pipeline.catalogs: updates
+pipeline.catalogs -> pipeline.macros
+pipeline.source -> pipeline.macros
+pipeline.macros -> pipeline.binary
 ```
 
 </div>

@@ -21,14 +21,14 @@ The following diagram shows the loader descriptor lifecycle.
 
 ```d2 title="Loader descriptor lifecycle"
 direction: down
-start: Start { class: io }
+start: Start { class: component }
 staging: Staging { class: component }
 ready: Ready { class: component }
-end: End { class: io }
+end: End { class: component }
 start -> staging: open
 staging -> staging: write model bytes
 staging -> ready: LOAD succeeds
-ready -> ready: COMPUTE runs inference
+ready -> ready: COMPUTE
 staging -> end: close
 ready -> end: close
 ```
