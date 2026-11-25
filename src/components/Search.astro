@@ -234,8 +234,41 @@ import Default from "@astrojs/starlight/components/Search.astro";
     outline: none;
   }
 
+  /* Pagefind reserves 70px on the right of the input for the clear button.
+     While the input is empty there is no clear button, so the placeholder
+     may use that space. */
+  #starlight__search .pagefind-ui__search-input:placeholder-shown {
+    padding-inline-end: 0.75rem;
+  }
+
+  /* The placeholder needs about 195px at 16px. Chromium draws no ellipsis
+     in a focused input, and the dialog focuses the input when it opens, so a
+     placeholder that is too wide is cut. Below 384px a smaller placeholder
+     font keeps it complete. The font size of the typed text does not change,
+     so iOS does not zoom the page. */
+  @media (max-width: 24rem) {
+    #starlight__search .pagefind-ui__search-input::placeholder {
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Below 336px the smaller font needs 12px more: take them from the space
+     that Starlight keeps for the "Cancel" button (5rem by default). */
+  @media (max-width: 21rem) {
+    #starlight__search {
+      --sl-search-cancel-space: 4.25rem;
+    }
+
+    #starlight__search .pagefind-ui__search-input::placeholder {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Starlight keeps the space of the "Cancel" button on small screens
+     (`--sl-search-cancel-space`, 0 from 800px). The clear button stays left
+     of it. */
   #starlight__search .pagefind-ui__search-clear {
-    right: 0.75rem;
+    right: calc(var(--sl-search-cancel-space, 0px) + 0.75rem);
     background-color: transparent;
   }
 
