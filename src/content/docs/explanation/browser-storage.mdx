@@ -39,7 +39,7 @@ Changing the switch or selecting another disk restarts Xila. Leaving a running s
 
 Xila records the SHA-256 fingerprint of the current `seed.img` for each newly saved disk in `localStorage` under `xila.seedVersion.<name>`. The panel marks a disk whose fingerprint differs from the current seed as **older seed version**, and a disk without a recorded fingerprint as **seed version unknown**. If a saved disk fails to open or mount, the panel displays the error and offers **Rebuild from the current version** when the seed is available. Rebuilding asks for confirmation and replaces the disk contents once the current seed mounts and saves successfully.
 
-Saved disks require a secure context. The panel checks for OPFS (`navigator.storage.getDirectory`) and the Web Locks API (`navigator.locks`); when either is missing, it reports that saved disks are unavailable in this browser, and the example still runs on the memory disk. Commits use `FileSystemFileHandle.createWritable`, so a browser without it fails at the first save with "Could not save ...", not with "unavailable".
+Saved disks require a secure context. The panel checks for OPFS (`navigator.storage.getDirectory`) and the Web Locks API (`navigator.locks`); when the switch is turned on and either API is missing, it reports that saved disks are unavailable in this browser, and the example still runs on the memory disk. The runtime uses `createWritable` to commit a save but does not check for it. A browser without it cannot save, and the panel does not report the failure ([xila-project/platforms#228](https://github.com/xila-project/platforms/issues/228)).
 
 ## How it works
 
@@ -74,7 +74,7 @@ saved.lock -> saved.opfs: one tab per disk
 2. **Asynchronous commits**: `DriveDevice::sync().await` writes a snapshot of the dirty cache to the OPFS file handle through `createWritable`. Closing the writable stream commits the replacement atomically. A save lock serializes commits, and at most one extra snapshot is in flight. A clean cache is not rewritten. On a memory disk, `sync()` does nothing.
 3. **Seed import**: at every start, the runtime downloads `seed.img` into the cache to compute its fingerprint and to initialize new or rebuilt disks. An existing saved disk is then read from OPFS, and the downloaded image is not written to it. If the download fails, an existing saved disk still reopens without the seed.
 4. **Autosave cadence** (saved disks only): the runtime commits at boot after mounting, every second while the cache is dirty, and during normal shutdown. `BrowserDrivers::stop` rejects new writes, stops the autosave task, commits the final snapshot, and unmounts the drive.
-5. **Write rejection during disk switch and shutdown**: `stop_writes` rejects new writes with `IoErrorKind::ResourceBusy`. The pending snapshot commits to OPFS, and the disk lock is released before the restart.
+5. **Write rejection during disk switch and shutdown**: after the switch request, the restart stops the drivers. `stop_writes` then rejects new writes with `IoErrorKind::ResourceBusy`. The pending snapshot commits to OPFS, and the disk lock is released before the restart.
 
 ### Disk manager and Web Locks leases
 
@@ -89,7 +89,7 @@ Removing a saved disk deletes its OPFS file immediately. Clearing browser site d
 
 - **Main-thread memory caching**: both disk modes cache the full 16 MiB image in RAM. This keeps the virtual file system and UI pipeline on the main thread with predictable latency, instead of offloading them to a Web Worker. A save temporarily needs another 16 MiB snapshot, plus browser-internal buffering.
 - **Memory disk by default**: persistence is opt-in. A default tab writes nothing to browser storage and takes no Web Lock, so the demonstration also works in browsers without OPFS support.
-- **Immutable existing disks**: opening a disk never erases or resizes an existing image; a size mismatch is an error. If opening, mounting or initializing the file system fails, startup stops with the error in the **Xila Help** panel. The runtime never reformats an existing disk on a mount error; the user can rebuild the disk from the current seed explicitly.
+- **Immutable existing disks**: opening a disk never erases or resizes an existing image; a size mismatch is an error. If opening, mounting or initializing the file system fails, startup stops with the error in the **Xila Help** panel. A failed master boot record read stops the runtime without a panel message ([xila-project/platforms#228](https://github.com/xila-project/platforms/issues/228)). The runtime never reformats an existing disk on a mount error; the user can rebuild the disk from the current seed explicitly.
 - **Atomic snapshot replacement**: Xila saves a copy of the cache, so writes during a save cannot tear it. Closing the writable stream commits the replacement file, so a failed save keeps the previous image.
 
 ## Limits
