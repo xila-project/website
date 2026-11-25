@@ -56,15 +56,22 @@ The library provides several focused utility modules:
 
 The following diagram shows how `AnyByLayout` bridges typed application control payloads and device drivers across the virtual file system:
 
-```mermaid
-flowchart LR
-    Caller["Caller: Typed input T"] --> AnyIn["AnyByLayout::from(&input)"]
-    AnyIn --> VFS["VFS / Character device\ncontrol(command, input, output)"]
-    VFS --> CastIn["cast::<T>()\nVerified size & alignment"]
-    CastIn --> Driver["Device driver execution"]
-    Driver --> CastOut["cast_output::<O>()"]
-    CastOut --> Output["Caller: Typed output O"]
+<div className="diagram">
+
+```d2 title="Typed control payload across the virtual file system"
+direction: down
+input: Caller with typed input T { class: io }
+any: "AnyByLayout::from(&input)" { class: component }
+vfs: VFS character device control { class: component }
+driver: "Device driver: cast::<T>(), execute, cast_output::<O>()" { class: component }
+output: Caller with typed output O { class: io }
+input -> any: wraps
+any -> vfs: control(command, input, output)
+vfs -> driver: passes the layout reference
+driver -> output: typed output
 ```
+
+</div>
 
 The caller wraps a typed payload in an `AnyByLayout`. The virtual file system passes the layout reference to the driver's `control` handler. The driver verifies size and alignment via `cast`, processes the command, and writes the typed result into the output buffer.
 

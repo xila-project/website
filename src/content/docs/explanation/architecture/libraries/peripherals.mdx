@@ -39,13 +39,22 @@ The `mock` feature provides deterministic, heap-free fixed-capacity mocks (`Gpio
 
 The `drivers_peripherals` crate adapts controller handles into VFS nodes. The following diagram illustrates how applications access peripherals through the VFS:
 
-```mermaid
-flowchart TD
-    App["Application / Shell (File::open / read / write / control)"] --> VFS["Virtual file system (/devices/gpio/pin0)"]
-    VFS --> Dev["PeripheralDevice (exclusive access, BaseOperations)"]
-    Dev --> Handle["PeripheralHandle (GpioHandle / UartHandle / ...)"]
-    Handle --> Controller["Hardware controller (GpioController / Mock)"]
+<div className="diagram">
+
+```d2 title="Peripheral access through the virtual file system"
+direction: down
+app: Application or shell (open, read, write, control) { class: io }
+vfs: Virtual file system (/devices/gpio/pin0) { class: component }
+adapter: PeripheralDevice (exclusive access, BaseOperations) { class: component }
+handle: PeripheralHandle (GpioHandle, UartHandle, and others) { class: component }
+controller: Hardware controller (GpioController) { class: hardware }
+app -> vfs: file operations
+vfs -> adapter: device node
+adapter -> handle: wraps
+handle -> controller: calls
 ```
+
+</div>
 
 The adapter pipeline consists of two constructs:
 

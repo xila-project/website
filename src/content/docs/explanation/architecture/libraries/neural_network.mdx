@@ -17,15 +17,23 @@ A <Api path="neural_network::Backend" /> represents a prepared model and creates
 
 The following diagram shows the loader descriptor lifecycle.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Staging: open
-    Staging --> Staging: write model
-    Staging --> Ready: LOAD succeeds
-    Ready --> Ready: inference
-    Staging --> [*]: close
-    Ready --> [*]: close
+<div className="diagram">
+
+```d2 title="Loader descriptor lifecycle"
+direction: down
+start: Start { class: component }
+staging: Staging { class: component }
+ready: Ready { class: component }
+end: End { class: component }
+start -> staging: open
+staging -> staging: write model
+staging -> ready: LOAD succeeds
+ready -> ready: COMPUTE
+staging -> end: close
+ready -> end: close
 ```
+
+</div>
 
 The descriptor starts in staging. The caller writes model bytes sequentially and sends <Api path="device::neural_network::LOAD"><code>LOAD</code></Api> with a `LoadRequest`. After a successful load, the caller queries input information, selects an input, seeks to zero, and writes tensor bytes. `COMPUTE` runs inference. The caller then selects an output, seeks to zero, and reads its bytes. Closing releases the model and execution state.
 

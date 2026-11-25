@@ -84,15 +84,24 @@ Core and Applications define the Tolgee configuration in `tolgee.config.ts`. It 
 
 The following diagram shows how translation catalogs are extracted, synchronized, and compiled into Xila binaries:
 
-```mermaid
-flowchart LR
-    Catalogs["Catalog JSON\n(locales/*.json)"] --> Macros["embedded-i18n\nmacros"]
-    Source["Rust source code\n(t! calls)"] --> Extractor["Tolgee extractor\n(tolgee.extractor.mjs)"]
-    Extractor --> Tolgee["Tolgee platform"]
-    Tolgee --> Catalogs
-    Source --> Macros
-    Macros --> Binary["Compiled binary\n(Host or Wasm guest)"]
+<div className="diagram">
+
+```d2 title="Compile-time translation flow"
+direction: down
+source: Rust source code (t! calls) { class: io }
+extractor: Tolgee extractor (tolgee.extractor.mjs) { class: component }
+tolgee: Tolgee platform { class: component }
+catalogs: Translation catalogs { class: stored }
+macros: embedded-i18n macros { class: component }
+binary: Compiled binary { class: io }
+source -> extractor: scans t! calls
+extractor -> tolgee: synchronizes keys
+tolgee -> catalogs: updates
+catalogs -> macros
+macros -> binary
 ```
+
+</div>
 
 The Tolgee extractor processes the `t!` macro invocations in the Rust source and synchronizes the keys with the translation server. The `embedded-i18n` procedural macros compile the resulting JSON catalogs with the Rust source. The build produces host binaries and guest WebAssembly executables with embedded translations.
 

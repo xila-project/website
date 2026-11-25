@@ -21,14 +21,26 @@ This subsystem separates identity tracking from authentication mechanics. The `u
 
 The following diagram shows how the users manager connects accounts and groups to task and filesystem authorization.
 
-```mermaid
-flowchart LR
-    Auth["authentication library<br/>(saved accounts, credentials)"] --> UM["users::Manager"]
-    UM --> Users["Users map<br/>(UserIdentifier -> InternalUser)"]
-    UM --> Groups["Groups map<br/>(GroupIdentifier -> InternalGroup)"]
-    Task["Task subsystem"] -->|queries user/group| UM
-    VFS["Virtual file system"] -->|checks permissions| UM
+<div className="diagram">
+
+```d2 title="Users manager connecting accounts, tasks and file permissions"
+direction: down
+
+authentication: "authentication library\n(saved accounts, credentials)" { class: component }
+manager: "users::Manager" { class: focus }
+users: "Users map\n(UserIdentifier to account)" { class: stored }
+groups: "Groups map\n(GroupIdentifier to members)" { class: stored }
+task: "Task subsystem" { class: component }
+vfs: "Virtual file system" { class: component }
+
+authentication -> manager: "populates at boot"
+manager -> users
+manager -> groups
+task -> manager: "queries user and group"
+vfs -> manager: "checks permissions"
 ```
+
+</div>
 
 The <Api path="users::Manager" /> struct maintains two collections protected by an internal read-write lock:
 

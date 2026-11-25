@@ -21,15 +21,28 @@ The <Api path="time" /> isolates these two concerns. Real-time clock adjustments
 
 The following diagram shows the dual-clock architecture of the time subsystem.
 
-```mermaid
-flowchart LR
-    Embassy["embassy_time::Instant"] --> Mono["EmbassyClock (MonotonicClock)"]
-    Mono --> Uptime["time::Manager::monotonic_now()"]
-    Mono --> UTC["realtime_now() (UTC Timestamp)"]
-    RTC["RealtimeSource (TimeDevice, RTC, NTP)"] -->|set_realtime / synchronize| UTC
-    Uptime --> Timers["Task timers, LVGL ticks, smoltcp"]
-    UTC --> FileTimes["VFS file timestamps, civil clock"]
+<div className="diagram">
+
+```d2 title="Dual clock architecture with monotonic and UTC time"
+direction: down
+
+ticks: "embassy_time::Instant\n(hardware ticks)" { class: component }
+clock: "EmbassyClock\n(MonotonicClock)" { class: component }
+monotonic: "time::Manager::monotonic_now()" { class: component }
+realtime: "realtime_now()\n(UTC timestamp)" { class: component }
+source: "RealtimeSource\n(TimeDevice, RTC, NTP)" { class: component }
+timers: "Task timers, LVGL ticks, smoltcp" { class: io }
+file_times: "File timestamps, civil clock" { class: io }
+
+ticks -> clock
+clock -> monotonic
+clock -> realtime
+source -> realtime: "set_realtime / synchronize"
+monotonic -> timers
+realtime -> file_times
 ```
+
+</div>
 
 The <Api path="time::Manager" /> coordinates two distinct time representations:
 

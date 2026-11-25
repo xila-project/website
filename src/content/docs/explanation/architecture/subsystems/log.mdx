@@ -19,13 +19,24 @@ Kernel subsystems, libraries, and executables need structured log output without
 
 The following diagram shows the path of a log record from emission to the platform backend.
 
-```mermaid
-flowchart LR
-    Macro["Macros<br/>(error!, warning!, information!, debug!, trace!)"] --> External["Rust log facade"]
-    External --> Adapter["Logger adapter"]
-    Adapter --> Trait["LoggerTrait backend"]
-    Trait --> Output["Platform destination<br/>(UART, console, null)"]
+<div className="diagram">
+
+```d2 title="Path of a log record from the macros to the platform backend"
+direction: down
+
+macros: "Macros\n(error!, warning!, information!, debug!, trace!)" { class: io }
+facade: "Rust log facade" { class: component }
+adapter: "Logger adapter" { class: component }
+backend: "LoggerTrait backend" { class: component }
+output: "Platform destination\n(UART, console, null)" { class: io }
+
+macros -> facade
+facade -> adapter
+adapter -> backend
+backend -> output
 ```
+
+</div>
 
 A log record passes through four stages:
 
