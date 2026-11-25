@@ -47,35 +47,50 @@ The shell layout maintains persistent interface elements around the primary wind
 
 The following diagram shows how the graphical shell discovers shortcuts and launches applications.
 
-```mermaid
-flowchart TD
-    subgraph Storage["File system storage"]
-        Static["/configuration/shared/applications/shortcuts/*.json"]
-        Bundles["/applications/bundles/*/shortcut.json"]
-    end
-    subgraph Discovery["Graphical shell discovery"]
-        Scan["Scan directories on drawer open"]
-        Deserialize["Parse JSON descriptor"]
-        Resolve["Resolve @bundle/ path references"]
-    end
-    subgraph UI["Application drawer"]
-        Icons["Render shortcut icons and labels"]
-        Click["User click event"]
-    end
-    subgraph Execution["Runtime execution"]
-        Exec["executable::execute"]
-        Spawn["Spawn native or Wasm task"]
-    end
+<div className="diagram">
 
-    Static --> Scan
-    Bundles --> Scan
-    Scan --> Deserialize
-    Deserialize --> Resolve
-    Resolve --> Icons
-    Icons --> Click
-    Click --> Exec
-    Exec --> Spawn
+```d2 title="Shortcut discovery and application launch in the graphical shell"
+direction: down
+grid-columns: 2
+
+storage: File system storage {
+  class: layer
+  label.near: top-left
+  grid-rows: 2
+  static: "/configuration/shared/\napplications/shortcuts/*.json" { class: stored }
+  bundles: "/applications/bundles/*/\nshortcut.json" { class: stored }
+}
+drawer: Application drawer {
+  class: layer
+  label.near: top-left
+  icons: Render shortcut icons and labels { class: component }
+  click: User click event { class: io }
+}
+discovery: Graphical shell discovery {
+  class: layer
+  label.near: top-left
+  scan: Scan directories on drawer open { class: component }
+  parse: Parse JSON descriptor { class: component }
+  resolve: "Resolve @bundle/ path references" { class: component }
+}
+execution: Runtime execution {
+  class: layer
+  label.near: top-left
+  execute: "executable::execute" { class: component }
+  spawn: Spawn native or Wasm task { class: component }
+}
+
+storage.static -> discovery.scan
+storage.bundles -> discovery.scan
+discovery.scan -> discovery.parse
+discovery.parse -> discovery.resolve
+discovery.resolve -> drawer.icons
+drawer.icons -> drawer.click
+drawer.click -> execution.execute
+execution.execute -> execution.spawn
 ```
+
+</div>
 
 When the user opens the application drawer, the shell scans the file system to fill the launcher:
 

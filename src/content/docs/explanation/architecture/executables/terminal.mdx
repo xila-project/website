@@ -24,33 +24,47 @@ Terminal acts as a terminal emulator and a virtual device:
 
 ### Data flow and stream wiring
 
-The following diagram shows the data flow between the graphical user interface, the mounted terminal character device, standard streams, and the child command-line shell task.
+The following diagram shows the input path from the graphical window through the mounted character device to the standard input of the child shell task.
 
-```mermaid
-flowchart LR
-    subgraph GUI["Graphical terminal window"]
-        TextArea["Input text area"]
-        Display["Scrollable label display"]
-    end
-    subgraph Device["/devices/terminal_{task}"]
-        InQueue["Validated input queue"]
-        Waiters["WaitQueue readers"]
-    end
-    subgraph Streams["Standard streams"]
-        StdIn["Standard input (stdin)"]
-        StdOut["Standard output (stdout/stderr)"]
-    end
-    subgraph Shell["Command-line shell task"]
-        ShellExec["Shell executable"]
-    end
+<div className="diagram">
 
-    TextArea -->|"Enter or Send"| InQueue
-    InQueue -->|"Wake readers"| Waiters
-    Waiters --> StdIn
-    StdIn --> ShellExec
-    ShellExec --> StdOut
-    StdOut -->|"UTF-8 chunks"| Display
+```d2 title="Input path from the terminal window to the shell task"
+direction: down
+
+input: "Input text area\n(terminal window)" { class: io }
+queue: "Validated input queue\n(terminal device)" { class: component }
+waiters: "Waiting readers\n(terminal device)" { class: component }
+stdin: "Standard input\n(shell task)" { class: io }
+
+input -> queue: Enter
+queue -> waiters: wakes
+waiters -> stdin: read
 ```
+
+</div>
+
+The text area sends each submitted line to the validated input queue, which wakes the registered readers, and the shell reads the line from its standard input.
+
+The following diagram shows the output path from the shell task through the character device back to the window display.
+
+<div className="diagram">
+
+```d2 title="Output path from the shell task to the terminal window display"
+direction: down
+
+executable: "Shell executable" { class: component }
+stdout: "Standard output\n(shell task)" { class: io }
+buffer: "Display text buffer\n(terminal device)" { class: component }
+display: "Scrollable display\n(terminal window)" { class: io }
+
+executable -> stdout
+stdout -> buffer: write
+buffer -> display: text
+```
+
+</div>
+
+The shell writes to its standard output, which points to the device, and the device appends the UTF-8 chunks to its display text buffer and updates the scrollable display.
 
 When Terminal starts:
 

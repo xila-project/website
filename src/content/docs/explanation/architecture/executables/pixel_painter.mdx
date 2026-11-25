@@ -19,10 +19,20 @@ The canvas is 160 by 100 pixels with an eight-color palette. The interface opens
 
 The following diagram shows the launch path.
 
-```mermaid
-flowchart LR
-    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Pixel Painter"] --> API["Guest API"]
+<div className="diagram">
+
+```d2 title="Launch path of the Pixel Painter guest application"
+direction: right
+
+shortcut: Shortcut { class: stored }
+runner: Wasm runner { class: component }
+guest: Pixel Painter { class: component }
+api: Guest API { class: component }
+
+shortcut -> runner -> guest -> api
 ```
+
+</div>
 
 The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
