@@ -112,10 +112,10 @@ XILA_BUNDLES_DIR=target/local-bundles mise run image:native
 
 The `Cargo.toml` manifests in each repository pin dependent Git revisions by default.
 
-1. To develop across local working copies simultaneously, run the override script in the Platforms repository. The `--output` option accepts any path. The example writes the file to `target/xila-local-overrides.toml`, inside the Platforms checkout, where Git ignores the `target/` directory:
+1. To develop across local working copies simultaneously, run the override script in the Platforms repository. The `--output` option accepts any path. The example writes the file to `target/xila-local-overrides.toml`, inside the Platforms checkout, where Git ignores the `target/` directory. The script does not create the parent directory of the output file, so the command creates `target/` first:
 
 ```sh
-python3 tools/dev/local_overrides.py \
+mkdir -p target && python3 tools/dev/local_overrides.py \
   --core ../core \
   --applications ../applications \
   --platforms . \
@@ -139,7 +139,7 @@ applications: Applications { class: component }
 platforms: Platforms { class: focus }
 script: "local_overrides.py" { class: component }
 overrides: "xila-local-overrides.toml" { class: stored }
-cargo: "cargo --config" { class: component }
+cargo: cargo { class: component }
 core -> script
 applications -> script
 platforms -> script

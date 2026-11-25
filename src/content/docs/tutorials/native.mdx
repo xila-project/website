@@ -61,18 +61,20 @@ The diagram below shows how the seed image is built and how it becomes the live 
 direction: down
 lock: "bundles.lock.json" { class: stored }
 packages: "Released signed packages" { class: stored }
+prepare: "prepare_seed.py" { class: component }
 tool: "xila-fs-image" { class: component }
 seed: "target/seed/native/seed.img" { class: stored }
 disk: "./drive.img (live disk)" { class: stored }
 lock -> packages: pins
-packages -> tool: reads
+packages -> prepare: "downloads and verifies"
+prepare -> tool: "extracted bundles"
 tool -> seed: writes
 seed -> disk: "imported only when no disk exists"
 ```
 
 </div>
 
-The lock file pins each released package by URL and SHA-256 and carries the publisher key. The `image:native` task downloads the packages, verifies them, and the `xila-fs-image` tool writes the seed image from them. At the first start, the runtime imports the seed into `./drive.img` only when no disk exists. Every later start reuses the existing disk and ignores the seed.
+The lock file pins each released package by URL and SHA-256 and carries the publisher key. The `image:native` task runs `prepare_seed.py`, which downloads the packages, verifies them and extracts the bundles. The `xila-fs-image` tool writes the seed image from those bundles. At the first start, the runtime imports the seed into `./drive.img` only when no disk exists. Every later start reuses the existing disk and does not read the seed.
 
 ## Start the native runtime
 
