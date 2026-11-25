@@ -140,6 +140,20 @@ const shouldRenderSearch =
     display: contents;
   }
 
+  /* Below 352px the logo block, the search button and the right group no
+     longer fit with the full gap. A smaller gap and no separator between
+     the social links and the theme switch keep the title wrapper from
+     clipping the menu button down to a width of 320px. */
+  @media (max-width: 22rem) {
+    .header {
+      gap: 0.5rem;
+    }
+
+    .social-icons::after {
+      display: none;
+    }
+  }
+
   @media (min-width: 64rem) {
     .header {
       /* The left column may shrink to zero, so a long title is clipped by

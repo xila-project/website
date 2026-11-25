@@ -87,6 +87,42 @@ import Default from "@astrojs/starlight/components/Search.astro";
 
 <style is:global>
   /*
+    Small screens (below 768px): the theme hides the whole `site-search`
+    element. The hidden element also hides the dialog, so the keyboard
+    shortcut opens a dialog that nobody can see. Show the element again with
+    an icon-only button beside the menu button. The auto margin keeps the
+    button next to the menu and pushes the right group to the edge.
+  */
+  @media (max-width: 47.9375rem) {
+    site-search {
+      display: flex;
+      width: auto;
+      margin-inline-end: auto;
+    }
+    site-search::after {
+      display: none;
+    }
+    site-search > button[data-open-modal] {
+      justify-content: center;
+      width: 2rem;
+      padding: 0;
+      background-color: transparent;
+      color: var(--foreground);
+    }
+    site-search > button[data-open-modal]:hover {
+      background-color: color-mix(in oklab, var(--accent) 80%, transparent);
+    }
+    site-search > button[data-open-modal] > svg {
+      display: block;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+    site-search > button[data-open-modal] > span {
+      display: none;
+    }
+  }
+
+  /*
     Wide screens (1024px and above): the header gives the search its own
     action block on the right, so the button is compact instead of the
     theme's fixed wide field: the magnifier, the word "Search" and the
