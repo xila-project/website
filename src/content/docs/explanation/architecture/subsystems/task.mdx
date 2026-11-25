@@ -26,20 +26,20 @@ The following diagram shows how the task manager coordinates Embassy executors a
 direction: down
 
 caller: "Caller (spawn)" { class: io }
-manager: "task::Manager" { class: focus }
-metadata: "Task metadata\n(TaskIdentifier, user, environment, signals)" { class: stored }
-select: "select_best_spawner\n(load balancing)" { class: decision }
+manager: "task::Manager" { class: component }
+metadata: "Task metadata\n(TaskIdentifier, user, environment, signals)" { class: component }
+select: "reserve_spawner\n(least loaded spawner)" { class: decision }
 spawner: "embassy_executor::Spawner" { class: component }
-pool: "embassy_executor::raw::TaskPool" { class: component }
-waker: "task_from_waker(context.waker())" { class: component }
-context: "get_current_task_identifier()" { class: io }
+storage: "embassy_executor::raw::TaskStorage" { class: component }
+waker: "get_current_internal_identifier()\n(reads the waker data)" { class: component }
+context: "try_get_current_task_identifier()" { class: io }
 
 caller -> manager
 manager -> metadata
 manager -> select
 select -> spawner
-spawner -> pool
-pool -> waker
+spawner -> storage
+storage -> waker
 waker -> context
 ```
 
@@ -48,9 +48,9 @@ waker -> context
 The <Api path="task::Manager" /> maintains registered tasks and active spawners inside an internal read-write lock:
 
 1. **Task registration**: calling `Manager::spawn` creates a logical task entry and assigns a unique <Api path="task::TaskIdentifier" />.
-2. **Spawner selection**: if no specific spawner identifier is supplied, `select_best_spawner` counts active tasks assigned to each registered Embassy spawner and selects the spawner with the lowest task count.
-3. **Task allocation**: the manager allocates an Embassy `TaskPool` dynamically and issues a spawn token to the chosen spawner.
-4. **Waker-based identity recovery**: once executing, `get_current_internal_identifier()` inspects the current future's waker using `task_from_waker(context.waker())`. The manager maps this memory address back to the logical `TaskIdentifier`.
+2. **Spawner selection**: if no specific spawner is requested, `Manager::reserve_spawner` reserves the registration with the fewest active tasks and returns its spawner.
+3. **Task allocation**: the manager claims a slot in an `embassy_executor::raw::TaskStorage`, records the slot address as the internal identifier of the task, and issues a spawn token to the chosen spawner.
+4. **Waker-based identity recovery**: once executing, `Manager::get_current_internal_identifier()` reads the waker data of the current future. `try_get_current_task_identifier()` maps this internal identifier back to the logical `TaskIdentifier`. `get_current_task_identifier()` is a compatibility wrapper of `try_get_current_task_identifier()`.
 
 This waker-based lookup allows file system and permissions logic to determine the calling task without requiring thread-local storage or explicit handle arguments in every function call.
 

@@ -31,7 +31,7 @@ manager: "users::Manager" { class: focus }
 users: "Users map\n(UserIdentifier to account)" { class: stored }
 groups: "Groups map\n(GroupIdentifier to members)" { class: stored }
 task: "Task subsystem" { class: component }
-vfs: "Virtual file system" { class: stored }
+vfs: "Virtual file system" { class: component }
 
 authentication -> manager: "populates at boot"
 manager -> users

@@ -25,8 +25,8 @@ The following diagram shows how the graphics manager coordinates platform device
 ```d2 title="Graphics manager coordinating devices, LVGL and application windows"
 direction: down
 
-devices: "Screen and input devices\n(DirectCharacterDevice)" { class: hardware }
-manager: "graphics::Manager" { class: focus }
+devices: "Screen and input drivers\n(DirectCharacterDevice)" { class: hardware }
+manager: "graphics::Manager" { class: component }
 lock: "Mutex<()>\n(global LVGL lock)" { class: component }
 lvgl: "LVGL 9.6.0 runtime" { class: component }
 loop: "graphics_manager.r#loop" { class: component }

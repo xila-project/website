@@ -36,27 +36,23 @@ The following flowchart illustrates how the virtual file system resolves a path 
 direction: down
 
 requested: "Requested path" { class: io }
-validate: "Validate absolute path" { class: component }
-symlinks: "Resolve symbolic links\ncomponent by component" { class: component }
+validate: "Validate absolute path\nResolve symbolic links" { class: component }
 permission: "Check directory\nexecute permission" { class: component }
-mount: "Find longest matching\nmount point" { class: component }
-strip: "Strip mount point\nto get relative path" { class: component }
+mount: "Find longest matching mount point\nStrip it to get the relative path" { class: component }
 kind: "Resource kind?" { class: decision }
 file_system: "File system" { class: stored }
-character: "Character device driver" { class: hardware }
-block: "Block device driver" { class: hardware }
+character: "Character device" { class: component }
+block: "Block device" { class: component }
 pipe: "Pipe" { class: component }
 
 requested -> validate
-validate -> symlinks
-symlinks -> permission
+validate -> permission
 permission -> mount
-mount -> strip
-strip -> kind
+mount -> kind
 kind -> file_system: "File or directory"
-kind -> character: "Character device"
-kind -> block: "Block device"
-kind -> pipe: "Pipe"
+kind -> character
+kind -> block
+kind -> pipe
 ```
 
 </div>
@@ -81,7 +77,7 @@ direction: down
 
 caller: "Caller\nFile::control(command, argument)" { class: io }
 control: "SynchronousFile::control" { class: component }
-write_check: "Check AccessFlags::Write\nif the command writes" { class: decision }
+write_check: "Check AccessFlags::Write\nif the command writes" { class: component }
 base_ops: "BaseOperations::control_sync" { class: component }
 driver: "Device driver implementation" { class: hardware }
 result: "Type-checked output payload" { class: io }

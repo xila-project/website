@@ -26,9 +26,9 @@ The following diagram shows how general and capability-specific allocation reque
 ```d2 title="Allocation requests flowing to the platform heap"
 direction: down
 
-rust_heap: "Rust heap\n(Box, Vec, String via GlobalAlloc)" { class: io }
+rust_heap: "Rust allocations\n(Box, Vec, String via GlobalAlloc)" { class: io }
 requests: "Capability requests\nallocate(capabilities, layout)" { class: io }
-manager: "memory::Manager" { class: focus }
+manager: "memory::Manager" { class: component }
 backend: "ManagerTrait backend" { class: component }
 heap: "Platform heap\n(linked_list_allocator, OS heap)" { class: component }
 

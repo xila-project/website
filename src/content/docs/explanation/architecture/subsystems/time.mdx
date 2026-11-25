@@ -26,11 +26,11 @@ The following diagram shows the dual-clock architecture of the time subsystem.
 ```d2 title="Dual clock architecture with monotonic and UTC time"
 direction: down
 
-ticks: "embassy_time::Instant\n(hardware ticks)" { class: hardware }
+ticks: "embassy_time::Instant\n(hardware ticks)" { class: component }
 clock: "EmbassyClock\n(MonotonicClock)" { class: component }
 monotonic: "time::Manager::monotonic_now()" { class: component }
 realtime: "realtime_now()\n(UTC timestamp)" { class: component }
-source: "RealtimeSource\n(TimeDevice, RTC, NTP)" { class: hardware }
+source: "RealtimeSource\n(TimeDevice, RTC, NTP)" { class: component }
 timers: "Task timers, LVGL ticks, smoltcp" { class: io }
 file_times: "File timestamps, civil clock" { class: io }
 

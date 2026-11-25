@@ -29,7 +29,7 @@ clock: "Time" { class: hardware }
 
 root: "LittleFS root" { class: stored }
 
-devices: "Mounted in the VFS" {
+devices: "Device nodes" {
   class: layer
   standard_io: "/devices/standard_io" { class: component }
   gpio_pins: "/devices/gpio" { class: component }
