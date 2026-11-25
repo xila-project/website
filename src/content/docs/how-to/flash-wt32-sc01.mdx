@@ -63,6 +63,25 @@ The build writes two files for each board. The ELF file is the firmware. The `-f
 
 This guide flashes the ELF file. The merged image writes the whole flash from offset `0x0` and erases the stored data. Use it only to provision a new or wiped board.
 
+The following diagram shows which parts of the flash each command writes.
+
+<div className="diagram">
+
+```d2 title="Flash parts written by espflash flash and by the merged image"
+direction: down
+flash: "espflash flash (ELF and partition table)" { class: component }
+merged: "espflash write-bin 0x0 (merged -flash.bin)" { class: component }
+firmware: "Boot loader, partition table and factory partition" { class: component }
+storage: "storage partition (LittleFS)" { class: stored }
+flash -> firmware: "writes, keeps storage"
+merged -> firmware: "writes"
+merged -> storage: "overwrites"
+```
+
+</div>
+
+`espflash flash` writes the boot loader, the partition table and the `factory` application partition. It never writes the `storage` partition, so the accounts, the installed applications and the stored files survive a firmware update. The merged `-flash.bin` image spans the whole flash: a raw write at offset `0x0` also replaces the `storage` partition with erased content. Use the merged image only to provision a new or wiped board.
+
 ### Find the serial port
 
 1. Connect the board to the computer.
