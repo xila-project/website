@@ -18,20 +18,22 @@ memory: "Memory disk (default)" { class: component }
 closed: "Saved disk, closed" { class: stored }
 open: "Saved disk, open in one tab" { class: stored }
 memory -> open: "Keep my files between visits"
+memory -> closed: "Create disk"
 closed -> open: "Use selected disk"
 open -> closed: "Tab closes or switches disk"
+open -> memory: "Switch turned off"
 ```
 
 </div>
 
-A saved disk is a file in the Origin Private File System (OPFS). While one tab has it open, that tab holds the exclusive Web Lock `xila-opfs:<name>`: the active disk cannot be removed from its own tab, and removing a disk that another tab has open fails, because the removal must acquire the same lock. A second tab that opens the same disk fails with `Resource busy`. When the tab closes or switches disks, it releases the lock and the disk is closed again.
+Every change of disk asks for a confirmation and then restarts Xila. A saved disk is a file in the Origin Private File System (OPFS). While one tab has it open, that tab holds the exclusive Web Lock `xila-opfs:<name>`: the active disk cannot be removed from its own tab, and removing a disk that another tab has open fails, because the removal must acquire the same lock. A second tab that opens the same disk fails with a resource busy error. When the tab closes or switches disks, it releases the lock and the disk is closed again.
 
 ## Before you begin
 
 - Open the browser demonstration at [platforms.xila.dev](https://platforms.xila.dev/) or your local Trunk development server.
 - A browser that supports the Origin Private File System (OPFS) and the Web Locks API.
 - Turn on **Keep my files between visits** in the Xila Help panel to use saved disks.
-- The [demonstration page](/demonstration/) of this site shows the same demonstration in a frame. The frame and platforms.xila.dev use the same disks. Each disk is open in one tab at a time: a second tab that opens the same disk shows `Resource busy`.
+- The [demonstration page](/demonstration/) of this site shows the same demonstration in a frame. The frame and platforms.xila.dev use the same disks. Each disk is open in one tab at a time: a second tab that opens the same disk fails with a resource busy error.
 - Back up any important files before deleting a disk.
 
 :::caution[Deleting a disk causes irreversible data loss]

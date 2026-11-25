@@ -71,7 +71,7 @@ The following diagram shows which parts of the flash each command writes.
 direction: down
 flash: "espflash flash (ELF and partition table)" { class: component }
 merged: "espflash write-bin 0x0 (merged -flash.bin)" { class: component }
-firmware: "Boot loader, partition table and factory partition" { class: stored }
+firmware: "Boot loader, partition table and factory partition" { class: component }
 storage: "storage partition (LittleFS)" { class: stored }
 flash -> firmware: "writes, keeps storage"
 merged -> firmware: "writes"
