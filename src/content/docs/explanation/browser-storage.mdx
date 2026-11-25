@@ -11,7 +11,7 @@ The browser demonstration of Platforms (`examples/wasm`) runs Xila on a 16 MiB d
 
 ## Context
 
-Running an operating system in a browser tab requires storage that can survive page reloads. Browser storage differs fundamentally from physical storage hardware:
+Saving files across page reloads requires browser storage. Browser storage differs fundamentally from physical storage hardware:
 
 - Synchronous OPFS file access handles (`FileSystemSyncAccessHandle`) work only in Web Workers. The browser main thread cannot use them.
 - Xila's UI, event dispatch, and virtual file system run on the main thread.
@@ -39,7 +39,7 @@ Changing the switch or selecting another disk restarts Xila. Leaving a running s
 
 Xila records the SHA-256 fingerprint of the current `seed.img` for each newly saved disk in `localStorage` under `xila.seedVersion.<name>`. The panel marks a disk whose fingerprint differs from the current seed as **older seed version**, and a disk without a recorded fingerprint as **seed version unknown**. If a saved disk fails to open or mount, the panel displays the error and offers **Rebuild from the current version** when the seed is available. Rebuilding asks for confirmation and replaces the disk contents once the current seed mounts and saves successfully.
 
-Saved disks require a secure context that supports OPFS (`navigator.storage.getDirectory`), `FileSystemFileHandle.createWritable`, and the Web Locks API. Without them, the panel reports that saved disks are unavailable in this browser, and the example still runs on the memory disk.
+Saved disks require a secure context. The panel checks for OPFS (`navigator.storage.getDirectory`) and the Web Locks API (`navigator.locks`); when either is missing, it reports that saved disks are unavailable in this browser, and the example still runs on the memory disk. Commits use `FileSystemFileHandle.createWritable`, so a browser without it fails at the first save with "Could not save ...", not with "unavailable".
 
 ## How it works
 
@@ -50,34 +50,35 @@ The diagram shows how synchronous block operations reach OPFS in saved-disk mode
 <div className="diagram">
 
 ```d2 title="Browser storage data flow"
-vfs: VFS (LittleFS over MBR) { class: component }
+vfs: Virtual file system (LittleFS over the master boot record) { class: component }
 seed: seed.img over HTTP Fetch { class: io }
-cache: Main-thread memory cache (16 MiB) { class: focus }
+cache: Main-thread memory cache (16 MiB) { class: component }
 saved: Saved-disk mode {
   class: boundary
   commit: DriveDevice::sync { class: component }
   opfs: Disk image in OPFS { class: stored }
-  lock: "Web Lock xila-opfs:name" { class: key }
+  lock: "Web Lock xila-opfs:name" { class: component }
 }
 
-seed -> cache: fetched at every start
+seed -> cache: memory disk, new disk or rebuild
+saved.opfs -> cache: read when an existing disk opens
 vfs -> cache: synchronous block I/O
 cache -> saved.commit: dirty snapshot
 saved.commit -> saved.opfs: atomic commit on stream close
-saved.lock -> saved.opfs: one tab per disk { class: optional }
+saved.lock -> saved.opfs: one tab per disk
 ```
 
 </div>
 
-1. **Synchronous block access**: `DriveDevice` serves reads and writes directly from a 16 MiB in-memory `Uint8Array` cache. Each write increments an internal generation counter.
+1. **Synchronous block access**: `DriveDevice` serves reads and writes directly from a 16 MiB in-memory `Uint8Array` cache. On a saved disk, each write increments an internal generation counter.
 2. **Asynchronous commits**: `DriveDevice::sync().await` writes a snapshot of the dirty cache to the OPFS file handle through `createWritable`. Closing the writable stream commits the replacement atomically. A save lock serializes commits, and at most one extra snapshot is in flight. A clean cache is not rewritten. On a memory disk, `sync()` does nothing.
 3. **Seed import**: at every start, the runtime downloads `seed.img` into the cache to compute its fingerprint and to initialize new or rebuilt disks. An existing saved disk is then read from OPFS, and the downloaded image is not written to it. If the download fails, an existing saved disk still reopens without the seed.
 4. **Autosave cadence** (saved disks only): the runtime commits at boot after mounting, every second while the cache is dirty, and during normal shutdown. `BrowserDrivers::stop` rejects new writes, stops the autosave task, commits the final snapshot, and unmounts the drive.
-5. **Write throttling during disk switch and shutdown**: `stop_writes` rejects new writes with `IoErrorKind::ResourceBusy`. The pending snapshot commits to OPFS, and the disk lock is released before the restart.
+5. **Write rejection during disk switch and shutdown**: `stop_writes` rejects new writes with `IoErrorKind::ResourceBusy`. The pending snapshot commits to OPFS, and the disk lock is released before the restart.
 
 ### Disk manager and Web Locks leases
 
-- Opening a saved disk requests an exclusive Web Lock named `xila-opfs:<name>`. A second tab that opens the same disk fails with `IoErrorKind::ResourceBusy`. A tab holds the lease until it closes or switches disks. The panel uses the separate lock `xila-opfs-disk-list` for its list operations.
+- Opening a saved disk requests an exclusive Web Lock named `xila-opfs:<name>`. A second tab that opens the same disk fails with `IoErrorKind::ResourceBusy`. A tab holds the lease until it closes or switches disks. The panel uses the separate lock `xila-opfs-disk-list` when finding or creating a disk name.
 - Removing a saved disk acquires the disk lock, deletes the OPFS file, and clears its recorded fingerprint. The active disk cannot be removed from its own tab.
 
 :::caution[Disk removal and origin clearing are permanent]
@@ -86,10 +87,10 @@ Removing a saved disk deletes its OPFS file immediately. Clearing browser site d
 
 ## Design choices and trade-offs
 
-- **Main-thread memory caching**: both disk modes cache the full 16 MiB image in RAM. This keeps the VFS and UI pipeline on the main thread with predictable latency, instead of offloading them to a Web Worker. A save temporarily needs another 16 MiB snapshot, plus browser-internal buffering.
+- **Main-thread memory caching**: both disk modes cache the full 16 MiB image in RAM. This keeps the virtual file system and UI pipeline on the main thread with predictable latency, instead of offloading them to a Web Worker. A save temporarily needs another 16 MiB snapshot, plus browser-internal buffering.
 - **Memory disk by default**: persistence is opt-in. A default tab writes nothing to browser storage and takes no Web Lock, so the demonstration also works in browsers without OPFS support.
-- **Immutable existing disks**: opening a disk never erases or resizes an existing image; a size mismatch is an error. If MBR verification or LittleFS mounting fails, startup stops with the error in the **Xila Help** panel. The runtime never reformats an existing disk on a mount error; the user can rebuild the disk from the current seed explicitly.
-- **Atomic snapshot replacement**: closing the writable stream, not writing, commits the replacement file. Writes during a save therefore cannot tear disk blocks.
+- **Immutable existing disks**: opening a disk never erases or resizes an existing image; a size mismatch is an error. If opening, mounting or initializing the file system fails, startup stops with the error in the **Xila Help** panel. The runtime never reformats an existing disk on a mount error; the user can rebuild the disk from the current seed explicitly.
+- **Atomic snapshot replacement**: Xila saves a copy of the cache, so writes during a save cannot tear it. Closing the writable stream commits the replacement file, so a failed save keeps the previous image.
 
 ## Limits
 
