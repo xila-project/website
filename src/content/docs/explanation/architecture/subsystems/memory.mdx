@@ -21,13 +21,24 @@ The <Api path="memory" /> abstracts these constraints. It defines what an alloca
 
 The following diagram shows how general and capability-specific allocation requests flow to the platform memory backend.
 
-```mermaid
-flowchart LR
-    RustAlloc["Rust heap (Box, Vec)<br/>GlobalAlloc"] --> Mgr["memory::Manager"]
-    DirectAlloc["Xila capability requests<br/>allocate(capabilities, layout)"] --> Mgr
-    Mgr --> Trait["ManagerTrait backend"]
-    Trait --> Heap["Platform heap<br/>(linked_list_allocator, OS heap)"]
+<div className="diagram">
+
+```d2 title="Allocation requests flowing to the platform heap"
+direction: down
+
+rust_heap: "Rust heap\n(Box, Vec, String via GlobalAlloc)" { class: io }
+requests: "Capability requests\nallocate(capabilities, layout)" { class: io }
+manager: "memory::Manager" { class: focus }
+backend: "ManagerTrait backend" { class: component }
+heap: "Platform heap\n(linked_list_allocator, OS heap)" { class: component }
+
+rust_heap -> manager
+requests -> manager
+manager -> backend
+backend -> heap
 ```
+
+</div>
 
 Allocation requests reach the subsystem through two channels:
 

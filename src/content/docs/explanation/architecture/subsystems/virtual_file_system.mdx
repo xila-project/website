@@ -30,19 +30,36 @@ The <Api path="virtual_file_system::VirtualFileSystem" /> struct maintains mount
 
 The following flowchart illustrates how the virtual file system resolves a path and verifies access permissions.
 
-```mermaid
-flowchart TD
-    Start["Requested path"] --> CheckAbs["Validate absolute path"]
-    CheckAbs --> ResolveSym["Resolve symlinks component by component"]
-    ResolveSym --> CheckPerm["Check parent directory execute permission"]
-    CheckPerm --> LookupMount["Find longest matching mount point in file_systems"]
-    LookupMount --> StripPrefix["Strip mount point to get relative path"]
-    StripPrefix --> OpDispatch{"Resource kind?"}
-    OpDispatch -->|File or Directory| FS["Dispatch to FileSystemOperations"]
-    OpDispatch -->|Character device| CD["Dispatch to CharacterDevice"]
-    OpDispatch -->|Block device| BD["Dispatch to BlockDevice"]
-    OpDispatch -->|Pipe| P["Dispatch to Pipe"]
+<div className="diagram">
+
+```d2 title="Path resolution and permission check in the virtual file system"
+direction: down
+
+requested: "Requested path" { class: io }
+validate: "Validate absolute path" { class: component }
+symlinks: "Resolve symbolic links\ncomponent by component" { class: component }
+permission: "Check directory\nexecute permission" { class: component }
+mount: "Find longest matching\nmount point" { class: component }
+strip: "Strip mount point\nto get relative path" { class: component }
+kind: "Resource kind?" { class: decision }
+file_system: "File system" { class: stored }
+character: "Character device driver" { class: hardware }
+block: "Block device driver" { class: hardware }
+pipe: "Pipe" { class: component }
+
+requested -> validate
+validate -> symlinks
+symlinks -> permission
+permission -> mount
+mount -> strip
+strip -> kind
+kind -> file_system: "File or directory"
+kind -> character: "Character device"
+kind -> block: "Block device"
+kind -> pipe: "Pipe"
 ```
+
+</div>
 
 When an application opens a path through <Api path="virtual_file_system::File" /> or <Api path="virtual_file_system::Directory" />:
 
@@ -57,14 +74,26 @@ When an application opens a path through <Api path="virtual_file_system::File" /
 
 The following diagram shows the control command execution flow from caller to concrete driver.
 
-```mermaid
-flowchart LR
-    Caller["Caller: File::control(COMMAND, argument)"] --> VFSFile["SynchronousFile::control"]
-    VFSFile --> DirCheck["Validate AccessFlags::Write if command writes"]
-    DirCheck --> BaseOps["item.as_base_operations().control_sync"]
-    BaseOps --> Driver["Device driver implementation"]
-    Driver --> Result["Type-checked output payload returned"]
+<div className="diagram">
+
+```d2 title="Control command execution from the caller to the device driver"
+direction: down
+
+caller: "Caller\nFile::control(command, argument)" { class: io }
+control: "SynchronousFile::control" { class: component }
+write_check: "Check AccessFlags::Write\nif the command writes" { class: decision }
+base_ops: "BaseOperations::control_sync" { class: component }
+driver: "Device driver implementation" { class: hardware }
+result: "Type-checked output payload" { class: io }
+
+caller -> control
+control -> write_check
+write_check -> base_ops
+base_ops -> driver
+driver -> result { class: optional }
 ```
+
+</div>
 
 In addition to sequential byte reads and writes, devices support typed control commands:
 

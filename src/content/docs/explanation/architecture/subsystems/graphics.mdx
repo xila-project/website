@@ -20,15 +20,28 @@ Embedded graphical user interfaces need efficient drawing primitives without cou
 
 The following diagram shows how the graphics manager coordinates platform devices, the LVGL engine, and application windows.
 
-```mermaid
-flowchart LR
-    Dev["Screen and input devices<br/>(DirectCharacterDevice)"] --> GM["graphics::Manager"]
-    GM --> Lock["Mutex&lt;()&gt; (global LVGL lock)"]
-    Lock --> LVGL["LVGL 9.6.0 runtime"]
-    LVGL --> Loop["graphics_manager.r#loop"]
-    Apps["Executables"] --> Win["OwnedWindow / Window"]
-    Win --> LVGL
+<div className="diagram">
+
+```d2 title="Graphics manager coordinating devices, LVGL and application windows"
+direction: down
+
+devices: "Screen and input devices\n(DirectCharacterDevice)" { class: hardware }
+manager: "graphics::Manager" { class: focus }
+lock: "Mutex<()>\n(global LVGL lock)" { class: component }
+lvgl: "LVGL 9.6.0 runtime" { class: component }
+loop: "graphics_manager.r#loop" { class: component }
+executables: "Executables" { class: component }
+window: "OwnedWindow / Window" { class: component }
+
+devices -> manager
+manager -> lock
+lock -> lvgl
+lvgl -> loop
+executables -> window
+window -> lvgl
 ```
+
+</div>
 
 The <Api path="graphics::Manager" /> struct keeps display descriptors and registered input devices in an internal read-write lock. LVGL is written in C and keeps process-global state. A central mutex (`global_lock`) therefore guards every interaction with LVGL.
 

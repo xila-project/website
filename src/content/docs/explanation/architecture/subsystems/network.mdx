@@ -22,14 +22,26 @@ Network interfaces appear as device files in the VFS. Applications configure add
 
 The following diagram shows the relationship between hardware drivers, smoltcp stacks, interface runners, and application sockets.
 
-```mermaid
-flowchart TD
-    Driver["Network driver<br/>(TUN/TAP, Wi-Fi, Loopback)"] --> Runner["StackRunner task"]
-    Runner --> Stack["smoltcp Interface & SocketSet"]
-    Stack --> NetDev["NetworkDevice node<br/>(/devices/network/&lt;name&gt;)"]
-    NetDev --> Sockets["Sockets & DNS<br/>(TcpSocket, UdpSocket, resolve)"]
-    Apps["Executables"] --> Sockets
+<div className="diagram">
+
+```d2 title="Network stack from the driver to application sockets"
+direction: down
+
+driver: "Network driver\n(TUN/TAP, Wi-Fi, loopback)" { class: hardware }
+runner: "StackRunner task" { class: component }
+stack: "smoltcp Interface and SocketSet" { class: component }
+device: "/devices/network/<name>\n(NetworkDevice node)" { class: component }
+sockets: "Sockets and DNS\n(TcpSocket, UdpSocket, resolve)" { class: component }
+executables: "Executables" { class: component }
+
+driver -> runner
+runner -> stack
+stack -> device
+device -> sockets
+executables -> sockets
 ```
+
+</div>
 
 Networking is managed through the <Api path="network::Manager" /> struct. Calling `mount_interface` registers a network driver fulfilling smoltcp's `Device` trait:
 

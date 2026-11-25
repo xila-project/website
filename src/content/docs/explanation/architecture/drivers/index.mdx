@@ -11,13 +11,24 @@ Drivers connect Xila services to devices. Core and Platforms provide driver crat
 
 The following diagram shows the relationship between a runtime, the virtual file system (VFS), and devices.
 
-```mermaid
-flowchart LR
-  Runtime["Runtime setup"] --> VFS["VFS"]
-  VFS --> Character["Character device"]
-  VFS --> Block["Block device"]
-  Block --> Storage["Storage"]
+<div className="diagram">
+
+```d2 title="Runtime setup mounting devices in the virtual file system"
+direction: down
+
+runtime: "Runtime setup" { class: component }
+vfs: "Virtual file system (VFS)" { class: stored }
+character: "Character device" { class: component }
+block: "Block device" { class: component }
+storage: "Storage" { class: hardware }
+
+runtime -> vfs: "mounts devices"
+vfs -> character
+vfs -> block
+block -> storage
 ```
+
+</div>
 
 Runtime setup mounts devices in the VFS. Character devices provide byte-oriented access. Block devices support storage. The native and browser examples mount LittleFS on block storage and register character devices at boot. Both examples mount the Wasm, graphical shell, command-line shell, settings, file manager, terminal, and activity executables under `/applications/executables/`. The native example also mounts the package and, on Unix, debug executables. See [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/).
 

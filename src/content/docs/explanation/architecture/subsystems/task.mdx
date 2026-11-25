@@ -20,16 +20,30 @@ An embedded operating system needs more than a raw future executor: it must trac
 
 The following diagram shows how the task manager coordinates Embassy executors and logical task metadata.
 
-```mermaid
-flowchart TD
-    Caller["Caller (spawn)"] --> Mgr["task::Manager"]
-    Mgr --> Meta["Task metadata<br/>(TaskIdentifier, User, Env, Signals)"]
-    Mgr --> LB["select_best_spawner<br/>(load balancing across spawners)"]
-    LB --> Spawner["embassy_executor::Spawner"]
-    Spawner --> Pool["embassy_executor::raw::TaskPool"]
-    Pool --> Waker["task_from_waker(context.waker())<br/>(maps internal pointer to TaskIdentifier)"]
-    Waker --> Context["get_current_task_identifier()"]
+<div className="diagram">
+
+```d2 title="Task spawn flow from the caller to the task identity"
+direction: down
+
+caller: "Caller (spawn)" { class: io }
+manager: "task::Manager" { class: focus }
+metadata: "Task metadata\n(TaskIdentifier, user, environment, signals)" { class: stored }
+select: "select_best_spawner\n(load balancing)" { class: decision }
+spawner: "embassy_executor::Spawner" { class: component }
+pool: "embassy_executor::raw::TaskPool" { class: component }
+waker: "task_from_waker(context.waker())" { class: component }
+context: "get_current_task_identifier()" { class: io }
+
+caller -> manager
+manager -> metadata
+manager -> select
+select -> spawner
+spawner -> pool
+pool -> waker
+waker -> context
 ```
+
+</div>
 
 The <Api path="task::Manager" /> maintains registered tasks and active spawners inside an internal read-write lock:
 

@@ -16,14 +16,35 @@ The board runs without a host operating system. Its example combines the Nordic 
 
 The following diagram shows how the example connects drivers to its virtual file system (VFS).
 
-```mermaid
-flowchart LR
-  Flash["Internal flash"] --> Root["LittleFS root"]
-  USB["USB console"] --> IO["/devices/standard_io"]
-  GPIO["GPIO"] --> Pins["/devices/gpio"]
-  RNG["Random"] --> Random["/devices/random/source"]
-  Clock["Time"] --> Time["/devices/time/clock"]
+<div className="diagram">
+
+```d2 title="Nordic drivers and their mount points in the virtual file system"
+direction: right
+
+internal_flash: "Internal flash" { class: hardware }
+usb_console: "USB console" { class: hardware }
+gpio: "GPIO" { class: hardware }
+random: "Random" { class: hardware }
+clock: "Time" { class: hardware }
+
+root: "LittleFS root" { class: stored }
+
+devices: "Mounted in the VFS" {
+  class: layer
+  standard_io: "/devices/standard_io" { class: component }
+  gpio_pins: "/devices/gpio" { class: component }
+  random_source: "/devices/random/source" { class: component }
+  time_clock: "/devices/time/clock" { class: component }
+}
+
+internal_flash -> root: "backs"
+usb_console -> devices.standard_io
+gpio -> devices.gpio_pins
+random -> devices.random_source
+clock -> devices.time_clock
 ```
+
+</div>
 
 The flash block device backs LittleFS at the root. USB standard input passes through the shared terminal input device. Output and error use USB output. GPIO, random, and time devices are mounted separately.
 
