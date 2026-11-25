@@ -49,10 +49,11 @@ The following diagram shows the animation state transitions from startup initial
 <div className="diagram">
 
 ```d2 title="Bootsplash animation state transitions"
-direction: right
+direction: down
 
 boot: Boot { class: io }
 intro: Intro { class: layer
+  direction: right
   square: Square fades in, 240 ms { class: component }
   arms: Arms slide in, staggered { class: component }
   square -> arms
@@ -62,9 +63,9 @@ ripple: Ripple { class: component }
 stopped: Stopped { class: io }
 
 boot -> intro.square: Bootsplash::new
-intro.arms -> first_cycle: intro completed, 900 ms
+intro.arms -> first_cycle: intro completed (900 ms)
 first_cycle -> ripple: first cycle completed
-ripple -> ripple: arm pulse, 1600 ms period
+ripple -> ripple: arm pulse (1600 ms period)
 ripple -> stopped: Bootsplash::stop
 ```
 

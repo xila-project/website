@@ -78,16 +78,16 @@ The following diagram shows a typical request and response exchange between an a
 shape: sequence_diagram
 
 client: Test runner or CLI
-device: Window screen device
+device: Screen device
 protocol: debug_protocol
 ui: Graphics (LVGL)
 
-client -> device: JSON request (op: click, name: Login)
+client -> device: JSON request (op, name)
 device -> protocol: validate_request(request)
 protocol --> device: Ok(())
 device -> ui: hit_test_and_click(Login)
 ui --> device: click executed
-device --> client: JSON response (status: ok)
+device --> client: JSON response (ok)
 ```
 
 </div>

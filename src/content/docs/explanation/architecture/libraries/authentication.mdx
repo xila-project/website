@@ -84,20 +84,20 @@ The following diagram shows the sequence of operations during user authenticatio
 shape: sequence_diagram
 
 client: Client
-auth: authentication::authenticate_user
+auth: authenticate_user
 vfs: Virtual file system
-hasher: /devices/compute/hasher
+hasher: Hasher device
 
-client -> auth: authenticate_user(context, administrator, password)
-auth -> vfs: File::open("/system/accounts/users/administrator")
+client -> auth: authenticate_user(username, password)
+auth -> vfs: File::open(user record)
 vfs --> auth: user JSON (salt, hash)
-auth -> vfs: File::open("/devices/compute/hasher")
+auth -> vfs: File::open(hasher device)
 auth -> hasher: control(SET_ALGORITHM, Sha512)
 auth -> hasher: write(password)
 auth -> hasher: write(salt)
 auth -> hasher: read(hash_buffer)
 hasher --> auth: computed digest
-auth -> auth: compare computed digest with stored hash
+auth -> auth: compare digest with stored hash
 auth --> client: Ok(UserIdentifier)
 ```
 
