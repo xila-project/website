@@ -31,6 +31,33 @@ This guide shows how to submit a released package to the registry.
 
 4. Open a pull request adding the entry and, if needed, the developer key. Published version entries cannot be modified or deleted. Submit a new version instead. The `tools/check_immutable.sh` check enforces this.
 
+The following diagram shows the current submission path, from the release URL to the published registry entry.
+
+<div className="diagram">
+
+```d2 title="From a released package to a published registry entry"
+direction: down
+
+release: "Released .xpk at an HTTPS URL" { class: io }
+form: "Submit a package issue form" { class: component }
+workflow: "Submission workflow" { class: component }
+pull_request: "Pull request: entry, and developer key if new" { class: component }
+publish: "xila-package registry sign" { class: component }
+registry: "Published registry at registry.xila.dev" { class: stored }
+repository_key: "Repository key" { class: key }
+
+release -> form: "URL, SHA-256, publisher"
+form -> workflow: "issue text"
+workflow -> pull_request: "downloads, verifies, generates the entry"
+pull_request -> publish: "validate.sh, then merge (automatic or after review)"
+publish -> registry: deploys
+repository_key -> publish: signs { class: trust }
+```
+
+</div>
+
+You usually submit through the **Submit a package** issue form of the registry repository; the steps above describe the same submission done by hand. The submission workflow downloads the archive (HTTPS only), verifies its signature, generates the entry with `xila-package registry entry`, runs `tools/validate.sh`, and opens the pull request. The pull request runs the same validation, including the immutability check. The workflow merges the pull request automatically only when the developer key already exists and the submission adds no key and no namespace file, the namespace and kind grants of the key cover the package, the version is new, validation passes, and the archive is a GitHub release asset of the repository that the signed package names in `metadata.source`; every other submission waits for a maintainer review. After the merge, the publish workflow signs every entry, developer key, namespace file and the index with the repository key (the thick arrow) and deploys the signed site to registry.xila.dev.
+
 ## Verify the result
 
 Validation checks entry placement, publisher authorization and downloaded package signatures, hashes and metadata. The pull request runs registry validation as well.
