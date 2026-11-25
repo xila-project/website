@@ -35,6 +35,37 @@ This guide shows how to create a signed package with the desktop `xila-package` 
    xila-package bundle archive ./Weather.app ./Weather.xpk
    ```
 
+The following diagram shows the artifacts of the four `bundle` commands and where the signing key is used.
+
+<div className="diagram">
+
+```d2 title="Artifacts of the xila-package bundle commands"
+direction: down
+
+seed: "Developer seed (Ed25519)" { class: key }
+public_key: "Developer public key" { class: key }
+init: "bundle init" { class: component }
+source: "Source folder (xila-package.json)" { class: stored }
+build: "bundle build" { class: component }
+bundle: "Signed bundle (.app)" { class: record }
+verify: "bundle verify" { class: component }
+archive: "bundle archive" { class: component }
+package: "Package (.xpk)" { class: io }
+
+init -> source
+source -> build
+seed -> build: signs { class: trust }
+build -> bundle
+bundle -> verify
+public_key -> verify
+bundle -> archive
+archive -> package
+```
+
+</div>
+
+`bundle init` creates the source folder with the editable `xila-package.json`. `bundle build` hashes every payload file and, with `--signing-key`, signs the manifest: the thick arrow shows the developer seed signing the bundle. `bundle verify` checks the payload hashes and the signature against the trusted public key. `bundle archive` packs the validated bundle into the deterministic `.xpk` package.
+
 ## Verify the result
 
 The commands succeed and `Weather.xpk` exists. Verification with the trusted public key checks the signed manifest and inventory.

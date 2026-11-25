@@ -58,6 +58,36 @@ When a command line does not match an internal built-in, the shell resolves an e
 2. **Path contains no `/`**: the shell reads the colon-separated directory list in the `Paths` environment variable (for example, `/applications/executables`). It scans each directory in order and executes the first matching executable file.
 3. **Execution dispatch**: the shell passes the resolved path to <Api path="executable::execute" />. The function verifies permissions and spawns the target task. If no command matches, the command fails with exit status 127.
 
+The following diagram shows this resolution order for an external command.
+
+<div className="diagram">
+
+```d2 title="Resolution of a command line in the command-line shell"
+direction: down
+
+line: "Command line" { class: io }
+builtin: "Built-in command?" { class: decision }
+run_builtin: "Run the built-in" { class: component }
+slash: "Contains /?" { class: decision }
+direct: "Execute the path" { class: component }
+search: "Scan Paths in order" { class: component }
+execute: "executable::execute" { class: component }
+missing: "Exit status 127" { class: io }
+
+line -> builtin
+builtin -> run_builtin: yes
+builtin -> slash: no
+slash -> direct: yes
+slash -> search: no
+direct -> execute
+search -> execute: first match
+search -> missing: no match
+```
+
+</div>
+
+The shell first checks its built-in lookup table. A command that contains a forward slash is a path: absolute paths run directly, and relative paths are joined with the `Current_directory` environment variable. A command without a slash is looked up in the colon-separated directories of the `Paths` environment variable; the first match wins and is passed to `executable::execute`. When nothing matches, the command fails with exit status 127.
+
 ## Built-in commands
 
 The command-line shell provides the following built-in commands:

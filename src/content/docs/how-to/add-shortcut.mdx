@@ -54,6 +54,27 @@ This guide shows how to add a `shortcut.json` launcher descriptor to an applicat
    ```
 2. Copy or mount the bundle directory into `/applications/bundles/` in Xila's virtual file system (VFS).
 
+The following diagram shows the launch path from the descriptor to the running guest.
+
+<div className="diagram">
+
+```d2 title="Launch path of a bundle shortcut"
+direction: down
+
+descriptor: "shortcut.json in the bundle" { class: stored }
+shell: "Graphical shell" { class: component }
+runner: "/applications/executables/wasm" { class: component }
+guest: "Running guest (calculator.wasm)" { class: component }
+
+descriptor -> shell: "read when the drawer opens"
+shell -> runner: "expands @bundle/, launches"
+runner -> guest: loads
+```
+
+</div>
+
+When the application drawer opens, the graphical shell scans `/applications/bundles/` and reads each bundle's `shortcut.json`. When you select the icon, the shell expands the `@bundle/` prefix in `command` and `arguments` against the bundle directory (rejecting `..`, empty segments and backslashes) and calls `executable::execute` with the resolved command `/applications/executables/wasm`. The Wasm runner loads the guest binary and starts it.
+
 ## Verify the result
 
 1. In Xila, open the graphical shell's application drawer.
