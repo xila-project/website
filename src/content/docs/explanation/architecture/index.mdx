@@ -29,20 +29,25 @@ Dependencies follow a strict unidirectional hierarchy:
 
 The following diagram shows the dependency relationships among Xila repositories. Each arrow points from a repository to a repository it depends on; `registry` holds no code and has no arrow.
 
-```mermaid
-flowchart TD
-    Core["Core<br/>(subsystems and libraries)"]
-    PM["package_manager<br/>(leaf packaging logic)"]
-    Apps["Applications<br/>(executables, guest API)"]
-    Plat["Platforms<br/>(drivers, target assembly)"]
-    Reg["registry<br/>(metadata catalog)"]
+<div className="diagram">
 
-    Apps --> Core
-    Apps --> PM
-    Plat --> Core
-    Plat --> PM
-    Plat --> Apps
+```d2 title="Dependency layering of the Xila repositories"
+direction: down
+
+platforms: "Platforms\n(drivers, target assembly)" { class: focus }
+applications: "Applications\n(executables, guest API)" { class: component }
+core: "Core\n(subsystems and libraries)" { class: component }
+package_manager: "package_manager\n(leaf packaging logic)" { class: component }
+registry: "registry\n(signed metadata catalogue)" { class: stored }
+
+platforms -> applications
+platforms -> core
+platforms -> package_manager
+applications -> core
+applications -> package_manager
 ```
+
+</div>
 
 Each repository owns a distinct responsibility in the ecosystem:
 
@@ -56,21 +61,26 @@ Each repository owns a distinct responsibility in the ecosystem:
 
 The following diagram illustrates how crates are layered from hardware drivers up to user-facing executables.
 
-```mermaid
-flowchart TD
-    Exec["Executables<br/>(shells, tools, Wasm runner)"]
-    Subsys["Subsystems<br/>(VFS, task, graphics, network)"]
-    Libs["Libraries<br/>(file_system, authentication, synchronization)"]
-    Dev["Devices<br/>(device traits, control commands)"]
-    Drivers["Drivers<br/>(screen, console, storage, Wi-Fi)"]
+<div className="diagram">
 
-    Exec --> Subsys
-    Subsys --> Libs
-    Subsys --> Dev
-    Dev --> Libs
-    Drivers --> Dev
-    Drivers --> Libs
+```d2 title="Crate layering from executables down to drivers"
+direction: down
+
+executables: "Executables\n(shells, tools, Wasm runner)" { class: component }
+subsystems: "Subsystems\n(virtual file system, task, graphics, network)" { class: component }
+libraries: "Libraries\n(file system, authentication, synchronization)" { class: component }
+devices: "Devices\n(device traits, control commands)" { class: component }
+drivers: "Drivers\n(screen, console, storage, Wi-Fi)" { class: hardware }
+
+executables -> subsystems
+subsystems -> libraries
+subsystems -> devices
+devices -> libraries
+drivers -> devices
+drivers -> libraries
 ```
+
+</div>
 
 Crates belong to one of five architectural roles:
 
