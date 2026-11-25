@@ -23,7 +23,7 @@ This guide shows how to run the Xila shell or a WebAssembly (Wasm) guest in a he
    docker volume create xila-state
    ```
 
-The named volume persists `/var/lib/xila/drive.img` between container runs. On its first start, Xila imports the image's reference filesystem. Subsequent starts reuse the existing data and credentials. The image runs as non-root UID/GID **10001**.
+The named volume persists `/var/lib/xila/drive.img` between container runs. On its first start, Xila imports the image's reference filesystem. The [seed-to-live-disk diagram](/tutorials/native/#create-a-reference-disk-image) in the native tutorial shows this first-start import. Subsequent starts reuse the existing data and credentials. The image runs as non-root UID/GID **10001**.
 
 ### Launch the interactive Xila shell
 

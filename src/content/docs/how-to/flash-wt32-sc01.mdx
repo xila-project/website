@@ -84,7 +84,7 @@ Do not use `/dev/ttyACM0` or `/dev/ttyUSB0`. The `ttyACM` number of the Plus can
 
 ### Seed the storage
 
-A seeded storage image carries the application shortcuts of the graphical shell, the official package registry and the first-installation marker. Without it, the board formats its storage at the first boot and the application menu is empty.
+A seeded storage image carries the application shortcuts of the graphical shell, the official package registry and the first-installation marker. Without it, the board formats its storage at the first boot and the application menu is empty. The [seed image diagram](/tutorials/native/#create-a-reference-disk-image) in the native tutorial shows how the native seed image is built from the pinned, released packages.
 
 :::caution
 Writing a storage image replaces the whole `storage` partition. The accounts, the installed applications and all stored files are lost.
