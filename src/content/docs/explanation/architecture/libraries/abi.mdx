@@ -38,6 +38,31 @@ note, copies the loadable segments, applies relative relocations, and calls the
 image's `_xila_start` entry point. The image must be self-contained. The loader
 rejects dynamic library dependencies.
 
+The following diagram shows the load path of a native executable.
+
+<div className="diagram">
+
+```d2 title="Load path of a native executable"
+direction: down
+image: "Native executable (static PIE)" { class: io }
+validate: "Validate ELF image and XILA note" { class: component }
+compatible: "Version compatible?" { class: decision }
+refused: "Refused" { class: io }
+load: "Copy segments, apply relocations" { class: component }
+start: "_xila_start (checks sizes and version)" { class: component }
+main: "xila_main" { class: component }
+image -> validate
+validate -> compatible
+compatible -> refused: no
+compatible -> load: yes
+load -> start
+start -> main
+```
+
+</div>
+
+The loader parses the ELF image and checks its `XILA` note against the running Xila version; an incompatible image is refused. It then copies the loadable segments into executable memory and applies the relative relocations. The image's `_xila_start` entry point checks the startup size, the table size, and the table version before it calls the application's `xila_main`.
+
 Core rejects raw ELF files by default. A platform can opt into running them from a trusted filesystem. To opt in, the platform enables the `xila` `native-dev` feature and registers the native format in `ExecutableContext.formats`.
 
 ## Design choices and trade-offs

@@ -16,7 +16,28 @@ The executable connects repository metadata and package verification to VFS stor
 
 Repository installation verifies signed metadata with the configured root key. It then checks the developer key, the package signature, and the payload hashes. Installation also checks that the package targets `wasm32-wasip1` and that its `xila_version` is compatible with the running Xila. A local archive goes through the registry entry that pins it: the installer looks up the archive's name and version in the configured repositories, and that entry must match the archive's SHA-256 and size. The `--public-key` option verifies a local archive with a given key instead, for offline sideloading. The `--allow-untrusted` option skips publisher authentication for a local package but keeps the integrity checks.
 
-The installer reads 512-byte TAR blocks and writes them to a quarantine directory. After verification, it moves the bundle to `/applications/bundles/<identifier>/`. The commands `install`, `upgrade`, `remove`, `recover`, `list`, `info`, and `search` manage packages. The `repository` commands add, list, and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
+The following diagram shows the install path of a package archive on the device.
+
+<div className="diagram">
+
+```d2 title="Install path of a package archive on the device"
+direction: down
+archive: "Package (.xpk)" { class: io }
+staging: "Private staging directory" { class: component }
+verify: "Verify signature, hashes, target, version" { class: component }
+entry: "Match registry entry" { class: component }
+journal: "Journaled activation" { class: component }
+bundle: "/applications/bundles/<identifier>" { class: stored }
+archive -> staging: "512-byte blocks"
+staging -> verify
+verify -> entry
+entry -> journal
+journal -> bundle
+```
+
+</div>
+
+The installer reads the archive in 512-byte TAR blocks and writes them to a staging directory (mode 0700) inside `/applications/bundles/`. Verification checks the signature, the payload hashes, the target, and the Xila version. A repository install also matches the archive against its registry entry; that step does not apply with `--public-key` or `--allow-untrusted`. A journaled activation then moves the bundle to `/applications/bundles/<identifier>/`. The commands `install`, `upgrade`, `remove`, `recover`, `list`, `info`, and `search` manage packages. The `repository` commands add, list, and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
 
 ## Design choices and trade-offs
 
