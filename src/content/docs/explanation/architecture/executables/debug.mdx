@@ -26,15 +26,27 @@ Debug provides:
 
 The following diagram shows how the Debug executable interacts with the transport character device and the core subsystems.
 
-```mermaid
-flowchart LR
-    Client["Host test runner or xila-debug"] <-->|"Read/Write JSON + payloads"| Device["/devices/graphics/debug/transport"]
-    Device <-->|"Asynchronous stream"| TransportTask["Debug agent transport task"]
+<div className="diagram">
 
-    TransportTask -->|"Inspect tasks"| TaskMgr["Task subsystem"]
-    TransportTask -->|"Inspect heap"| MemMgr["Memory subsystem"]
-    TransportTask -->|"Capture & inject"| GraphicsMgr["Graphics subsystem & LVGL"]
+```d2 title="Debug executable transport and access to the core subsystems"
+client: Host test runner or xila-debug { class: io }
+device: "/devices/graphics/debug/transport" { class: component }
+transport: Debug agent transport task { class: component }
+core: Core subsystems {
+  class: layer
+  task: Task subsystem { class: component }
+  memory: Memory subsystem { class: component }
+  graphics: Graphics subsystem and LVGL { class: component }
+}
+
+client <-> device: Read and write JSON and payloads
+device <-> transport: Asynchronous stream
+transport -> core.task: Inspect tasks
+transport -> core.memory: Inspect heap
+transport -> core.graphics: Capture and inject
 ```
+
+</div>
 
 When Debug launches:
 

@@ -26,19 +26,25 @@ The graphics bindings solve this problem without exposing raw pointers or compro
 
 The following diagram shows the sequence of a graphics call from guest code through host dispatch to the graphics manager.
 
-```mermaid
-sequenceDiagram
-    participant Guest as Guest application
-    participant Adapter as Wasmi graphics adapter
-    participant Dispatch as Checked dispatch and marshalling
-    participant Graphics as Graphics manager and LVGL
-    Guest->>Adapter: xila_graphics_call(function_id, arguments...)
-    Adapter->>Dispatch: Borrow guest memory and graphics state
-    Dispatch->>Dispatch: Validate signature, arguments, memory, and handles
-    Dispatch->>Graphics: Invoke LVGL API under graphics lock
-    Graphics-->>Dispatch: Native result
-    Dispatch-->>Guest: Write output data and return status code
+<div className="diagram">
+
+```d2 title="Sequence of a graphics call from the guest application to LVGL"
+shape: sequence_diagram
+
+guest: Guest application { class: component }
+adapter: Wasmi graphics adapter { class: component }
+dispatch: Checked dispatch and marshalling { class: component }
+graphics: Graphics manager and LVGL { class: component }
+
+guest -> adapter: "xila_graphics_call(function_id, arguments)"
+adapter -> dispatch: Borrow guest memory and graphics state
+dispatch -> dispatch: Validate signature, arguments, memory, and handles
+dispatch -> graphics: Invoke LVGL API under graphics lock
+graphics -> dispatch: Native result { class: optional }
+dispatch -> guest: Write output data and return status code { class: optional }
 ```
+
+</div>
 
 When a guest application calls a graphics function such as <Api api="guest" path="wasm::button_create" />, the safe wrapper places up to seven machine-word arguments into registers. It then calls the host import `xila_graphics_call`. The Wasmi adapter (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/wasmi.rs" />) checks that the calling task has graphics capabilities. It also borrows the guest linear memory.
 

@@ -19,10 +19,22 @@ The keypad offers basic and scientific layouts. The expression engine uses `nano
 
 The following diagram shows the launch path.
 
-```mermaid
-flowchart LR
-    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Calculator"] --> API["Guest API"]
+<div className="diagram">
+
+```d2 title="Launch path of the Calculator guest application"
+direction: right
+
+shortcut: Shortcut file { class: stored }
+runner: Wasm runner { class: component }
+calculator: Calculator { class: component }
+api: Guest API { class: component }
+
+shortcut -> runner: Launches
+runner -> calculator: Starts
+calculator -> api: Uses
 ```
+
+</div>
 
 The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
