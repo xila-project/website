@@ -35,7 +35,7 @@ core: Core subsystems {
   memory: "memory::global_manager" { class: component }
   time: "time::uptime" { class: component }
 }
-model: Activity model { class: focus }
+model: Activity model { class: component }
 view: LVGL dashboard view { class: component }
 
 core.task -> model: Task count

@@ -30,7 +30,7 @@ The following diagram shows how the Debug executable interacts with the transpor
 
 ```d2 title="Debug executable transport and access to the core subsystems"
 client: Host test runner or xila-debug { class: io }
-device: "/devices/graphics/debug/transport" { class: hardware }
+device: "/devices/graphics/debug/transport" { class: component }
 transport: Debug agent transport task { class: component }
 core: Core subsystems {
   class: layer

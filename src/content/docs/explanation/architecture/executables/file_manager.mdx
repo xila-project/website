@@ -29,25 +29,30 @@ The following diagram shows the components of the File manager window.
 <div className="diagram">
 
 ```d2 title="Components of the File manager window"
+direction: down
 window: "FileManager window (OwnedWindow)" { class: focus }
-toolbar: Navigation toolbar {
+parts: Window contents {
   class: layer
-  up: Up button { class: component }
-  home: Home button { class: component }
-  refresh: Refresh button { class: component }
-  path: Path input { class: component }
-  go: Go button { class: component }
-}
-status: Status line label { class: component }
-list: Scrollable file list {
-  class: layer
-  dirs: Directory entries { class: component }
-  files: File entries { class: component }
+  grid-columns: 1
+  toolbar: Navigation toolbar {
+    class: layer
+    grid-rows: 1
+    up: Up button { class: component }
+    home: Home button { class: component }
+    refresh: Refresh button { class: component }
+    path: Path input { class: component }
+    go: Go button { class: component }
+  }
+  status: Status line label { class: component }
+  list: Scrollable file list {
+    class: layer
+    grid-rows: 1
+    dirs: Directory entries { class: component }
+    files: File entries { class: component }
+  }
 }
 
-window -> toolbar
-window -> status
-window -> list
+window -> parts
 ```
 
 </div>
