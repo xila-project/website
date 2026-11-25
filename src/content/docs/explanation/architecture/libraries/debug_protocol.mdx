@@ -72,21 +72,25 @@ Failures return <Api path="debug_protocol::ProtocolError" />. The `code()` metho
 
 The following diagram shows a typical request and response exchange between an automation client and the graphics device:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as "Test runner / CLI"
-    participant Device as "Window screen device"
-    participant Proto as "debug_protocol"
-    participant UI as "Graphics / LVGL"
+<div className="diagram">
 
-    Client->>Device: JSON request (op: "click", name: "Login")
-    Device->>Proto: validate_request(&request)
-    Proto-->>Device: Ok(())
-    Device->>UI: hit_test_and_click("Login")
-    UI-->>Device: click executed
-    Device-->>Client: JSON response (status: "ok")
+```d2 title="Request and response exchange between a client and the graphics device"
+shape: sequence_diagram
+
+client: Test runner or CLI
+device: Screen device
+protocol: debug_protocol
+ui: Graphics (LVGL)
+
+client -> device: JSON request (op, name)
+device -> protocol: validate_request(request)
+protocol -> device: Ok(()) { class: optional }
+device -> ui: hit_test_and_click(Login)
+ui -> device: click executed { class: optional }
+device -> client: JSON response (ok) { class: optional }
 ```
+
+</div>
 
 The client sends a serialized JSON request. The receiving device runs `validate_request` to check bounds and selectors. The device then forwards the command to the graphics subsystem, executes the UI interaction, and sends a JSON response to the client.
 

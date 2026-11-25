@@ -82,13 +82,21 @@ provides disk formatting and partition lookup:
 
 The following diagram shows how storage layers compose from physical media to the virtual file system mount point.
 
-```mermaid
-flowchart TD
-    Physical["Physical block device (FileDriveDevice / DriveDevice)"] --> MBR["MBR partition table (XILA_DISK_SIGNATURE)"]
-    MBR --> Part["PartitionDevice (offset 2048, bounded sector count)"]
-    Part --> LFS["LittleFS (little_fs::FileSystem)"]
-    LFS --> VFS["Virtual file system mount (/)"]
+<div className="diagram">
+
+```d2 title="Block device stack from the physical media to the virtual file system root"
+direction: down
+
+physical: Block device (file or browser) { class: component }
+mbr: MBR partition table (XILA_DISK_SIGNATURE) { class: stored }
+partition: PartitionDevice (from sector 2048) { class: component }
+littlefs: "LittleFS (little_fs::FileSystem)" { class: stored }
+vfs: Virtual file system mount (/) { class: focus }
+
+physical -> mbr -> partition -> littlefs -> vfs
 ```
+
+</div>
 
 When a runtime boots:
 

@@ -46,18 +46,30 @@ The <Api path="bootsplash::Bootsplash" /> struct controls animation creation and
 
 The following diagram shows the animation state transitions from startup initialization to the looping ripple and final stop:
 
-```mermaid
-stateDiagram-v2
-    [*] --> Intro: new
-    state Intro {
-        [*] --> SquareFade: square fades in, 240 ms
-        SquareFade --> ArmsSlide: arms slide in, staggered
-    }
-    Intro --> FirstCycle: intro completed, 900 ms
-    FirstCycle --> Ripple: first cycle completed
-    Ripple --> Ripple: arm pulse, 1600 ms period
-    Ripple --> [*]: stop
+<div className="diagram">
+
+```d2 title="Bootsplash animation state transitions"
+direction: down
+
+boot: Boot { class: component }
+intro: Intro { class: layer
+  direction: right
+  square: Square fades in, 240 ms { class: component }
+  arms: Arms slide in, staggered { class: component }
+  square -> arms
+}
+first_cycle: First cycle { class: component }
+ripple: Ripple { class: component }
+stopped: Stopped { class: component }
+
+boot -> intro: Bootsplash::new
+intro.arms -> first_cycle: intro completed (900 ms)
+first_cycle -> ripple: first cycle completed
+ripple -> ripple: 1600 ms pulse
+ripple -> stopped: Bootsplash::stop
 ```
+
+</div>
 
 `Bootsplash::new` begins the intro phase. The central square fades in, then each arm slides inward in clockwise order. When the intro completes, the animation enters a loop in which each arm pulses outward in turn. When the desktop shell or graphical user interface is ready, `Bootsplash::stop` deletes the active animations and dismisses the bootsplash.
 

@@ -78,26 +78,30 @@ The <Api path="authentication::Context" /> struct bundles references to the virt
 
 The following diagram shows the sequence of operations during user authentication:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client
-    participant Auth as "authentication::authenticate_user"
-    participant VFS as "Virtual file system"
-    participant Hasher as "/devices/compute/hasher"
+<div className="diagram">
 
-    Client->>Auth: authenticate_user(context, "administrator", password)
-    Auth->>VFS: File::open("/system/accounts/users/administrator")
-    VFS-->>Auth: user JSON (salt, hash)
-    Auth->>VFS: File::open("/devices/compute/hasher")
-    Auth->>Hasher: control(SET_ALGORITHM, Sha512)
-    Auth->>Hasher: write(password)
-    Auth->>Hasher: write(salt)
-    Auth->>Hasher: read(hash_buffer)
-    Hasher-->>Auth: computed digest
-    Auth->>Auth: compare computed digest with stored hash
-    Auth-->>Client: Ok(UserIdentifier)
+```d2 title="Sequence of operations during user authentication"
+shape: sequence_diagram
+
+client: Client
+auth: authenticate_user
+vfs: Virtual file system
+hasher: Hasher device
+
+client -> auth: authenticate_user(username, password)
+auth -> vfs: File::open(user record)
+vfs -> auth: user JSON (salt, hash) { class: optional }
+auth -> vfs: File::open(hasher device)
+auth -> hasher: control(SET_ALGORITHM, Sha512)
+auth -> hasher: write(password)
+auth -> hasher: write(salt)
+auth -> hasher: read(hash_buffer)
+hasher -> auth: computed digest { class: optional }
+auth -> auth: compare digest with stored hash
+auth -> client: Ok(UserIdentifier) { class: optional }
 ```
+
+</div>
 
 A client calls `authenticate_user` with a username and password. The library reads the user file from the virtual file system to get the stored salt and hash. It opens `/devices/compute/hasher`, selects SHA-512, writes the password and salt bytes, and reads the digest. If the digest matches the stored hash, the library returns the user identifier.
 

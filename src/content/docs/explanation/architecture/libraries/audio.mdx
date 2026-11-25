@@ -74,15 +74,28 @@ The <Api path="audio::AudioStreamDevice" /> character device mounts the mixer at
 
 The following diagram shows the audio data flow from applications through stream buffers and mixer blocks to platform output sinks:
 
-```mermaid
-flowchart LR
-    App1["App 1 PCM write"] --> Stream1["Stream 1 buffer"]
-    App2["App 2 PCM write"] --> Stream2["Stream 2 buffer"]
-    Stream1 --> Mixer["AudioSystem mixer\n(48 kHz stereo F32)"]
-    Stream2 --> Mixer
-    Mixer --> Sink1["Output sink 1\n(Platform driver)"]
-    Mixer --> Sink2["Output sink 2\n(Headless test sink)"]
+<div className="diagram">
+
+```d2 title="Audio data flow from applications to output sinks"
+direction: down
+
+app1: Application 1 { class: component }
+app2: Application 2 { class: component }
+stream1: Stream 1 buffer { class: component }
+stream2: Stream 2 buffer { class: component }
+mixer: AudioSystem mixer (48 kHz stereo F32) { class: focus }
+platform: Platform sound backend (driver) { class: hardware }
+test: Headless test sink { class: component }
+
+app1 -> stream1: PCM write
+app2 -> stream2: PCM write
+stream1 -> mixer
+stream2 -> mixer
+mixer -> platform: mixed block
+mixer -> test: mixed block
 ```
+
+</div>
 
 Applications write PCM frames into their stream buffers. The `AudioSystem` mixer pulls frames from active streams, mixes them into 48 kHz stereo F32 blocks, and pushes the result to the registered output sinks, such as the platform sound backend or headless test sinks.
 

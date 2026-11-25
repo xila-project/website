@@ -61,28 +61,29 @@ The <Api path="executable::execute" /> function coordinates execution:
 
 The following diagram shows the sequence of steps when launching an executable in Xila:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Caller
-    participant Exec as "executable::execute"
-    participant VFS as "Virtual file system"
-    participant ExecDev as "Executable device"
-    participant TM as "Task manager"
-    participant NewTask as "Spawned task"
+<div className="diagram">
 
-    Caller->>Exec: execute(context, path, inputs, standard, spawner)
-    Exec->>VFS: get_statistics(path)
-    Exec->>Exec: is_execute_allowed(user, statistics)
-    Exec->>VFS: File::open(path, Read)
-    Exec->>ExecDev: file.control(GET_MAIN_FUNCTION)
-    ExecDev-->>Exec: main_function
-    Exec->>TM: spawn(file_name, closure)
-    TM-->>Exec: join_handle
-    Exec-->>Caller: Ok(join_handle)
-    TM->>NewTask: execute closure
-    NewTask->>NewTask: main(context, standard, inputs)
+```d2 title="Sequence of steps when launching an executable"
+shape: sequence_diagram
+
+caller: Caller
+execute: executable::execute
+vfs: VFS
+device: Executable device
+task_manager: Task manager
+
+caller -> execute: execute(...)
+execute -> vfs: get_statistics(path)
+execute -> execute: is_execute_allowed
+execute -> vfs: File::open(path)
+execute -> device: control(GET_MAIN_FUNCTION)
+device -> execute: main_function { class: optional }
+execute -> task_manager: spawn(file_name, closure)
+task_manager -> execute: join_handle { class: optional }
+execute -> caller: Ok(join_handle) { class: optional }
 ```
+
+</div>
 
 The caller passes an execution context, target path, arguments, standard streams, and an optional spawner identifier. The launcher checks the file execute permissions and opens the file in the VFS. It retrieves the entrypoint closure with the `GET_MAIN_FUNCTION` control command. It spawns a new task on the task scheduler and returns the join handle. The spawned task then executes `main`.
 

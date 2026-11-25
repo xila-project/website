@@ -18,24 +18,34 @@ tracks the current stream in memory.
 
 ## How it works
 
-The following diagram shows successful transaction transitions and failure recovery.
+The following diagram shows successful transaction transitions and failure recovery. The transaction starts in the `Idle` state.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Receiving: begin
-    Receiving --> Verified: finish
-    Verified --> PendingBoot: activate
-    Receiving --> Failed: transaction failure
-    Verified --> Failed: transaction failure
-    Idle --> Failed: backend begin failure
-    Failed --> Idle: abort succeeds
-    Receiving --> Idle: abort succeeds
-    Verified --> Idle: abort succeeds
-    PendingBoot --> Idle: abort succeeds
+<div className="diagram">
+
+```d2 title="Firmware update transaction states and failure recovery"
+direction: down
+
+idle: Idle { class: component }
+active: States that abort returns to Idle { class: layer
+  grid-columns: 2
+  grid-gap: 80
+  verified: Verified { class: component }
+  receiving: Receiving { class: component }
+  pending_boot: Pending boot { class: component }
+  failed: Failed { class: component }
+  receiving -> verified: finish
+  verified -> pending_boot: activate
+  receiving -> failed: error
+  verified -> failed: error
+}
+idle -> active.receiving: begin
+idle -> active.failed: begin fails
+active -> idle: abort succeeds
 ```
 
-A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
+</div>
+
+A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. A failed abort puts the transaction in `Failed`. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
 
 The optional device adapter exposes `/devices/system/firmware`. Its control commands manage the transaction. Writes supply image bytes. See <CodeReference path="libraries/firmware_update/src/device.rs" /> for the device contract.
 
