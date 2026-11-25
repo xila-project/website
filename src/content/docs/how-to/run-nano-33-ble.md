@@ -131,19 +131,34 @@ Writing any character other than `0` or `1` (surrounded by optional whitespace) 
 
 The following diagram shows the bootloader entry, crash detection, and recovery paths for the Arduino Nano 33 BLE.
 
-```mermaid
-flowchart TD
-    Reset["Power on or reset"] --> Boot{"Bootloader requested?"}
-    Boot -->|"double-tap or GPREGRET 0xB0"| Bootloader["Arduino bootloader"]
-    Boot -->|No| Firmware["Xila firmware"]
-    Firmware --> Log["Log previous crash message"]
-    Log --> Start["Mount file system and start shell"]
-    Start --> Stable["mark_stable clears crash count"]
-    Firmware -->|panic or fault| Crash["crash stores message"]
-    Crash -->|"count below 3"| Reset
-    Crash -->|"third crash in a row"| Bootloader
-    Touch["Host 1200-baud touch"] --> Bootloader
+<div class="diagram">
+
+```d2 title="Boot, crash and recovery paths of the Arduino Nano 33 BLE"
+direction: down
+
+reset: "Power on or reset" { class: component }
+touch: "Host 1200-baud touch" { class: io }
+boot: "Bootloader requested?" { class: decision }
+bootloader: "Arduino bootloader" { class: component }
+firmware: "Xila firmware" { class: component }
+crash: "Crash record" { class: stored }
+log: "Log previous crash message" { class: component }
+start: "Mount file system and start shell" { class: component }
+stable: "mark_stable clears crash count" { class: component }
+
+reset -> boot
+boot -> bootloader: "double-tap or GPREGRET 0xB0"
+boot -> firmware: No
+firmware -> log
+log -> start
+start -> stable
+firmware -> crash: "panic or fault"
+crash -> reset: "count below 3"
+crash -> bootloader: "third crash in a row"
+touch -> reset: "sets GPREGRET and resets"
 ```
+
+</div>
 
 The recovery mechanisms operate as follows:
 

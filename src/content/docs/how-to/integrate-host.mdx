@@ -24,23 +24,30 @@ This guide shows how to compose a host runtime. It uses the native example as a 
 
 The following diagram shows the order in the native example.
 
-```mermaid
-sequenceDiagram
-    participant Host
-    participant Managers
-    participant Graphics
-    participant Storage
-    participant VFS
-    participant Network
-    Host->>Managers: Initialize log, users, time
-    Host->>Graphics: Initialize if graphical
-    Host->>Storage: Prepare and mount disk
-    Host->>VFS: Initialize
-    Host->>VFS: Mount devices
-    Host->>Network: Initialize manager
-    Host->>VFS: Mount executables
-    Host->>VFS: Open standard streams and execute shell
+<div className="diagram">
+
+```d2 title="Initialization order of the native example"
+shape: sequence_diagram
+
+host: Host { class: focus }
+managers: Managers
+graphics: Graphics
+storage: Storage
+vfs: VFS
+network: Network
+
+host -> managers: "Initialize log, users, time"
+host -> graphics: "Initialize if graphical" { class: optional }
+host -> storage: "Prepare and mount disk"
+host -> vfs: Initialize
+host -> vfs: "Mount devices"
+host -> network: "Initialize manager"
+host -> vfs: "Mount executables"
+host -> vfs: "Open standard streams"
+host -> vfs: "Execute shell"
 ```
+
+</div>
 
 The host initializes the managers first, then optional graphics. It mounts storage and initializes the virtual file system (VFS). It then mounts the devices, initializes the network manager, mounts the executables under `/applications/executables/`, opens the standard streams and executes the shell.
 
