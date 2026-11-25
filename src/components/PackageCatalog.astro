@@ -730,9 +730,14 @@ import { Icon } from "@astrojs/starlight/components";
         loadingState.hidden = true;
         errorState.hidden = false;
         statusText.textContent = "Failed to load registry.";
-        errorMessage.textContent = `Check the network connection, then retry. Details: ${
-          error instanceof Error ? error.message : String(error)
-        }`;
+        const details = error instanceof Error ? error.message : String(error);
+        // Only a failed request is a network problem; a rejected index or
+        // entry is invalid registry data.
+        const isNetworkError =
+          error instanceof TypeError || details.startsWith("Failed to fetch");
+        errorMessage.textContent = isNetworkError
+          ? `Check the network connection, then retry. Details: ${details}`
+          : `The registry returned invalid data. Details: ${details}`;
       }
     };
 

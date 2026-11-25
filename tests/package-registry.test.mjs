@@ -185,6 +185,134 @@ test("rejects entry fields that do not match the registry entry schema", () => {
   );
 });
 
+test("accepts only schema-valid package names", () => {
+  const repeat = (count) => "a".repeat(count);
+
+  // Format 2: at least three components, each at most 63 characters.
+  assert.equal(
+    parseRegistryEntry(makeFormat2Entry({ name: `xila.${repeat(63)}` })).name,
+    `xila.${repeat(63)}`,
+  );
+  // Legacy two-component names stay valid only under the xila namespace, so
+  // format 1 entries keep working.
+  assert.equal(
+    parseRegistryEntry(makeFormat2Entry({ name: "xila.clock" })).name,
+    "xila.clock",
+  );
+
+  for (const name of [
+    "foo.bar",
+    `xila.${repeat(64)}`,
+    `${repeat(63)}.${repeat(63)}`,
+  ]) {
+    assert.throws(
+      () => parseRegistryEntry(makeFormat2Entry({ name })),
+      undefined,
+      name,
+    );
+  }
+});
+
+test("enforces the schema license character set", () => {
+  const withLicense = (license) =>
+    makeFormat2Entry({
+      metadata: {
+        summary: "Clock and timer application.",
+        license,
+        source: "https://github.com/xila-project/applications",
+      },
+    });
+
+  assert.equal(
+    parseRegistryEntry(withLicense("Apache-2.0 OR (MIT)")).metadata.license,
+    "Apache-2.0 OR (MIT)",
+  );
+
+  for (const license of ["MIT!", "MIT; rm -rf /", "MIT\n", "   ", ""]) {
+    assert.throws(
+      () => parseRegistryEntry(withLicense(license)),
+      undefined,
+      JSON.stringify(license),
+    );
+  }
+});
+
+test("enforces the schema length limits on every entry field", () => {
+  const repeat = (count) => "a".repeat(count);
+  const baseMetadata = {
+    summary: "Clock and timer application.",
+    license: "MIT",
+    source: "https://github.com/xila-project/applications",
+  };
+  const url256 = `https://${repeat(248)}`;
+
+  const rejected = [
+    { name: `${repeat(63)}.${repeat(31)}.a` }, // 97 characters, pattern valid
+    { version: repeat(65) },
+    { target: repeat(65) },
+    { publisher: repeat(65) },
+    { capabilities: Array.from({ length: 33 }, () => "time") },
+    { capabilities: [repeat(65)] },
+    { display_name: repeat(129) },
+    { metadata: { ...baseMetadata, summary: repeat(257) } },
+    {
+      archive: {
+        url: `https://${repeat(249)}`,
+        sha256: VALID_SHA256,
+        size: 100,
+      },
+    },
+    { metadata: { ...baseMetadata, homepage: "http://example.com/" } },
+    { metadata: { ...baseMetadata, homepage: "not a URL" } },
+    { metadata: { ...baseMetadata, homepage: `https://${repeat(249)}` } },
+  ];
+  for (const overrides of rejected) {
+    assert.throws(
+      () => parseRegistryEntry(makeFormat2Entry(overrides)),
+      undefined,
+      JSON.stringify(overrides).slice(0, 80),
+    );
+  }
+
+  const accepted = parseRegistryEntry(
+    makeFormat2Entry({
+      name: `${repeat(63)}.${repeat(30)}.a`, // 96 characters
+      version: repeat(64),
+      target: repeat(64),
+      publisher: repeat(64),
+      capabilities: Array.from({ length: 32 }, () => repeat(64)),
+      display_name: repeat(128),
+      metadata: { ...baseMetadata, summary: repeat(256), homepage: url256 },
+      archive: { url: url256, sha256: VALID_SHA256, size: 100 },
+    }),
+  );
+  assert.equal(accepted.name.length, 96);
+  assert.equal(accepted.version.length, 64);
+  assert.equal(accepted.target.length, 64);
+  assert.equal(accepted.publisher.length, 64);
+  assert.equal(accepted.capabilities.length, 32);
+  assert.equal(accepted.displayName.length, 128);
+  assert.equal(accepted.metadata.summary.length, 256);
+  assert.equal(accepted.metadata.homepage.length, 256);
+  assert.equal(accepted.archive.url.length, 256);
+});
+
+test("rejects index versions that cannot be rendered as a date", () => {
+  const indexWithVersion = (version) => ({
+    format_version: 1,
+    version,
+    expires: 20,
+    files: [],
+  });
+
+  assert.throws(() => parseRegistryIndex(indexWithVersion(8_640_000_000_001)));
+  const boundary = parseRegistryIndex(indexWithVersion(8_640_000_000_000));
+  assert.equal(
+    new Date(boundary.version * 1000).toISOString(),
+    "+275760-09-13T00:00:00.000Z",
+  );
+});
+
 test("sorts versions latest first and picks latest version for package cards", () => {
   assert.ok(compareVersions("0.10.0", "0.2.0") > 0);
   assert.ok(compareVersions("1.0.0", "1.0.0-rc.1") > 0);
@@ -196,7 +324,7 @@ test("sorts versions latest first and picks latest version for package cards", (
     parseRegistryEntry(makeFormat2Entry({ version: "0.2.0" })),
     parseRegistryEntry(
       makeFormat2Entry({
-        name: "community.notes",
+        name: "example.community.notes",
         display_name: "Notes",
         publisher: "community",
         target: "native",
@@ -221,7 +349,7 @@ test("filters packages by search query, target, and publisher", () => {
     ),
     parseRegistryEntry(
       makeFormat2Entry({
-        name: "community.synth",
+        name: "example.community.synth",
         display_name: "Synth",
         publisher: "community",
         target: "native",
@@ -405,5 +533,58 @@ test("fails when the registry index cannot be fetched", async () => {
       fetchImpl: fixtureFetch(new Map()),
     }),
     /HTTP 404/,
+  );
+});
+
+test("reports an entry body that is not valid JSON as a parse failure", async () => {
+  const catalog = await fetchRegistryCatalog({
+    baseUrl: "https://registry.example.org",
+    fetchImpl: async (url) => {
+      if (url.endsWith("/index.json")) {
+        return { ok: true, status: 200, json: async () => PARTIAL_INDEX };
+      }
+      if (url.includes("digits")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            throw new SyntaxError(
+              'Unexpected token "<", "<html>..." is not valid JSON',
+            );
+          },
+        };
+      }
+      return { ok: true, status: 200, json: async () => makeFormat2Entry() };
+    },
+  });
+
+  assert.equal(catalog.packages.length, 1);
+  assert.deepEqual(
+    catalog.skippedEntries.map((entry) => entry.entryPath),
+    ["packages/xila/digits/0.2.0.json"],
+  );
+  assert.match(catalog.skippedEntries[0].reason, /Failed to parse the entry/);
+  assert.doesNotMatch(
+    catalog.skippedEntries[0].reason,
+    /Failed to fetch the entry/,
+  );
+});
+
+test("rethrows an aborted entry request instead of skipping the entry", async () => {
+  const controller = new AbortController();
+  controller.abort();
+
+  await assert.rejects(
+    fetchRegistryCatalog({
+      baseUrl: "https://registry.example.org",
+      signal: controller.signal,
+      fetchImpl: async (url) => {
+        if (url.endsWith("/index.json")) {
+          return { ok: true, status: 200, json: async () => PARTIAL_INDEX };
+        }
+        throw new DOMException("The operation was aborted.", "AbortError");
+      },
+    }),
+    (error) => error instanceof DOMException && error.name === "AbortError",
   );
 });

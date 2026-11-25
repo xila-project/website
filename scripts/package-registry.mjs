@@ -3,17 +3,24 @@ export const DEFAULT_FETCH_CONCURRENCY = 6;
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
 // Patterns from package_manager `schemas/registry-entry.schema.json`. The
-// package name pattern accepts the format 1 and format 2 rules. The name and
-// the version go into the install command, so they must not hold spaces or
-// shell characters.
+// package name pattern accepts the format 2 rule (at least three components)
+// and the legacy two-component `xila.<name>` rule, so format 1 entries stay
+// valid. Each name component is limited to 63 characters. The name and the
+// version go into the install command, so they must not hold spaces or shell
+// characters.
 const PACKAGE_NAME_RE =
-  /^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)+$/;
+  /^(?:[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?){2,}|xila\.[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?)$/;
 const PACKAGE_VERSION_RE = /^[A-Za-z0-9.+-]{1,64}$/;
 const TARGET_RE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
 const PUBLISHER_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+// SPDX license expression character set; it also excludes control characters.
+const LICENSE_RE = /^[A-Za-z0-9.+() -]*[A-Za-z0-9.+()-][A-Za-z0-9.+() -]*$/;
 // Control characters are not allowed in catalog summaries.
 const CONTROL_CHARACTER_RE = /[\u0000-\u001f\u007f]/;
 const MAXIMUM_URL_LENGTH = 256;
+// The catalog renders the index version as a Unix timestamp, so it must stay
+// within the range that `Date` can represent (8.64e15 ms).
+const MAXIMUM_INDEX_VERSION = 8_640_000_000_000;
 const PACKAGE_ENTRY_PATH_RE =
   /^packages\/[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+\.json$/;
 const XILA_VERSION_RE =
@@ -57,6 +64,9 @@ export function parseRegistryIndex(raw) {
   }
   if (!Number.isInteger(raw.version) || raw.version < 1) {
     throw new Error("Registry index version must be a positive integer.");
+  }
+  if (raw.version > MAXIMUM_INDEX_VERSION) {
+    throw new Error("Registry index version is too large to render as a date.");
   }
   if (!Number.isInteger(raw.expires) || raw.expires < 2) {
     throw new Error("Registry index expiry must be a valid integer timestamp.");
@@ -185,7 +195,7 @@ export function parseRegistryEntry(raw) {
       CONTROL_CHARACTER_RE.test(raw.metadata.summary) ||
       !isNonEmptyString(raw.metadata.license) ||
       raw.metadata.license.length > 64 ||
-      CONTROL_CHARACTER_RE.test(raw.metadata.license) ||
+      !LICENSE_RE.test(raw.metadata.license) ||
       !isHttpsUrl(raw.metadata.source)
     ) {
       throw new Error(
@@ -456,18 +466,30 @@ export async function fetchRegistryCatalog({
     index.entryPaths,
     concurrency,
     async (entryPath) => {
+      let response;
       try {
-        const response = await fetchImpl(`${root}/${entryPath}`, { signal });
+        response = await fetchImpl(`${root}/${entryPath}`, { signal });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}.`);
         }
-        return { entryPath, payload: await response.json(), error: null };
       } catch (error) {
         if (signal?.aborted) throw error;
         return {
           entryPath,
           payload: null,
           error: `Failed to fetch the entry: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        };
+      }
+      try {
+        return { entryPath, payload: await response.json(), error: null };
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        return {
+          entryPath,
+          payload: null,
+          error: `Failed to parse the entry: ${
             error instanceof Error ? error.message : String(error)
           }`,
         };
