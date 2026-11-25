@@ -60,6 +60,19 @@ function escape(text) {
 const GENERATED_DESCRIPTION = /^API documentation for the Rust `/;
 
 /**
+ * True when an API item is test code: an item under a `tests` module, or an
+ * item whose name starts with `test_`. Rustdoc documents these items because
+ * they are `pub`, but they only add noise to the site search. The API index
+ * keeps them, so `rust:` links to them still resolve.
+ */
+export function isTestItem(itemPath) {
+  const segments = itemPath.split("::");
+  if (segments.some((segment) => segment === "tests")) return true;
+  if (segments.at(-1)?.startsWith("test_")) return true;
+  return false;
+}
+
+/**
  * The search records of the API items, one for each item: the item path as
  * the heading, then the kind, the API and the first line of the item
  * documentation (the description of its rustdoc page).
@@ -74,13 +87,6 @@ const GENERATED_DESCRIPTION = /^API documentation for the Rust `/;
  * type below the items that only mention its name. The rustdoc search of
  * the API pages finds members.
  */
-export function isTestItem(itemPath) {
-  const segments = itemPath.split("::");
-  if (segments.some((segment) => segment === "tests")) return true;
-  if (segments.at(-1)?.startsWith("test_")) return true;
-  return false;
-}
-
 export function apiSearchRecords(index, output) {
   const records = [];
   for (const [architecture, api] of Object.entries(index.apis)) {
