@@ -20,20 +20,32 @@ tracks the current stream in memory.
 
 The following diagram shows successful transaction transitions and failure recovery.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Receiving: begin
-    Receiving --> Verified: finish
-    Verified --> PendingBoot: activate
-    Receiving --> Failed: transaction failure
-    Verified --> Failed: transaction failure
-    Idle --> Failed: backend begin failure
-    Failed --> Idle: abort succeeds
-    Receiving --> Idle: abort succeeds
-    Verified --> Idle: abort succeeds
-    PendingBoot --> Idle: abort succeeds
+<div className="diagram">
+
+```d2 title="Firmware update transaction states and failure recovery"
+direction: down
+
+start: Start { class: io }
+idle: Idle { class: component }
+receiving: Receiving { class: component }
+verified: Verified { class: component }
+pending_boot: Pending boot { class: component }
+failed: Failed { class: component }
+
+start -> idle
+idle -> receiving: begin
+receiving -> verified: finish
+verified -> pending_boot: activate
+receiving -> failed: transaction failure
+verified -> failed: transaction failure
+idle -> failed: backend begin failure
+failed -> idle: abort succeeds
+receiving -> idle: abort succeeds
+verified -> idle: abort succeeds
+pending_boot -> idle: abort succeeds
 ```
+
+</div>
 
 A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
 

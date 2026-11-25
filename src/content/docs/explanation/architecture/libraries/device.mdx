@@ -17,11 +17,22 @@ The crate groups commands by device kind. The kinds include ADC, audio, GPIO, ha
 
 The following diagram shows a control command reaching a driver.
 
-```mermaid
-flowchart LR
-    Caller --> VFS --> Driver
-    Driver --> Result["Typed output"]
+<div className="diagram">
+
+```d2 title="A control command from a caller to a driver"
+direction: right
+
+caller: Caller { class: component }
+vfs: Virtual file system { class: component }
+driver: Driver { class: hardware }
+output: Typed output { class: io }
+
+caller -> vfs: control command
+vfs -> driver
+driver -> output: output or error
 ```
+
+</div>
 
 A caller sends a typed command through the VFS to a driver. The driver interprets its input and returns its output or an error. The command definitions and kind identifiers are in <CodeReference path="devices/src/lib.rs" />.
 
