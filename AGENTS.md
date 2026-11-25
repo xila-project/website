@@ -113,6 +113,8 @@ Link Rust API items with a `rust:` Markdown link or the `Api` component, and sou
 
 The build resolves these links with `public/api/api-index.json`. `npm run docs:rustdoc` writes it with the API pages, and `npm run docs:api-index` downloads the published one.
 
+The build also writes `sitemap-api.xml` from the same index, with one URL for each API item page, and lists it in `sitemap-index.xml` (`scripts/api-sitemap.mjs`). The build fails when the index has more than 50,000 pages, the limit of one sitemap file. Without an index, the build writes no API sitemap. The page `/api/` (`src/content/docs/api.mdx`) is the entry page of the two APIs, and `/api/host/` and `/api/guest/` redirect to the crate roots.
+
 ### Diagrams
 
 Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. In a `.md` page, which has no JSX, write `<div class="diagram">`. Keep a blank line between the `div` tags and the code fence. The site has no Mermaid: every diagram is a D2 block.

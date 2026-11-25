@@ -32,6 +32,9 @@ function decode(value) {
     );
 }
 
+// The entry page of the APIs is a page of the site, not a rustdoc page.
+const API_PAGE = "/api/index.html";
+
 const types = {
   tutorials: "tutorial",
   "how-to": "how-to",
@@ -54,7 +57,7 @@ function resolveTarget(output, current, href) {
   return {
     file: path.join(output, pathname),
     anchor: decodeURIComponent(target.hash.slice(1)),
-    api: pathname.startsWith("/api/"),
+    api: pathname.startsWith("/api/") && pathname !== API_PAGE,
   };
 }
 
@@ -99,7 +102,8 @@ export function validateDocs({
   }
 
   // The rustdoc pages under /api/ are link targets only: rustdoc checks its
-  // own links. Links to them are checked against the API index
+  // own links. The entry page /api/ is a page of the site and is checked as
+  // the other pages. Links to them are checked against the API index
   // (dist/api/api-index.json), which is staged with the pages (deployment and
   // the rustdoc job) or downloaded from the site (pull requests). Without an
   // index, they are checked against the staged pages, or counted as skipped.
@@ -112,8 +116,11 @@ export function validateDocs({
   // Until the documentation links are migrated, a broken API link is an
   // error only in strict mode.
   const apiReport = strictApi ? errors : warnings;
+  const apiEntryPage = path.join(output, ...API_PAGE.split("/").slice(1));
   const rendered = files(output, ".html").filter(
-    (file) => file !== apiOutput && !file.startsWith(apiOutput + path.sep),
+    (file) =>
+      file === apiEntryPage ||
+      (file !== apiOutput && !file.startsWith(apiOutput + path.sep)),
   );
   const documents = new Map(
     rendered.map((file) => {

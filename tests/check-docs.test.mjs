@@ -187,3 +187,37 @@ test("counts rust: and Api links of a build without an index as skipped", (t) =>
   assert.equal(result.skippedApiTargets, 1);
   assert.equal(result.skippedApiLinks, 1);
 });
+
+test("checks the API entry page as a page of the site", (t) => {
+  const { root, source, output } = createSite(t);
+  writeFile(
+    path.join(output, "api", "api-index.json"),
+    JSON.stringify({
+      version: 1,
+      apis: {
+        host: {
+          items: { xila: { url: "/api/host/xila/index.html", kind: "mod" } },
+          aliases: {},
+        },
+      },
+    }),
+  );
+  writeFile(
+    path.join(output, "reference", "index.html"),
+    '<a href="/api/">APIs</a>',
+  );
+  writeFile(
+    path.join(output, "api", "index.html"),
+    '<a href="/api/host/xila/index.html">host</a><a href="/missing/">missing</a>',
+  );
+  writeFile(path.join(output, "api", "host", "xila", "extra.html"), "<p></p>");
+
+  const result = validateDocs({
+    root,
+    source,
+    output,
+    environment: { XILA_STRICT_API_LINKS: "1" },
+  });
+  assert.deepEqual(result.errors, ["api/index.html: missing link /missing/"]);
+  assert.equal(result.apiLinks, 1);
+});
