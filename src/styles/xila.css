@@ -79,8 +79,11 @@ header.header {
   color: var(--foreground);
 }
 
-/* Previous and next links: labelled, with a rule above them. */
-.pagination-links {
+/* Previous and next links: labelled, with a rule above them. ":root:root"
+   outranks the theme's Pagination component, whose attribute-scoped selector
+   ([data-astro-cid-...]) has a higher specificity than a plain class since
+   Starlight 0.43. */
+:root:root .pagination-links {
   align-items: stretch;
   gap: 1rem;
   margin-top: 3rem;
@@ -90,11 +93,11 @@ header.header {
 
 /* Pages without previous and next links (home, overviews) show no rule:
    the footer draws its own. */
-.pagination-links:not(:has(a)) {
+:root:root .pagination-links:not(:has(a)) {
   display: none;
 }
 
-.pagination-links :is(a.prev, a.next) {
+:root:root .pagination-links :is(a.prev, a.next) {
   display: grid;
   max-width: 48%;
   height: auto;
@@ -107,44 +110,44 @@ header.header {
   white-space: normal;
 }
 
-.pagination-links :is(a.prev, a.next):hover {
+:root:root .pagination-links :is(a.prev, a.next):hover {
   background: transparent;
   text-decoration: underline;
 }
 
-.pagination-links a.prev {
+:root:root .pagination-links a.prev {
   grid-template-columns: auto 1fr;
 }
 
-.pagination-links a.next {
+:root:root .pagination-links a.next {
   grid-template-columns: 1fr auto;
   text-align: end;
 }
 
-.pagination-links :is(a.prev, a.next)::before {
+:root:root .pagination-links :is(a.prev, a.next)::before {
   grid-row: 1;
   color: var(--muted-foreground);
   font-size: 0.8125rem;
   font-weight: 400;
 }
 
-.pagination-links a.prev::before {
+:root:root .pagination-links a.prev::before {
   content: "Previous";
   grid-column: 2;
 }
 
-.pagination-links a.next::before {
+:root:root .pagination-links a.next::before {
   content: "Next";
   grid-column: 1;
 }
 
-.pagination-links a.prev > svg {
+:root:root .pagination-links a.prev > svg {
   grid-column: 1;
   grid-row: 1 / span 2;
   align-self: center;
 }
 
-.pagination-links a.next > svg {
+:root:root .pagination-links a.next > svg {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
