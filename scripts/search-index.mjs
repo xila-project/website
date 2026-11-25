@@ -74,10 +74,18 @@ const GENERATED_DESCRIPTION = /^API documentation for the Rust `/;
  * type below the items that only mention its name. The rustdoc search of
  * the API pages finds members.
  */
+export function isTestItem(itemPath) {
+  const segments = itemPath.split("::");
+  if (segments.some((segment) => segment === "tests")) return true;
+  if (segments.at(-1)?.startsWith("test_")) return true;
+  return false;
+}
+
 export function apiSearchRecords(index, output) {
   const records = [];
   for (const [architecture, api] of Object.entries(index.apis)) {
     for (const [itemPath, item] of Object.entries(api.items)) {
+      if (isTestItem(itemPath)) continue;
       const file = path.join(output, item.url);
       let description = fs.existsSync(file)
         ? decode(fs.readFileSync(file, "utf8").match(DESCRIPTION)?.[1] ?? "")

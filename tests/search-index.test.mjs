@@ -7,12 +7,35 @@ import {
   apiSearchRecords,
   buildApiSearchIndex,
   getPagefindOptions,
+  isTestItem,
 } from "../scripts/search-index.mjs";
 import {
   createDirectory,
   writeFile,
   writeRustdocFixture,
 } from "./helpers/rustdoc-fixture.mjs";
+
+test("isTestItem returns true for items in a tests module", () => {
+  assert.equal(isTestItem("file_system::tests::test_long_filenames"), true);
+  assert.equal(
+    isTestItem("file_system::file_system::tests::test_long_filenames"),
+    true,
+  );
+  assert.equal(isTestItem("task::tests::test_spawn"), true);
+});
+
+test("isTestItem returns true for items whose name starts with test_", () => {
+  assert.equal(isTestItem("task::test_helper"), true);
+  assert.equal(isTestItem("host::test_main"), true);
+  assert.equal(isTestItem("file_system::test_helpers"), true);
+});
+
+test("isTestItem returns false for non-test items", () => {
+  assert.equal(isTestItem("task::Manager"), false);
+  assert.equal(isTestItem("file_system::File"), false);
+  assert.equal(isTestItem("testing::Something"), false);
+  assert.equal(isTestItem("attestation"), false);
+});
 
 function fixture(t) {
   const output = createDirectory(t, "xila-search-");
