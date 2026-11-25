@@ -18,7 +18,7 @@ memory: "Memory disk (default)" { class: component }
 closed: "Saved disk, closed" { class: stored }
 open: "Saved disk, open in one tab" { class: stored }
 memory -> open: "Keep my files between visits"
-memory -> closed: "Create disk"
+memory -> closed: "New disk"
 closed -> open: "Use selected disk"
 open -> closed: "Tab closes or switches disk"
 open -> memory: "Switch turned off"
@@ -46,7 +46,7 @@ Removing a disk permanently deletes its OPFS file and all files, configuration, 
 
 1. Open the **Xila Help** sidebar panel located on the left edge of the browser demonstration.
 2. In the disk actions toolbar below **Available disks**, click **New disk**.
-3. When the browser confirmation dialog asks `Save and restart Xila using xila_YYYY-MM-DD.img?`, click **OK**.
+3. When the browser confirmation dialog asks `Restart Xila using xila_YYYY-MM-DD.img?`, click **OK**.
 4. The runtime stops active writes and commits pending changes to the current disk. It releases the Web Lock and reloads on the fresh disk image, initialized from the current seed image (`seed.img`).
 
 ### Switch between saved disks
