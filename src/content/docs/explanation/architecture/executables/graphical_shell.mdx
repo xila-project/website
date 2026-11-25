@@ -51,11 +51,18 @@ The following diagram shows how the graphical shell discovers shortcuts and laun
 
 ```d2 title="Shortcut discovery and application launch in the graphical shell"
 direction: down
+grid-columns: 2
 
 storage: File system storage {
   class: layer
-  static: "/configuration/shared/applications/shortcuts/*.json" { class: stored }
-  bundles: "/applications/bundles/*/shortcut.json" { class: stored }
+  grid-rows: 2
+  static: "/configuration/shared/\napplications/shortcuts/*.json" { class: stored }
+  bundles: "/applications/bundles/*/\nshortcut.json" { class: stored }
+}
+drawer: Application drawer {
+  class: layer
+  icons: Render shortcut icons and labels { class: component }
+  click: User click event { class: io }
 }
 discovery: Graphical shell discovery {
   class: layer
@@ -63,14 +70,9 @@ discovery: Graphical shell discovery {
   parse: Parse JSON descriptor { class: component }
   resolve: "Resolve @bundle/ path references" { class: component }
 }
-drawer: Application drawer {
-  class: layer
-  icons: Render shortcut icons and labels { class: component }
-  click: User click event { class: io }
-}
 execution: Runtime execution {
   class: layer
-  execute: "executable::execute" { class: focus }
+  execute: "executable::execute" { class: component }
   spawn: Spawn native or Wasm task { class: component }
 }
 

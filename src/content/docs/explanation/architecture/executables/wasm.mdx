@@ -25,14 +25,14 @@ The following diagram shows how a guest call reaches a device driver or display 
 <div className="diagram">
 
 ```d2 title="System call pathway from a guest application to a device driver or display hardware"
-direction: right
+direction: down
 
 guest: "Guest (wasm32-wasip1)" {
   class: boundary
   app: Guest application { class: component }
 }
 import: "Host import (WASI or graphics)" { class: component }
-runtime: "Host runtime (xila-wasm)" { class: focus }
+runtime: "Host runtime (xila-wasm)" { class: component }
 subsystem: "VFS or graphics subsystem" { class: component }
 driver: "Device driver or display hardware" { class: hardware }
 

@@ -28,8 +28,8 @@ The following diagram shows the data flow between the graphical user interface, 
 
 <div className="diagram">
 
-```d2 title="Data flow between the terminal window, the character device, the standard streams, and the shell task"
-direction: right
+```d2 title="Data flow between the terminal window, the character device, and the shell task"
+direction: down
 
 gui: Graphical terminal window {
   class: layer
@@ -40,23 +40,22 @@ device: "/devices/terminal_{task}" {
   class: layer
   queue: Validated input queue { class: component }
   waiters: WaitQueue readers { class: component }
-}
-streams: Standard streams {
-  class: layer
-  stdin: "Standard input (stdin)" { class: io }
-  stdout: "Standard output (stdout/stderr)" { class: io }
+  buffer: Display text buffer { class: component }
 }
 shell: Command-line shell task {
   class: layer
+  stdin: "Standard input (stdin)" { class: io }
   executable: Shell executable { class: component }
+  stdout: "Standard output (stdout/stderr)" { class: io }
 }
 
 gui.input -> device.queue: Enter or Send
 device.queue -> device.waiters: Wake readers
-device.waiters -> streams.stdin
-streams.stdin -> shell.executable
-shell.executable -> streams.stdout
-streams.stdout -> gui.display: UTF-8 chunks
+device.waiters -> shell.stdin
+shell.stdin -> shell.executable
+shell.executable -> shell.stdout
+shell.stdout -> device.buffer: Write
+device.buffer -> gui.display: UTF-8 chunks
 ```
 
 </div>
