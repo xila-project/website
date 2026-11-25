@@ -4,7 +4,6 @@ docType: explanation
 description: "Standard-library services and devices for host runtimes."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_std` crate supplies standard-library-based runtime services and devices.
@@ -25,8 +24,10 @@ A host file backs the drive, while console and clock devices use host services. 
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_std" />: Standard-library
-  driver source.
+- <CodeReference repo="platforms" path="drivers/std">
+    <code>drivers_std</code> crate
+  </CodeReference>
+  : Standard-library driver source.
 - <CodeReference repo="platforms" path="examples/native/src/main.rs" />: Native
   runtime assembly.
 

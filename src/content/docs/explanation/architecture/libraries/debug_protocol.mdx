@@ -5,7 +5,7 @@ description: "Framing, request models, and validation for headless debugging and
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `debug_protocol` crate defines typed data contracts, validation rules, and protocol bounds for Xila's headless diagnostics and automation interface. It lives in the Core repository under `libraries/debug_protocol/` and is published as the `xila-debug-protocol` package.
 
@@ -17,7 +17,7 @@ Test runners, diagnostic tools, and automation clients such as `xila-debug` insp
 
 ### Request model and wire format
 
-Requests are modeled by the <HostReference crate="debug_protocol" kind="enum" symbol="Request" /> enum and serialized as JSON with `#[serde(tag = "op", rename_all = "snake_case")]`. The supported operations include:
+Requests are modeled by the <Api path="debug_protocol::Request" /> enum and serialized as JSON with `#[serde(tag = "op", rename_all = "snake_case")]`. The supported operations include:
 
 - `Diagnostics`: Query runtime diagnostic statistics.
 - `Capabilities`: Query supported driver capabilities.
@@ -57,26 +57,18 @@ The crate defines explicit upper bounds for all incoming and outgoing frames:
 
 Validation functions reject malformed or oversized payloads before execution:
 
-- <HostReference crate="debug_protocol" kind="fn" symbol="validate_request" />:
-  Ensure injected text does not exceed `MAX_TEXT_BYTES` and screenshot paths are
-  non-empty. For `Click` requests, verify that at least one selector field is
-  present. Reject any selector string that is empty or exceeds 512 bytes.
-- <HostReference
-    crate="debug_protocol"
-    kind="fn"
-    symbol="validate_screenshot_metadata"
-  />
+- <Api path="debug_protocol::validate_request" />: Ensure injected text does not
+  exceed `MAX_TEXT_BYTES` and screenshot paths are non-empty. For `Click`
+  requests, verify that at least one selector field is present. Reject any
+  selector string that is empty or exceeds 512 bytes.
+- <Api path="debug_protocol::validate_screenshot_metadata" />
   : Take a
-  <HostReference
-    crate="debug_protocol"
-    kind="struct"
-    symbol="ScreenshotMetadata"
-  />
+  <Api path="debug_protocol::ScreenshotMetadata" />
   record. Ensure width and height are non-zero. Verify that `payload_bytes`
   equals `width * height * 4`. Check that the size does not exceed
   `MAX_SCREENSHOT_BYTES`.
 
-Failures return <HostReference crate="debug_protocol" kind="enum" symbol="ProtocolError" />. The `code()` method produces stable string error identifiers (such as `invalid_selector`, `text_too_large`, `empty_screenshot_path`, and `invalid_screenshot_frame`).
+Failures return <Api path="debug_protocol::ProtocolError" />. The `code()` method produces stable string error identifiers (such as `invalid_selector`, `text_too_large`, `empty_screenshot_path`, and `invalid_screenshot_frame`).
 
 The following diagram shows a typical request and response exchange between an automation client and the graphics device:
 
@@ -111,26 +103,17 @@ The client sends a serialized JSON request. The receiving device runs `validate_
 
 ## API reference
 
-- <HostReference crate="debug_protocol" />: package documentation and root
-  types.
-- <HostReference crate="debug_protocol" kind="enum" symbol="Request" />: request
-  enum covering all supported operations.
-- <HostReference
-    crate="debug_protocol"
-    kind="struct"
-    symbol="ScreenshotMetadata"
-  />
-  : metadata describing screenshot frame dimensions and format.
-- <HostReference crate="debug_protocol" kind="fn" symbol="validate_request" />:
-  checks request payload bounds and selector validity.
-- <HostReference
-    crate="debug_protocol"
-    kind="fn"
-    symbol="validate_screenshot_metadata"
-  />
-  : validates screenshot payload size and dimensions.
-- <HostReference crate="debug_protocol" kind="enum" symbol="ProtocolError" />:
-  error types and stable string codes.
+- <Api path="debug_protocol" />: package documentation and root types.
+- <Api path="debug_protocol::Request" />: request enum covering all supported
+  operations.
+- <Api path="debug_protocol::ScreenshotMetadata" />: metadata describing
+  screenshot frame dimensions and format.
+- <Api path="debug_protocol::validate_request" />: checks request payload bounds
+  and selector validity.
+- <Api path="debug_protocol::validate_screenshot_metadata" />: validates
+  screenshot payload size and dimensions.
+- <Api path="debug_protocol::ProtocolError" />: error types and stable string
+  codes.
 
 ## Related
 

@@ -4,10 +4,10 @@ docType: explanation
 description: "System activity dashboard, its metrics, bounded demonstration workload and provider limitations."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The Activity executable (<HostReference repo="applications" crate="activity" />) is a real-time system monitoring dashboard for Xila. It reports uptime, the number of active tasks, and global allocator usage. It also includes an optional bounded workload that demonstrates resource consumption under load.
+The Activity executable (<CodeReference repo="applications" path="executables/activity"><code>activity</code> crate</CodeReference>) is a real-time system monitoring dashboard for Xila. It reports uptime, the number of active tasks, and global allocator usage. It also includes an optional bounded workload that demonstrates resource consumption under load.
 
 ## Context
 
@@ -36,15 +36,15 @@ flowchart LR
 
 The application runs a continuous asynchronous event loop. Each iteration checks for pending user interface events. Each iteration also evaluates the status of any active test workload. The application also collects fresh metrics when the configured sample interval expires:
 
-1. **Task count**: Queries <HostReference crate="task" kind="struct" symbol="Manager" /> via `get_task_count()`. This gives the number of currently scheduled tasks.
-2. **Memory allocation**: Reads heap utilization from <HostReference crate="memory" /> via `global_manager().get_used()` and `get_total_size()`. If the capacity is zero or smaller than the used bytes, the application marks the capacity as unavailable.
-3. **Uptime**: Reads the monotonic elapsed time from <HostReference crate="time" />. It formats this value as the running session duration.
+1. **Task count**: Queries <Api path="task::Manager" /> via `get_task_count()`. This gives the number of currently scheduled tasks.
+2. **Memory allocation**: Reads heap utilization from <Api path="memory" /> via `global_manager().get_used()` and `get_total_size()`. If the capacity is zero or smaller than the used bytes, the application marks the capacity as unavailable.
+3. **Uptime**: Reads the monotonic elapsed time from <Api path="time" />. It formats this value as the running session duration.
 
 Metric retrieval happens outside the graphics lock. Slow system queries therefore never block user interface interactivity.
 
 ### Dashboard layout and visualization
 
-Activity renders its dashboard with LVGL in an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />:
+Activity renders its dashboard with LVGL in an <Api path="graphics::OwnedWindow" />:
 
 - **Metrics summary**: Shows the formatted uptime (`D d HH:MM:SS`), the total task count, and the heap usage scaled to bytes, KiB, or MiB.
 - **Memory share bar**: Shows used heap memory as a permille value (0 to 1000) of the total heap capacity.
@@ -82,16 +82,15 @@ Activity includes a demonstration workload for observing memory and CPU activity
 
 ## API reference
 
-- <HostReference repo="applications" crate="activity" />: Activity executable
-  crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Core host executable interface.
-- <HostReference crate="task" kind="struct" symbol="Manager" />: Kernel task
-  management service.
-- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
-  graphical window surface.
-- <HostReference crate="memory" />: Global heap allocator manager.
-- <HostReference crate="time" />: Monotonic time and uptime service.
+- <CodeReference repo="applications" path="executables/activity">
+    <code>activity</code> crate
+  </CodeReference>
+  : Activity executable crate.
+- <Api path="executable::ExecutableTrait" />: Core host executable interface.
+- <Api path="task::Manager" />: Kernel task management service.
+- <Api path="graphics::OwnedWindow" />: Managed graphical window surface.
+- <Api path="memory" />: Global heap allocator manager.
+- <Api path="time" />: Monotonic time and uptime service.
 
 ## Related
 

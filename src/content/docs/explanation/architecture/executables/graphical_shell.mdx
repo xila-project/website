@@ -4,10 +4,10 @@ docType: explanation
 description: "Graphical session shell managing user login, desktop layout, the application drawer, and shortcut execution."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The graphical shell executable (<HostReference repo="applications" crate="graphical_shell" />) manages the interactive desktop session in Xila. It handles user login, the screen layout and status indicators, shortcut discovery from application bundles, and application launching.
+The graphical shell executable (<CodeReference repo="applications" path="executables/shell/graphical"><code>graphical_shell</code> crate</CodeReference>) manages the interactive desktop session in Xila. It handles user login, the screen layout and status indicators, shortcut discovery from application bundles, and application launching.
 
 ## Context
 
@@ -29,9 +29,9 @@ When Xila boots into a graphical environment, the runtime starts the graphical s
 
 1. **Argument parsing**: The shell reads optional command-line flags. `--show-keyboard` mounts an on-screen keyboard for touch-only devices.
 2. **Layout creation**: Creates the root display layout with the top status bar and space for active windows.
-3. **Login view**: Shows a centered login card with username and password fields. On submit, the shell calls <HostReference crate="authentication" /> to verify the password.
+3. **Login view**: Shows a centered login card with username and password fields. On submit, the shell calls <Api path="authentication" /> to verify the password.
 4. **Session initialization**: Upon successful authentication:
-   - Sets the active user on the shell task via <HostReference crate="task" kind="struct" symbol="Manager" /> and updates the `User` environment variable.
+   - Sets the active user on the shell task via <Api path="task::Manager" /> and updates the `User` environment variable.
    - Restores user-specific theme and palette preferences from `/users/<username>/configuration/graphics/appearance.json`.
    - Destroys the login view and activates the desktop (`Desk`) and home (`Home`) views.
 
@@ -83,7 +83,7 @@ When the user opens the application drawer, the shell scans the file system to f
 2. **Bundle shortcuts**: Scans `/applications/bundles`. For each subdirectory that does not start with a period, it reads `shortcut.json`. This skips staging directories such as `.incoming-1`.
 3. **Bundle path resolution**: For bundle shortcuts, the parser resolves arguments and commands that start with `@bundle/`. It replaces the prefix with the path of the containing bundle. For example, `@bundle/executables/app.wasm` becomes `/applications/bundles/example.xila.app/executables/app.wasm`.
 4. **Drawer rendering**: Fills the drawer grid with the icon and color palette of each application.
-5. **Launch dispatch**: When the user clicks an icon, the shell calls <HostReference crate="executable" kind="fn" symbol="execute" />. This starts the target executable with its configured arguments.
+5. **Launch dispatch**: When the user clicks an icon, the shell calls <Api path="executable::execute" />. This starts the target executable with its configured arguments.
 
 For instructions on formatting shortcut descriptors and adding new applications, see [Add a launcher shortcut](/how-to/add-shortcut/).
 
@@ -100,17 +100,16 @@ For instructions on formatting shortcut descriptors and adding new applications,
 
 ## API reference
 
-- <HostReference repo="applications" crate="graphical_shell" />: Graphical shell
-  crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Core host executable contract.
-- <HostReference crate="executable" kind="fn" symbol="execute" />: Executable
-  launch function.
-- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
-  graphics window container.
-- <HostReference crate="authentication" />: Authentication subsystem interface.
-- <HostReference crate="task" kind="struct" symbol="Manager" />: Task management
-  service for environment variables and task user identity.
+- <CodeReference repo="applications" path="executables/shell/graphical">
+    <code>graphical_shell</code> crate
+  </CodeReference>
+  : Graphical shell crate.
+- <Api path="executable::ExecutableTrait" />: Core host executable contract.
+- <Api path="executable::execute" />: Executable launch function.
+- <Api path="graphics::OwnedWindow" />: Managed graphics window container.
+- <Api path="authentication" />: Authentication subsystem interface.
+- <Api path="task::Manager" />: Task management service for environment
+  variables and task user identity.
 
 ## Related
 

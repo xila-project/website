@@ -4,14 +4,14 @@ docType: explanation
 description: "How Xila loads models and runs inference through neural-network devices."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 The Core `neural_network` library defines the contract between inference backends and device adapters. It lets a runtime expose model inference through the virtual file system (VFS).
 
 ## Context
 
-A <HostReference crate="neural_network" kind="trait" symbol="Backend" /> represents a prepared model and creates independent execution storage. The Core neural-network driver adapts a backend to character-device operations. A <HostReference crate="neural_network" kind="trait" symbol="Loader" /> can prepare a backend from model bytes.
+A <Api path="neural_network::Backend" /> represents a prepared model and creates independent execution storage. The Core neural-network driver adapts a backend to character-device operations. A <Api path="neural_network::Loader" /> can prepare a backend from model bytes.
 
 ## How it works
 
@@ -27,7 +27,7 @@ stateDiagram-v2
     Ready --> [*]: close
 ```
 
-The descriptor starts in staging. The caller writes model bytes sequentially and sends <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>LOAD</code></HostReference> with a `LoadRequest`. After a successful load, the caller queries input information, selects an input, seeks to zero, and writes tensor bytes. `COMPUTE` runs inference. The caller then selects an output, seeks to zero, and reads its bytes. Closing releases the model and execution state.
+The descriptor starts in staging. The caller writes model bytes sequentially and sends <Api path="device::neural_network::LOAD"><code>LOAD</code></Api> with a `LoadRequest`. After a successful load, the caller queries input information, selects an input, seeks to zero, and writes tensor bytes. `COMPUTE` runs inference. The caller then selects an output, seeks to zero, and reads its bytes. Closing releases the model and execution state.
 
 The native runtime mounts a CPU loader at `/devices/nn/cpu` when its neural-network feature is enabled. See <CodeReference repo="platforms" path="examples/native/src/main.rs" /> for its registration.
 
@@ -41,26 +41,13 @@ Inference commands before a successful load return `InvalidContext`. A second lo
 
 ## API reference
 
-- <HostReference crate="neural_network" />: inference contracts.
-- <HostReference
-    crate="drivers_neural_network"
-    kind="struct"
-    symbol="NeuralNetworkDevice"
-  />
-  : fixed-model adapter.
-- <HostReference
-    crate="drivers_neural_network"
-    kind="struct"
-    symbol="LoaderDevice"
-  />
-  : runtime loader adapter.
-- <HostReference
-    crate="device/neural_network"
-    kind="struct"
-    symbol="LoadRequest"
-  >
+- <Api path="neural_network" />: inference contracts.
+- <Api path="drivers_neural_network::NeuralNetworkDevice" />: fixed-model
+  adapter.
+- <Api path="drivers_neural_network::LoaderDevice" />: runtime loader adapter.
+- <Api path="device::neural_network::LoadRequest">
     <code>LoadRequest</code>
-  </HostReference>
+  </Api>
   : model loading request.
 
 ## Related

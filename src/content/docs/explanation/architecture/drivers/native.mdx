@@ -4,7 +4,6 @@ docType: explanation
 description: "Native window, input, audio and host file system integrations."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
 
 The Platforms `drivers_native` crate connects the native runtime to host services.
@@ -25,8 +24,10 @@ Audio is feature-gated, and initialization can fail. The example continues witho
 
 ## API reference
 
-- <HostReference repo="platforms" crate="drivers_native" />: Native driver
-  source.
+- <CodeReference repo="platforms" path="drivers/native">
+    <code>drivers_native</code> crate
+  </CodeReference>
+  : Native driver source.
 - <CodeReference repo="platforms" path="examples/native/src/main.rs" />: Runtime
   assembly.
 

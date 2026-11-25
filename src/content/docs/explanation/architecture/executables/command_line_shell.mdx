@@ -4,10 +4,10 @@ docType: explanation
 description: "Bounded parsing, streaming command composition, built-ins, and executable dispatch."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The command-line shell executable (<HostReference repo="applications" crate="command_line_shell" />) is an interactive text shell and scripting environment for Xila. It parses command lines with bounded buffers, runs streaming pipelines, provides built-in commands, and resolves external native and WebAssembly (Wasm) executables.
+The command-line shell executable (<CodeReference repo="applications" path="executables/shell/command_line"><code>command_line_shell</code> crate</CodeReference>) is an interactive text shell and scripting environment for Xila. It parses command lines with bounded buffers, runs streaming pipelines, provides built-in commands, and resolves external native and WebAssembly (Wasm) executables.
 
 ## Context
 
@@ -51,7 +51,7 @@ Nested shell invocations track their depth in the `XILA_SHELL_DEPTH` environment
 
 The tokenizer converts input strings up to 4,096 bytes into at most 256 tokens:
 
-- **Pipelines (`|`)**: Splits commands into stages. Each stage runs as a spawned task. Adjacent stages communicate through an unnamed VFS pipe (<HostReference crate="virtual_file_system" kind="struct" symbol="File" />) with a 512-byte ring buffer.
+- **Pipelines (`|`)**: Splits commands into stages. Each stage runs as a spawned task. Adjacent stages communicate through an unnamed VFS pipe (<Api path="virtual_file_system::File" />) with a 512-byte ring buffer.
 - **Conditional chaining (`&&` and `||`)**: Runs the right-hand command only when the left-hand command succeeds (status 0) or fails (non-zero status), respectively.
 - **Sequential separation (`;`)**: Runs commands in sequence regardless of the preceding exit status.
 - **Background jobs (`&`)**: Runs the pipeline in a detached task. Standard input is redirected to `/devices/standard_io/null`. The shell tracks up to eight background tasks and joins them when it exits.
@@ -73,7 +73,7 @@ The shell resolves each command as follows:
 
 1. **Built-in commands**: The shell checks its built-in lookup table first. Built-ins include file system commands (`ls`, `cat`, `mkdir`, `rm`, `cp`, `mv`, `stat`), environment commands (`export`, `unset`, `printenv`), network commands (`ping`, `ip`, `dns_resolve`, `web_request`), and navigation commands (`cd`, `pwd`). For the complete list, see [Shell commands](/reference/shell/).
 2. **Explicit paths**: A command that contains a forward slash (`/`) is a path. Absolute paths such as `/applications/executables/...` run directly. The shell joins relative paths against the task's `Current_directory` environment variable.
-3. **Path variable search**: A command without a slash is looked up in the colon-separated directory list of the `Paths` environment variable, for example `/applications/executables`. The shell searches the directories in order and runs the first match via <HostReference crate="executable" kind="fn" symbol="execute" />.
+3. **Path variable search**: A command without a slash is looked up in the colon-separated directory list of the `Paths` environment variable, for example `/applications/executables`. The shell searches the directories in order and runs the first match via <Api path="executable::execute" />.
 
 ## Design choices and trade-offs
 
@@ -92,16 +92,17 @@ The shell resolves each command as follows:
 
 ## API reference
 
-- <HostReference repo="applications" crate="command_line_shell" />: Command-line
-  shell crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Host executable contract implemented by the shell.
-- <HostReference crate="executable" kind="fn" symbol="execute" />: Executable
-  launch function.
-- <HostReference crate="virtual_file_system" kind="struct" symbol="File" />:
-  Virtual file system file and pipe abstraction.
-- <HostReference crate="task" kind="struct" symbol="Manager" />: Task management
-  service for environment variables and task spawning.
+- <CodeReference repo="applications" path="executables/shell/command_line">
+    <code>command_line_shell</code> crate
+  </CodeReference>
+  : Command-line shell crate.
+- <Api path="executable::ExecutableTrait" />: Host executable contract
+  implemented by the shell.
+- <Api path="executable::execute" />: Executable launch function.
+- <Api path="virtual_file_system::File" />: Virtual file system file and pipe
+  abstraction.
+- <Api path="task::Manager" />: Task management service for environment
+  variables and task spawning.
 
 ## Related
 

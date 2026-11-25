@@ -4,8 +4,8 @@ docType: explanation
 description: "Typed control contracts for Xila devices and their drivers."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 The Core `device` crate defines typed control commands for device callers and drivers. A command describes the data that crosses the virtual file system (VFS) device interface.
 
@@ -29,11 +29,11 @@ A caller sends a typed command through the VFS to a driver. The driver interpret
 
 The GPIO contract uses versioned structures. Their version must equal `ABI_VERSION`, and reserved fields must be zero.
 
-| Command                                                                                                                  | Input          | Output            | Description                                      |
-| ------------------------------------------------------------------------------------------------------------------------ | -------------- | ----------------- | ------------------------------------------------ |
-| <HostReference crate="device/gpio" kind="struct" symbol="CONFIGURE"><code>CONFIGURE</code></HostReference>               | `ConfigureAbi` | `VersionAbi`      | Release and request the line as input or output. |
-| <HostReference crate="device/gpio" kind="struct" symbol="GET_CAPABILITIES"><code>GET_CAPABILITIES</code></HostReference> | `VersionAbi`   | `CapabilitiesAbi` | Report line capabilities.                        |
-| <HostReference crate="device/gpio" kind="struct" symbol="RELEASE"><code>RELEASE</code></HostReference>                   | `VersionAbi`   | `VersionAbi`      | Release the line.                                |
+| Command                                                                        | Input          | Output            | Description                                      |
+| ------------------------------------------------------------------------------ | -------------- | ----------------- | ------------------------------------------------ |
+| <Api path="device::gpio::CONFIGURE"><code>CONFIGURE</code></Api>               | `ConfigureAbi` | `VersionAbi`      | Release and request the line as input or output. |
+| <Api path="device::gpio::GET_CAPABILITIES"><code>GET_CAPABILITIES</code></Api> | `VersionAbi`   | `CapabilitiesAbi` | Report line capabilities.                        |
+| <Api path="device::gpio::RELEASE"><code>RELEASE</code></Api>                   | `VersionAbi`   | `VersionAbi`      | Release the line.                                |
 
 ## Design choices and trade-offs
 
@@ -41,7 +41,7 @@ Typed commands give callers and drivers a shared representation. A driver does n
 
 ## API reference
 
-- <HostReference crate="device" />: device contracts.
+- <Api path="device" />: device contracts.
 - <CodeReference path="devices/src/gpio.rs" />: GPIO command definitions.
 - <CodeReference path="devices/src/neural_network.rs" />: inference device
   protocol.

@@ -5,9 +5,9 @@ description: "Hardware controller traits, VFS peripheral adapters, GPIO line con
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
-The <HostReference crate="peripherals" /> library defines hardware-facing controller contracts. <HostReference crate="drivers_peripherals" /> adapts these traits into character devices mounted in the virtual file system (VFS).
+The <Api path="peripherals" /> library defines hardware-facing controller contracts. <Api path="drivers_peripherals" /> adapts these traits into character devices mounted in the virtual file system (VFS).
 
 ## Context
 
@@ -15,8 +15,8 @@ Microcontrollers provide hardware peripherals such as GPIO pins, ADCs, I2C buses
 
 Xila decouples peripheral operations into two architectural layers:
 
-1. **Controller traits** (<HostReference crate="peripherals" />): pure Rust contracts based on the standard `embedded-hal` and `embedded-io` interfaces, with deterministic in-memory mocks for tests.
-2. **VFS device adapters** (<HostReference crate="drivers_peripherals" />): character-device wrappers that expose peripheral controllers under the `/devices/` path namespace for applications and command-line utilities.
+1. **Controller traits** (<Api path="peripherals" />): pure Rust contracts based on the standard `embedded-hal` and `embedded-io` interfaces, with deterministic in-memory mocks for tests.
+2. **VFS device adapters** (<Api path="drivers_peripherals" />): character-device wrappers that expose peripheral controllers under the `/devices/` path namespace for applications and command-line utilities.
 
 ## How it works
 
@@ -49,24 +49,16 @@ flowchart TD
 
 The adapter pipeline consists of two constructs:
 
-1. <HostReference
-     crate="drivers_peripherals"
-     kind="trait"
-     symbol="PeripheralHandle"
-   />
-   : implemented by peripheral classes. Each method is a single synchronous
-   attempt. If an operation would block, it returns `Error::RessourceBusy`
-   instead of yielding or holding caller buffers.
-2. <HostReference
-     crate="drivers_peripherals"
-     kind="struct"
-     symbol="PeripheralDevice"
-   />
-   : wraps a `PeripheralHandle` into a VFS character device. Opening is
-   exclusive. While one file handle holds the peripheral open, other `open`
-   calls return `Error::RessourceBusy` until the owning handle closes.
+1. <Api path="drivers_peripherals::PeripheralHandle" />: implemented by
+   peripheral classes. Each method is a single synchronous attempt. If an
+   operation would block, it returns `Error::RessourceBusy` instead of yielding
+   or holding caller buffers.
+2. <Api path="drivers_peripherals::PeripheralDevice" />: wraps a
+   `PeripheralHandle` into a VFS character device. Opening is exclusive. While
+   one file handle holds the peripheral open, other `open` calls return
+   `Error::RessourceBusy` until the owning handle closes.
 
-Mount helpers such as <HostReference crate="drivers_peripherals" kind="fn" symbol="mount_peripheral" /> and `mount_gpio` mount adapters under standard paths such as `/devices/gpio/<name>`.
+Mount helpers such as <Api path="drivers_peripherals::mount_peripheral" /> and `mount_gpio` mount adapters under standard paths such as `/devices/gpio/<name>`.
 
 ### GPIO device behavior and text read/write semantics
 
@@ -99,26 +91,14 @@ Typed control commands for pin reservation, direction, pull resistors, and elect
 
 ## API reference
 
-- <HostReference crate="peripherals" />: hardware controller traits and mocks.
-- <HostReference crate="drivers_peripherals" />: VFS peripheral adapters.
-- <HostReference
-    crate="drivers_peripherals"
-    kind="trait"
-    symbol="PeripheralHandle"
-  />
-  : synchronous peripheral handle contract.
-- <HostReference
-    crate="drivers_peripherals"
-    kind="struct"
-    symbol="PeripheralDevice"
-  />
-  : exclusive-access VFS device wrapper.
-- <HostReference
-    crate="drivers_peripherals"
-    kind="fn"
-    symbol="mount_peripheral"
-  />
-  : peripheral node mounting helper.
+- <Api path="peripherals" />: hardware controller traits and mocks.
+- <Api path="drivers_peripherals" />: VFS peripheral adapters.
+- <Api path="drivers_peripherals::PeripheralHandle" />: synchronous peripheral
+  handle contract.
+- <Api path="drivers_peripherals::PeripheralDevice" />: exclusive-access VFS
+  device wrapper.
+- <Api path="drivers_peripherals::mount_peripheral" />: peripheral node mounting
+  helper.
 
 ## Related
 

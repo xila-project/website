@@ -5,13 +5,13 @@ description: "Understand in-memory user and group registries, identifier allocat
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The users subsystem maintains in-memory registries of user and group identities. It allocates typed identifiers for tasks, tracks group memberships, and supplies credential metadata for virtual file system permission checks.
 
 ## Context
 
-Multi-user security in Xila requires consistent user and group tracking across tasks and filesystems. The <HostReference crate="users" /> crate manages active account identifiers in memory.
+Multi-user security in Xila requires consistent user and group tracking across tasks and filesystems. The <Api path="users" /> manages active account identifiers in memory.
 
 This subsystem separates identity tracking from authentication mechanics. The `users` crate tracks runtime memberships and identifiers, while password hashing and on-disk account persistence are handled by the separate authentication library.
 
@@ -30,9 +30,9 @@ flowchart LR
     VFS["Virtual file system"] -->|checks permissions| UM
 ```
 
-The <HostReference crate="users" kind="struct" symbol="Manager" /> struct maintains two collections protected by an internal read-write lock:
+The <Api path="users::Manager" /> struct maintains two collections protected by an internal read-write lock:
 
-- **Users**: maps each <HostReference crate="users" kind="struct" symbol="UserIdentifier" /> to a record holding the account username and its primary <HostReference crate="users" kind="struct" symbol="GroupIdentifier" />.
+- **Users**: maps each <Api path="users::UserIdentifier" /> to a record holding the account username and its primary <Api path="users::GroupIdentifier" />.
 - **Groups**: maps each `GroupIdentifier` to a record containing the group name and a set of member user identifiers.
 
 ### Root identity and membership rules
@@ -62,13 +62,10 @@ Identifiers are 16-bit integer values:
 
 ## API reference
 
-- <HostReference crate="users" /> - crate root and type definitions.
-- <HostReference crate="users" kind="struct" symbol="Manager" /> - main users
-  subsystem manager.
-- <HostReference crate="users" kind="struct" symbol="UserIdentifier" /> - typed
-  16-bit user identifier.
-- <HostReference crate="users" kind="struct" symbol="GroupIdentifier" /> - typed
-  16-bit group identifier.
+- <Api path="users" /> - crate root and type definitions.
+- <Api path="users::Manager" /> - main users subsystem manager.
+- <Api path="users::UserIdentifier" /> - typed 16-bit user identifier.
+- <Api path="users::GroupIdentifier" /> - typed 16-bit group identifier.
 
 ## Related
 

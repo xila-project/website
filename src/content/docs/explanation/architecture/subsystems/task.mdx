@@ -6,13 +6,13 @@ description: "Understand task identity, cooperative Embassy execution, spawner l
 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The task subsystem manages asynchronous execution, task identity, and lifecycle tracking. It pairs Embassy's cooperative task pools with system-level metadata such as user credentials, environment variables, and parent-child relationships.
 
 ## Context
 
-An embedded operating system needs more than a raw future executor: it must track which task initiated an I/O operation, enforce user access controls, pass environment variables, and deliver inter-task signals. The <HostReference crate="task" /> crate bridges logical task abstractions with <DocsRsReference crate="embassy-executor" /> spawners.
+An embedded operating system needs more than a raw future executor: it must track which task initiated an I/O operation, enforce user access controls, pass environment variables, and deliver inter-task signals. The <Api path="task" /> bridges logical task abstractions with <DocsRsReference crate="embassy-executor" /> spawners.
 
 ## How it works
 
@@ -31,9 +31,9 @@ flowchart TD
     Waker --> Context["get_current_task_identifier()"]
 ```
 
-The <HostReference crate="task" kind="struct" symbol="Manager" /> maintains registered tasks and active spawners inside an internal read-write lock:
+The <Api path="task::Manager" /> maintains registered tasks and active spawners inside an internal read-write lock:
 
-1. **Task registration**: calling `Manager::spawn` creates a logical task entry and assigns a unique <HostReference crate="task" kind="struct" symbol="TaskIdentifier" />.
+1. **Task registration**: calling `Manager::spawn` creates a logical task entry and assigns a unique <Api path="task::TaskIdentifier" />.
 2. **Spawner selection**: if no specific spawner identifier is supplied, `select_best_spawner` counts active tasks assigned to each registered Embassy spawner and selects the spawner with the lowest task count.
 3. **Task allocation**: the manager allocates an Embassy `TaskPool` dynamically and issues a spawn token to the chosen spawner.
 4. **Waker-based identity recovery**: once executing, `get_current_internal_identifier()` inspects the current future's waker using `task_from_waker(context.waker())`. The manager maps this memory address back to the logical `TaskIdentifier`.
@@ -42,7 +42,7 @@ This waker-based lookup allows file system and permissions logic to determine th
 
 ### Task lifecycle and join handles
 
-Calling `spawn` returns both a `TaskIdentifier` and a typed <HostReference crate="task" kind="struct" symbol="JoinHandle" />:
+Calling `spawn` returns both a `TaskIdentifier` and a typed <Api path="task::JoinHandle" />:
 
 - When a task completes its asynchronous closure, it signals the join handle with its return value.
 - The manager automatically unregisters the completed task, freeing its metadata.
@@ -52,8 +52,8 @@ Calling `spawn` returns both a `TaskIdentifier` and a typed <HostReference crate
 
 Tasks execute cooperatively on single-threaded or multi-threaded Embassy executors:
 
-- Calling <HostReference crate="task" kind="fn" symbol="yield_now" /> yields execution to other pending tasks in the executor queue.
-- Calling <HostReference crate="task" kind="fn" symbol="sleep" /> suspends the task for a specified duration using `embassy_time::Timer`.
+- Calling <Api path="task::yield_now" /> yields execution to other pending tasks in the executor queue.
+- Calling <Api path="task::sleep" /> suspends the task for a specified duration using `embassy_time::Timer`.
 
 ## Design choices and trade-offs
 
@@ -68,17 +68,12 @@ Tasks execute cooperatively on single-threaded or multi-threaded Embassy executo
 
 ## API reference
 
-- <HostReference crate="task" /> - crate root and common type aliases.
-- <HostReference crate="task" kind="struct" symbol="Manager" /> - task subsystem
-  manager.
-- <HostReference crate="task" kind="struct" symbol="TaskIdentifier" /> - stable
-  unique task identifier.
-- <HostReference crate="task" kind="struct" symbol="JoinHandle" /> -
-  asynchronous completion handle.
-- <HostReference crate="task" kind="fn" symbol="yield_now" /> - cooperatively
-  yields execution.
-- <HostReference crate="task" kind="fn" symbol="sleep" /> - sleeps for a given
-  duration.
+- <Api path="task" /> - crate root and common type aliases.
+- <Api path="task::Manager" /> - task subsystem manager.
+- <Api path="task::TaskIdentifier" /> - stable unique task identifier.
+- <Api path="task::JoinHandle" /> - asynchronous completion handle.
+- <Api path="task::yield_now" /> - cooperatively yields execution.
+- <Api path="task::sleep" /> - sleeps for a given duration.
 
 ## Related
 

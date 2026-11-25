@@ -5,8 +5,7 @@ description: "How Xila's graphics bindings connect sandboxed WebAssembly guest a
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
+import Api from "@/components/Api.astro";
 
 Xila's graphics bindings connect sandboxed WebAssembly (Wasm) guest applications to the LVGL graphics subsystem. The bindings generator in the Core repository (<CodeReference path="subsystems/graphics/bindings_generator" />) generates the API catalog. The host runtime in Applications (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/mod.rs" />) performs checked dispatch and memory validation.
 
@@ -41,9 +40,9 @@ sequenceDiagram
     Dispatch-->>Guest: Write output data and return status code
 ```
 
-When a guest application calls a graphics function such as <GuestReference repo="applications" crate="wasm" kind="fn" symbol="button_create" />, the safe wrapper places up to seven machine-word arguments into registers. It then calls the host import `xila_graphics_call`. The Wasmi adapter (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/wasmi.rs" />) checks that the calling task has graphics capabilities. It also borrows the guest linear memory.
+When a guest application calls a graphics function such as <Api api="guest" path="wasm::button_create" />, the safe wrapper places up to seven machine-word arguments into registers. It then calls the host import `xila_graphics_call`. The Wasmi adapter (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/wasmi.rs" />) checks that the calling task has graphics capabilities. It also borrows the guest linear memory.
 
-The dispatch layer validates the function identifier and the parameter count. It resolves handle identifiers in the object table of the virtual machine. The call then acquires the graphics manager lock (<HostReference crate="graphics" kind="struct" symbol="Manager" />) and runs the native LVGL operation. If the function produces output data, the dispatcher copies the results into guest memory and returns a status code.
+The dispatch layer validates the function identifier and the parameter count. It resolves handle identifiers in the object table of the virtual machine. The call then acquires the graphics manager lock (<Api path="graphics::Manager" />) and runs the native LVGL operation. If the function produces output data, the dispatcher copies the results into guest memory and returns a status code.
 
 ### Handle-based object virtualization
 
@@ -51,7 +50,7 @@ Guest code never receives or manipulates native LVGL pointers (`lv_obj_t*`). The
 
 - The object table of each virtual machine has no fixed entry cap. Retained resources are bounded by the limits below.
 - Each handle identifies a specific widget type and native pointer.
-- Calling <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" /> deletes the LVGL widget and invalidates the handle.
+- Calling <Api api="guest" path="wasm::object_delete" /> deletes the LVGL widget and invalidates the handle.
 - A handle packs a 16-bit slot and a 16-bit generation. Deleting an object frees its slot for reuse with a higher generation. A stale handle is therefore rejected until the same slot has been reused 65,536 times. Handles are not cryptographic capabilities.
 - When an application terminates or traps, the host tears down the window hierarchy and releases all graphics resources.
 
@@ -77,22 +76,9 @@ All data transfers across the boundary are strictly bounded. This keeps memory u
 
 ## API reference
 
-- <HostReference crate="graphics" kind="struct" symbol="Manager" />: Core
-  graphics subsystem manager.
-- <GuestReference
-    repo="applications"
-    crate="wasm"
-    kind="fn"
-    symbol="window_create"
-  />
-  : Guest window constructor.
-- <GuestReference
-    repo="applications"
-    crate="wasm"
-    kind="fn"
-    symbol="object_delete"
-  />
-  : Guest object destructor.
+- <Api path="graphics::Manager" />: Core graphics subsystem manager.
+- <Api api="guest" path="wasm::window_create" />: Guest window constructor.
+- <Api api="guest" path="wasm::object_delete" />: Guest object destructor.
 - <CodeReference path="subsystems/graphics/src/call/handlers.rs" />: Graphics
   call handlers (in Core).
 

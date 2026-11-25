@@ -70,6 +70,8 @@ jobs:
           XILA_STRICT_RUSTDOC: "1"
         run: mise run documentation:rustdoc
       - name: "Build | Validate documentation"
+        env:
+          XILA_STRICT_API_LINKS: "1"
         run: mise exec -- npm run check
       - name: "Publish | Upload Pages artifact"
         uses: actions/upload-pages-artifact@v5

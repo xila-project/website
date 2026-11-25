@@ -4,8 +4,8 @@ docType: explanation
 description: "Locate runtime owners, libraries, drivers, and executables across the Xila workspace."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 The Xila workspace organizes code into four main architectural roles across its repositories: subsystems, libraries, drivers, and executables. Every component is an individual Rust crate with distinct ownership and lifecycle semantics.
 
@@ -112,8 +112,7 @@ Examples assemble drivers, subsystems, and executables into runnable target bina
 
 ## API reference
 
-- <HostReference crate="xila" /> - the root façade crate re-exporting Core
-  crates.
+- <Api path="xila" /> - the root façade crate re-exporting Core crates.
 
 ## Related
 

@@ -4,10 +4,10 @@ docType: explanation
 description: "Tab-based configuration utility managing system preferences, appearance themes, user passwords, network interfaces, and system information."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The Settings executable (<HostReference repo="applications" crate="settings" />) is a tab-based graphical configuration utility for Xila. It manages system options, appearance themes, user passwords, network interfaces, and system information.
+The Settings executable (<CodeReference repo="applications" path="executables/settings"><code>settings</code> crate</CodeReference>) is a tab-based graphical configuration utility for Xila. It manages system options, appearance themes, user passwords, network interfaces, and system information.
 
 ## Context
 
@@ -42,12 +42,12 @@ flowchart TD
     About --> AboutData["System info & Memory manager"]
 ```
 
-Settings creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Se" (Grey palette). It flattens the window chrome and hosts a full-size LVGL tab view with five panels:
+Settings creates an <Api path="graphics::OwnedWindow" /> with the icon "Se" (Grey palette). It flattens the window chrome and hosts a full-size LVGL tab view with five panels:
 
 1. **General**: Displays the active system language compiled into the system image (<CodeReference repo="applications" path="executables/settings/src/tabs/general.rs" />).
 2. **Appearance**: Configures interface styling. A switch toggles dark mode. Dropdowns select the primary and secondary palette hues (Blue, Green, Red, Orange, and Purple). Changes apply immediately to all open windows and are saved to `/users/<username>/configuration/graphics/appearance.json`.
-3. **Password**: Manages the user's login credentials. It has fields for the current password, the new password, and the confirmation. Submitting the form checks the current password and updates the hash through <HostReference crate="users" />.
-4. **Network**: Shows and configures network connectivity. It lists the active interfaces (<HostReference crate="network" />) with link state, IP address, and subnet mask. It can configure static addresses or Wi-Fi credentials. While this tab is open, Settings refreshes the statistics every 250 milliseconds.
+3. **Password**: Manages the user's login credentials. It has fields for the current password, the new password, and the confirmation. Submitting the form checks the current password and updates the hash through <Api path="users" />.
+4. **Network**: Shows and configures network connectivity. It lists the active interfaces (<Api path="network" />) with link state, IP address, and subnet mask. It can configure static addresses or Wi-Fi credentials. While this tab is open, Settings refreshes the statistics every 250 milliseconds.
 5. **About**: Reports system metadata, including the host machine name, operating system release, kernel version, total and used allocator heap bytes, and mounted storage statistics.
 
 ### Event handling and lifecycle
@@ -74,16 +74,15 @@ Settings does not write its own shortcut at runtime. Platforms seeds the shortcu
 
 ## API reference
 
-- <HostReference repo="applications" crate="settings" />: Settings application
-  crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Core host executable contract.
-- <HostReference crate="graphics" />: Core graphics subsystem and theme engine.
-- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
-  graphics window surface.
-- <HostReference crate="users" />: User identity and credential management
-  service.
-- <HostReference crate="network" />: Network stack and interface management.
+- <CodeReference repo="applications" path="executables/settings">
+    <code>settings</code> crate
+  </CodeReference>
+  : Settings application crate.
+- <Api path="executable::ExecutableTrait" />: Core host executable contract.
+- <Api path="graphics" />: Core graphics subsystem and theme engine.
+- <Api path="graphics::OwnedWindow" />: Managed graphics window surface.
+- <Api path="users" />: User identity and credential management service.
+- <Api path="network" />: Network stack and interface management.
 
 ## Related
 

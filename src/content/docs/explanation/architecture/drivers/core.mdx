@@ -4,8 +4,8 @@ docType: explanation
 description: "Minimal devices and the optional Wi-Fi mock supplied by Core."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 The Core repository's `drivers_core` crate supplies minimal devices and an optional Wi-Fi mock.
 
@@ -25,9 +25,8 @@ The crate is `no_std`. The mock is feature-gated and does not operate a host rad
 
 ## API reference
 
-- <HostReference crate="drivers_core" />: Core driver crate.
-- <HostReference crate="drivers_core" kind="struct" symbol="NullDevice" />: Null
-  character device.
+- <Api path="drivers_core" />: Core driver crate.
+- <Api path="drivers_core::NullDevice" />: Null character device.
 - <CodeReference path="drivers/core/src/wifi" />: Wi-Fi mock source.
 
 ## Related

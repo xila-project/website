@@ -4,9 +4,8 @@ docType: explanation
 description: "Understand how Digits recognizes handwritten digits through a neural-network device."
 ---
 
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 Digits recognizes handwritten digits. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) named `xila-digits` in the Applications repository.
 
@@ -33,7 +32,7 @@ sequenceDiagram
     D->>N: Select output, seek and read scores
 ```
 
-Digits writes the model to the device. It then sends <HostReference crate="device/neural_network" kind="struct" symbol="LOAD"><code>device::neural_network::LOAD</code></HostReference> with a TensorFlow Lite `LoadRequest`. It checks the input and output tensors, writes the input, and sends <HostReference crate="device/neural_network" kind="struct" symbol="COMPUTE"><code>device::neural_network::COMPUTE</code></HostReference>. It reads ten scores and ranks the three highest.
+Digits writes the model to the device. It then sends <Api path="device::neural_network::LOAD"><code>device::neural_network::LOAD</code></Api> with a TensorFlow Lite `LoadRequest`. It checks the input and output tensors, writes the input, and sends <Api path="device::neural_network::COMPUTE"><code>device::neural_network::COMPUTE</code></Api>. It reads ten scores and ranks the three highest.
 
 ## Design choices and trade-offs
 
@@ -47,9 +46,8 @@ Digits requires one float32 input shaped `[1, 784]` and one float32 output shape
 
 - <CodeReference repo="applications" path="executables/digits" />: application
   source.
-- <HostReference crate="device/neural_network" />: neural-network device
-  interface.
-- <GuestReference repo="applications" crate="wasm" />: guest API Rustdoc.
+- <Api path="device::neural_network" />: neural-network device interface.
+- <Api api="guest" path="wasm" />: guest API Rustdoc.
 - <CodeReference repo="applications" path="packaging/digits.json" />: package
   metadata.
 

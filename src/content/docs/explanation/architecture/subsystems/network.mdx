@@ -6,13 +6,13 @@ description: "Understand network interface stacks, smoltcp integration, socket t
 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The network subsystem coordinates TCP/IP networking across physical and virtual interfaces. It uses smoltcp. It exposes socket endpoints, asynchronous DNS resolution, and interface management through virtual file system (VFS) device nodes.
 
 ## Context
 
-Embedded systems need an efficient, deterministic networking stack that operates without standard library socket primitives. The <HostReference crate="network" /> crate integrates <DocsRsReference crate="smoltcp" /> to provide IPv4 and IPv6 networking, DHCP, TCP, UDP, and ICMP support in `no_std` environments.
+Embedded systems need an efficient, deterministic networking stack that operates without standard library socket primitives. The <Api path="network" /> integrates <DocsRsReference crate="smoltcp" /> to provide IPv4 and IPv6 networking, DHCP, TCP, UDP, and ICMP support in `no_std` environments.
 
 Network interfaces appear as device files in the VFS. Applications configure addresses and routes through typed control commands. Socket abstractions provide asynchronous network I/O.
 
@@ -31,7 +31,7 @@ flowchart TD
     Apps["Executables"] --> Sockets
 ```
 
-Networking is managed through the <HostReference crate="network" kind="struct" symbol="Manager" /> struct. Calling `mount_interface` registers a network driver fulfilling smoltcp's `Device` trait:
+Networking is managed through the <Api path="network::Manager" /> struct. Calling `mount_interface` registers a network driver fulfilling smoltcp's `Device` trait:
 
 1. The manager constructs an internal `Stack` wrapping a smoltcp `Interface` and `SocketSet`.
 2. It spawns a background `StackRunner` task that polls the network device, handles incoming packets, and services timers.
@@ -42,10 +42,10 @@ Networking is managed through the <HostReference crate="network" kind="struct" s
 
 Applications interact with network connections through high-level socket structures:
 
-- <HostReference crate="network" kind="struct" symbol="TcpSocket" />: provides
-  asynchronous TCP streams with connect, listen, read, and write operations.
-- <HostReference crate="network" kind="struct" symbol="UdpSocket" />: provides
-  datagram-oriented communication with bind, send, and receive methods.
+- <Api path="network::TcpSocket" />: provides asynchronous TCP streams with
+  connect, listen, read, and write operations.
+- <Api path="network::UdpSocket" />: provides datagram-oriented communication
+  with bind, send, and receive methods.
 - `IcmpSocket`: sends and receives ICMP echo packets for connectivity checks and ping utilities.
 - **DNS resolution**: calling `Manager::resolve` performs asynchronous domain name lookups against configured DNS servers using smoltcp's DNS client socket.
 
@@ -85,15 +85,11 @@ The root `xila` crate enables the feature by default. Platforms choose whether t
 
 ## API reference
 
-- <HostReference crate="network" /> - crate root and type re-exports.
-- <HostReference crate="network" kind="struct" symbol="Manager" /> - network
-  subsystem manager.
-- <HostReference crate="network" kind="struct" symbol="TcpSocket" /> -
-  asynchronous TCP stream handle.
-- <HostReference crate="network" kind="struct" symbol="UdpSocket" /> -
-  asynchronous UDP datagram handle.
-- <HostReference crate="network" kind="fn" symbol="initialize" /> - constructs
-  the network manager instance.
+- <Api path="network" /> - crate root and type re-exports.
+- <Api path="network::Manager" /> - network subsystem manager.
+- <Api path="network::TcpSocket" /> - asynchronous TCP stream handle.
+- <Api path="network::UdpSocket" /> - asynchronous UDP datagram handle.
+- <Api path="network::initialize" /> - constructs the network manager instance.
 
 ## Related
 

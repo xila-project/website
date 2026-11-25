@@ -6,9 +6,9 @@ description: "Storage traits, block device abstraction, MBR partition management
 
 import CodeReference from "@/components/CodeReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
-The <HostReference crate="file_system" /> crate provides the architectural contract layer for storage, files, directories, and hardware devices in Xila. It defines standardized operation traits. The virtual file system (VFS) consumes these traits. Concrete storage engines and device drivers implement them.
+The <Api path="file_system" /> provides the architectural contract layer for storage, files, directories, and hardware devices in Xila. It defines standardized operation traits. The virtual file system (VFS) consumes these traits. Concrete storage engines and device drivers implement them.
 
 ## Context
 
@@ -22,48 +22,35 @@ Higher-level subsystems such as the [Virtual file system](/explanation/architect
 
 The crate defines two categories of hardware devices:
 
-- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
-  stream-oriented devices such as serial ports, sensors, and pipes. They
-  implement
-  <HostReference crate="file_system" kind="trait" symbol="BaseOperations" /> to
-  support contextual, asynchronous byte transfers and typed control commands.
-- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" />:
-  sector-oriented storage media such as flash chips, SD cards, and disk images.
-  In addition to base operations, block devices implement
-  <HostReference crate="file_system" kind="trait" symbol="MountOperations" />
+- <Api path="file_system::CharacterDevice" />: stream-oriented devices such as
+  serial ports, sensors, and pipes. They implement
+  <Api path="file_system::BaseOperations" /> to support contextual, asynchronous
+  byte transfers and typed control commands.
+- <Api path="file_system::BlockDevice" />: sector-oriented storage media such as
+  flash chips, SD cards, and disk images. In addition to base operations, block
+  devices implement
+  <Api path="file_system::MountOperations" />
   for mounting.
 
-Synchronous and direct environments use <HostReference crate="file_system" kind="trait" symbol="DirectCharacterDevice" /> and <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />. These traits provide context-free synchronous wrappers (`read_sync`, `write_sync`, `flush_sync`, `control_sync`).
+Synchronous and direct environments use <Api path="file_system::DirectCharacterDevice" /> and <Api path="file_system::DirectBlockDevice" />. These traits provide context-free synchronous wrappers (`read_sync`, `write_sync`, `flush_sync`, `control_sync`).
 
-Block devices expose standardized geometry commands defined through the <HostReference crate="file_system" kind="macro" symbol="define_command" /> macro:
+Block devices expose standardized geometry commands defined through the <Api path="file_system::define_command" /> macro:
 
-- <HostReference
-    crate="file_system/block_device"
-    kind="struct"
-    symbol="GET_BLOCK_SIZE"
-  >
+- <Api path="file_system::block_device::GET_BLOCK_SIZE">
     <code>file_system::block_device::GET_BLOCK_SIZE</code>
-  </HostReference>
+  </Api>
   : returns the device block size in bytes as a `u32` value.
-- <HostReference
-    crate="file_system/block_device"
-    kind="struct"
-    symbol="GET_BLOCK_COUNT"
-  >
+- <Api path="file_system::block_device::GET_BLOCK_COUNT">
     <code>file_system::block_device::GET_BLOCK_COUNT</code>
-  </HostReference>
+  </Api>
   : returns the total block count as a `Size` (`u64`) value.
-- <HostReference crate="file_system/block_device" kind="struct" symbol="ERASE">
+- <Api path="file_system::block_device::ERASE">
     <code>file_system::block_device::ERASE</code>
-  </HostReference>
+  </Api>
   : prepares a byte range for writing using an
-  <HostReference
-    crate="file_system/block_device"
-    kind="struct"
-    symbol="EraseRange"
-  >
+  <Api path="file_system::block_device::EraseRange">
     <code>EraseRange</code>
-  </HostReference>
+  </Api>
   structure.
 
 :::caution[Block erasure causes irreversible data loss]
@@ -76,24 +63,20 @@ Device read and write operations return `core::task::Poll<file_system::Result<T>
 
 The `mbr` module parses, validates, and writes Master Boot Record (MBR) partition tables using the <DocsRsReference crate="mbrman" /> crate.
 
-Every Xila disk image carries the disk signature <HostReference crate="file_system" kind="constant" symbol="XILA_DISK_SIGNATURE" />, defined as `u32::from_le_bytes(*b"Xila")` (`0x616C6958`). The partition manager reserves the first 2,048 sectors (`Mbr::MINIMUM_START_BLOCK`) for the partition table and alignment.
+Every Xila disk image carries the disk signature <Api path="file_system::XILA_DISK_SIGNATURE" />, defined as `u32::from_le_bytes(*b"Xila")` (`0x616C6958`). The partition manager reserves the first 2,048 sectors (`Mbr::MINIMUM_START_BLOCK`) for the partition table and alignment.
 
-<HostReference crate="file_system/mbr" kind="struct" symbol="Mbr">
+<Api path="file_system::mbr::Mbr">
   <code>file_system::mbr::Mbr</code>
-</HostReference>
+</Api>
 provides disk formatting and partition lookup:
 
 - `Mbr::validate` checks boot signatures, verifies that no partitions overlap, and enforces that at most one partition is marked bootable.
-- `Mbr::format_disk_with_signature_and_partition` writes an MBR header with the specified disk signature and a single <HostReference crate="file_system/mbr" kind="enum" symbol="PartitionKind"><code>PartitionKind::Xila</code></HostReference> partition starting at sector 2,048.
-- <HostReference
-    crate="file_system/mbr"
-    kind="fn"
-    symbol="create_partition_device"
-  >
+- `Mbr::format_disk_with_signature_and_partition` writes an MBR header with the specified disk signature and a single <Api path="file_system::mbr::PartitionKind"><code>PartitionKind::Xila</code></Api> partition starting at sector 2,048.
+- <Api path="file_system::mbr::create_partition_device">
     <code>file_system::mbr::create_partition_device</code>
-  </HostReference>
+  </Api>
   wraps an MBR partition entry into a
-  <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" />.
+  <Api path="file_system::PartitionDevice" />.
 
 ### Block device stack
 
@@ -119,7 +102,7 @@ For mounting details and runtime control flow, see the [Virtual file system](/ex
 
 ### In-memory simulation
 
-For automated testing and development without physical hardware, the crate provides <HostReference crate="file_system" kind="struct" symbol="MemoryDevice" />. It implements `DirectBlockDevice` over an in-memory byte buffer guarded by a synchronization lock. The block size is a const generic parameter:
+For automated testing and development without physical hardware, the crate provides <Api path="file_system::MemoryDevice" />. It implements `DirectBlockDevice` over an in-memory byte buffer guarded by a synchronization lock. The block size is a const generic parameter:
 
 ```rust
 use file_system::{DirectBaseOperations, MemoryDevice};
@@ -144,22 +127,15 @@ assert_eq!(written, data.len());
 
 ## API reference
 
-- <HostReference crate="file_system" />: crate root and fundamental types.
-- <HostReference crate="file_system" kind="trait" symbol="BlockDevice" />: block
-  device abstraction.
-- <HostReference crate="file_system" kind="trait" symbol="CharacterDevice" />:
-  character device abstraction.
-- <HostReference
-    crate="file_system"
-    kind="trait"
-    symbol="FileSystemOperations"
-  />
-  : file system backend contract.
-- <HostReference crate="file_system" kind="struct" symbol="PartitionDevice" />:
-  partition boundary wrapper.
-- <HostReference crate="file_system/mbr" kind="struct" symbol="Mbr">
+- <Api path="file_system" />: crate root and fundamental types.
+- <Api path="file_system::BlockDevice" />: block device abstraction.
+- <Api path="file_system::CharacterDevice" />: character device abstraction.
+- <Api path="file_system::FileSystemOperations" />: file system backend
+  contract.
+- <Api path="file_system::PartitionDevice" />: partition boundary wrapper.
+- <Api path="file_system::mbr::Mbr">
     <code>file_system::mbr::Mbr</code>
-  </HostReference>
+  </Api>
   : MBR partition table parser and validator.
 
 ## Related

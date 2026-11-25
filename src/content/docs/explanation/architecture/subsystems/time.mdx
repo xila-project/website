@@ -5,7 +5,7 @@ description: "Understand monotonic elapsed time, adjustable UTC realtime clocks,
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The time subsystem maintains monotonic elapsed time and adjustable UTC calendar time. It separates high-resolution interval measurements from civil clock adjustments. System timers therefore stay stable when real-time clocks are synchronized.
 
@@ -13,7 +13,7 @@ The time subsystem maintains monotonic elapsed time and adjustable UTC calendar 
 
 Operating systems need monotonic timers for timeouts, animation frames, and scheduling deadlines. These timers must never decrease or stall. Applications and filesystems also need UTC timestamps for civil calendar time.
 
-The <HostReference crate="time" /> crate isolates these two concerns. Real-time clock adjustments do not alter monotonic timers or disrupt network retransmissions and display loops.
+The <Api path="time" /> isolates these two concerns. Real-time clock adjustments do not alter monotonic timers or disrupt network retransmissions and display loops.
 
 ## How it works
 
@@ -31,9 +31,9 @@ flowchart LR
     UTC --> FileTimes["VFS file timestamps, civil clock"]
 ```
 
-The <HostReference crate="time" kind="struct" symbol="Manager" /> coordinates two distinct time representations:
+The <Api path="time::Manager" /> coordinates two distinct time representations:
 
-1. **Monotonic elapsed clock**: measures elapsed duration since boot via the <HostReference crate="time" kind="trait" symbol="MonotonicClock" /> trait.
+1. **Monotonic elapsed clock**: measures elapsed duration since boot via the <Api path="time::MonotonicClock" /> trait.
 2. **Realtime UTC calendar clock**: tracks civil time as a signed 128-bit integer representing nanoseconds since the Unix epoch.
 
 ### Monotonic clock and Embassy time
@@ -50,9 +50,9 @@ Monotonic readings never decrease during a boot session. The subsystem uses this
 
 The manager calculates UTC time by applying a checked signed offset to the monotonic clock reading. It does not poll hardware clock peripherals on every read:
 
-- **Initialization**: targets with a hardware real-time clock call `Manager::new` with an initial <HostReference crate="time" kind="trait" symbol="RealtimeSource" />.
+- **Initialization**: targets with a hardware real-time clock call `Manager::new` with an initial <Api path="time::RealtimeSource" />.
 - **Unsynchronized boots**: targets without an initial time source call `Manager::unsynchronized()`, leaving monotonic time active while UTC reads return an error until synchronized.
-- **Step adjustments**: calling `set_realtime` with a <HostReference crate="time" kind="struct" symbol="RealtimeSample" /> applies time corrections immediately without gradual slew.
+- **Step adjustments**: calling `set_realtime` with a <Api path="time::RealtimeSample" /> applies time corrections immediately without gradual slew.
 - **Subsystem effects**: the virtual file system applies UTC timestamps to created files if the clock is synchronized, while WebAssembly guest applications query monotonic or UTC clocks based on WASI clock subscriptions.
 
 ## Design choices and trade-offs
@@ -68,17 +68,13 @@ The manager calculates UTC time by applying a checked signed offset to the monot
 
 ## API reference
 
-- <HostReference crate="time" /> - crate root and type aliases.
-- <HostReference crate="time" kind="struct" symbol="Manager" /> - main time
-  subsystem manager.
-- <HostReference crate="time" kind="struct" symbol="Timestamp" /> - 128-bit
-  nanosecond UTC timestamp.
-- <HostReference crate="time" kind="trait" symbol="MonotonicClock" /> -
-  monotonic elapsed clock interface.
-- <HostReference crate="time" kind="trait" symbol="RealtimeSource" /> - hardware
-  or network real-time clock source contract.
-- <HostReference crate="time" kind="struct" symbol="RealtimeSample" /> -
-  real-time sample container.
+- <Api path="time" /> - crate root and type aliases.
+- <Api path="time::Manager" /> - main time subsystem manager.
+- <Api path="time::Timestamp" /> - 128-bit nanosecond UTC timestamp.
+- <Api path="time::MonotonicClock" /> - monotonic elapsed clock interface.
+- <Api path="time::RealtimeSource" /> - hardware or network real-time clock
+  source contract.
+- <Api path="time::RealtimeSample" /> - real-time sample container.
 
 ## Related
 

@@ -4,17 +4,17 @@ docType: explanation
 description: "How firmware update transactions stage, verify and activate an image."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
 The Core `firmware_update` library manages a firmware update transaction through a platform backend. Its device adapter exposes the transaction through the virtual file system (VFS).
 
 ## Context
 
-<HostReference crate="firmware_update" kind="struct" symbol="Update" /> owns a
-<HostReference crate="firmware_update" kind="trait" symbol="FirmwareBackend" />.
-The backend defines the image format, trust, staging geometry, and persistent
-boot state. The transaction tracks the current stream in memory.
+<Api path="firmware_update::Update" /> owns a
+<Api path="firmware_update::FirmwareBackend" />. The backend defines the image
+format, trust, staging geometry, and persistent boot state. The transaction
+tracks the current stream in memory.
 
 ## How it works
 
@@ -45,9 +45,8 @@ The backend owns verification and boot policy. The transaction keeps a proof bet
 
 ## API reference
 
-- <HostReference crate="firmware_update" />: update contracts.
-- <HostReference crate="firmware_update" kind="enum" symbol="State" />:
-  transaction states.
+- <Api path="firmware_update" />: update contracts.
+- <Api path="firmware_update::State" />: transaction states.
 - <CodeReference path="libraries/firmware_update/src/device.rs" />: device
   adapter.
 

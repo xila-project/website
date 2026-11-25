@@ -5,7 +5,7 @@ description: "Reference for the graphics WebAssembly ABI, status codes, supporte
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
+import Api from "@/components/Api.astro";
 
 The graphics bindings connect WebAssembly (Wasm) guest applications to the LVGL graphics subsystem. `xila-graphics-bindgen` (<CodeReference path="subsystems/graphics/bindings_generator" />) generates the interface. `xila-wasm` (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/mod.rs" />) dispatches the calls.
 
@@ -50,24 +50,24 @@ Every graphics call returns a numeric status code (<CodeReference path="subsyste
 
 The build-time registry filters cataloged calls to implemented host dispatchers:
 
-| Family                | Supported operations                                                        | Guest functions                                                                                                                                                              |
-| --------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows               | Creation, icon assignment, and window event retrieval                       | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="window_create" />                                                                                         |
-| Objects               | Generic object creation, deletion, coordinates, alignment, and flex layouts | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="object_delete" />                                                                                         |
-| Buttons               | Button creation, pressed state, and styling                                 | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="button_create" />                                                                                         |
-| Labels                | Text label creation, text assignment, and wrapping modes                    | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="label_create" />                                                                                          |
-| Button matrices       | Button matrix creation, map configuration, and selected button query        | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="buttonmatrix_create" />                                                                                   |
-| Text areas            | Text area creation, text reading, writing, and length limits                | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="textarea_create" />                                                                                       |
-| Sliders and bars      | Range configuration, values, start values, modes, and orientation           | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="slider_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="bar_create" />      |
-| Switches              | Switch creation, toggle state, and orientation                              | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="switch_create" />                                                                                         |
-| Spinners              | Spinner creation, animation duration, and arc sweep angle                   | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="spinner_create" />                                                                                        |
-| Dropdowns and rollers | Option list assignment, selection query, and row counts                     | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="dropdown_create" />, <GuestReference repo="applications" crate="wasm" kind="fn" symbol="roller_create" /> |
-| Calendars             | Calendar creation, displayed date, and highlight arrays                     | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="calendar_create" />                                                                                       |
-| Spinboxes             | Numerical value stepping, range limits, rollover, and formatting            | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="spinbox_create" />                                                                                        |
-| Charts                | Chart series creation, point count, axis ranges, and data points            | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="chart_create" />                                                                                          |
-| Lines                 | Line point array assignment and coordinate inversion                        | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="line_create" />                                                                                           |
-| Lists                 | Text button creation and button label updates                               | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="list_create" />                                                                                           |
-| Tileviews             | Multi-pane tile container creation and active tile navigation               | <GuestReference repo="applications" crate="wasm" kind="fn" symbol="tileview_create" />                                                                                       |
+| Family                | Supported operations                                                        | Guest functions                                                                                  |
+| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Windows               | Creation, icon assignment, and window event retrieval                       | <Api api="guest" path="wasm::window_create" />                                                   |
+| Objects               | Generic object creation, deletion, coordinates, alignment, and flex layouts | <Api api="guest" path="wasm::object_delete" />                                                   |
+| Buttons               | Button creation, pressed state, and styling                                 | <Api api="guest" path="wasm::button_create" />                                                   |
+| Labels                | Text label creation, text assignment, and wrapping modes                    | <Api api="guest" path="wasm::label_create" />                                                    |
+| Button matrices       | Button matrix creation, map configuration, and selected button query        | <Api api="guest" path="wasm::buttonmatrix_create" />                                             |
+| Text areas            | Text area creation, text reading, writing, and length limits                | <Api api="guest" path="wasm::textarea_create" />                                                 |
+| Sliders and bars      | Range configuration, values, start values, modes, and orientation           | <Api api="guest" path="wasm::slider_create" />, <Api api="guest" path="wasm::bar_create" />      |
+| Switches              | Switch creation, toggle state, and orientation                              | <Api api="guest" path="wasm::switch_create" />                                                   |
+| Spinners              | Spinner creation, animation duration, and arc sweep angle                   | <Api api="guest" path="wasm::spinner_create" />                                                  |
+| Dropdowns and rollers | Option list assignment, selection query, and row counts                     | <Api api="guest" path="wasm::dropdown_create" />, <Api api="guest" path="wasm::roller_create" /> |
+| Calendars             | Calendar creation, displayed date, and highlight arrays                     | <Api api="guest" path="wasm::calendar_create" />                                                 |
+| Spinboxes             | Numerical value stepping, range limits, rollover, and formatting            | <Api api="guest" path="wasm::spinbox_create" />                                                  |
+| Charts                | Chart series creation, point count, axis ranges, and data points            | <Api api="guest" path="wasm::chart_create" />                                                    |
+| Lines                 | Line point array assignment and coordinate inversion                        | <Api api="guest" path="wasm::line_create" />                                                     |
+| Lists                 | Text button creation and button label updates                               | <Api api="guest" path="wasm::list_create" />                                                     |
+| Tileviews             | Multi-pane tile container creation and active tile navigation               | <Api api="guest" path="wasm::tileview_create" />                                                 |
 
 ## Custom helpers
 

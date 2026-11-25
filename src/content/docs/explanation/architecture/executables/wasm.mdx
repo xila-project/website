@@ -5,9 +5,8 @@ description: "How Xila loads and executes WebAssembly guest applications using W
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
-import GuestReference from "@/components/GuestReference.astro";
 import DocsRsReference from "@/components/DocsRsReference.astro";
+import Api from "@/components/Api.astro";
 
 The Wasm executable loads WebAssembly (Wasm) guest applications from the virtual file system (VFS) of Xila and runs them with the <DocsRsReference crate="wasmi" /> interpreter. The `xila-wasm` crate in the Applications repository provides the host runtime and the guest API helpers.
 
@@ -15,7 +14,7 @@ The Wasm executable loads WebAssembly (Wasm) guest applications from the virtual
 
 Xila applications run as sandboxed WebAssembly modules instead of native machine code. This isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller development boards, native desktop builds, and browser platforms.
 
-The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<HostReference crate="virtual_file_system" kind="struct" symbol="VirtualFileSystem" />, <HostReference crate="task" kind="struct" symbol="Manager" />, and <HostReference crate="graphics" kind="struct" symbol="Manager" />) and implements <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" /> to integrate into Xila's process lifecycle.
+The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<Api path="virtual_file_system::VirtualFileSystem" />, <Api path="task::Manager" />, and <Api path="graphics::Manager" />) and implements <Api path="executable::ExecutableTrait" /> to integrate into Xila's process lifecycle.
 
 ## How it works
 
@@ -75,21 +74,12 @@ Xila maintains a strict separation between guest code and the host environment:
 
 ## API reference
 
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Interface implemented by the host runner.
-- <HostReference
-    crate="virtual_file_system"
-    kind="struct"
-    symbol="VirtualFileSystem"
-  />
-  : File system manager used to load guest modules.
-- <GuestReference
-    repo="applications"
-    crate="wasm"
-    kind="fn"
-    symbol="fd_control"
-  />
-  : Guest descriptor control function.
+- <Api path="executable::ExecutableTrait" />: Interface implemented by the host
+  runner.
+- <Api path="virtual_file_system::VirtualFileSystem" />: File system manager
+  used to load guest modules.
+- <Api api="guest" path="wasm::fd_control" />: Guest descriptor control
+  function.
 - <CodeReference repo="applications" path="executables/wasm/src/host/main.rs" />
   : Host executable entry point and argument parsing.
 

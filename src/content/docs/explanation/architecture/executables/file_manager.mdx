@@ -4,10 +4,10 @@ docType: explanation
 description: "Graphical virtual file system browser with directory navigation controls."
 ---
 
-import HostReference from "@/components/HostReference.astro";
 import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
 
-The File manager executable (<HostReference repo="applications" crate="file_manager" />) is a graphical directory browser for Xila. It shows the hierarchy of the virtual file system (VFS). Users can traverse directories and open arbitrary paths with a toolbar and an interactive file list.
+The File manager executable (<CodeReference repo="applications" path="executables/file_manager"><code>file_manager</code> crate</CodeReference>) is a graphical directory browser for Xila. It shows the hierarchy of the virtual file system (VFS). Users can traverse directories and open arbitrary paths with a toolbar and an interactive file list.
 
 ## Context
 
@@ -42,7 +42,7 @@ flowchart TD
     List --> Files["File entries (LV_SYMBOL_FILE)"]
 ```
 
-When started, File manager creates an <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" /> with the icon "Fm" (Cyan hue). It arranges the contents in a vertical flex layout:
+When started, File manager creates an <Api path="graphics::OwnedWindow" /> with the icon "Fm" (Cyan hue). It arranges the contents in a vertical flex layout:
 
 1. **Toolbar**: A horizontal bar containing navigation controls:
    - **Up button** (`LV_SYMBOL_UP`): Opens the parent directory of the current path. Disabled at the file system root (`/`).
@@ -57,8 +57,8 @@ When started, File manager creates an <HostReference crate="graphics" kind="stru
 
 When navigating to a new path:
 
-1. File manager checks that the path is absolute. Otherwise it joins the path against the current path using <HostReference crate="file_system" kind="struct" symbol="PathOwned" />.
-2. It opens the directory through the VFS using <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />.
+1. File manager checks that the path is absolute. Otherwise it joins the path against the current path using <Api path="file_system::PathOwned" />.
+2. It opens the directory through the VFS using <Api path="virtual_file_system::Directory" />.
 3. It iterates over directory entries, collecting file names, entry kinds (file, directory, device, pipe, or link), and file sizes.
 4. It sorts the entries: directories first, then the other entries, alphabetically, ignoring case.
 5. It clears the old list buttons and creates new buttons for each entry, styled by entry kind:
@@ -82,16 +82,15 @@ File manager does not create its own shortcut file at runtime. Platforms seeds t
 
 ## API reference
 
-- <HostReference repo="applications" crate="file_manager" />: File manager
-  crate.
-- <HostReference crate="executable" kind="trait" symbol="ExecutableTrait" />:
-  Core host executable contract.
-- <HostReference crate="virtual_file_system" kind="struct" symbol="Directory" />
-  : VFS directory reading interface.
-- <HostReference crate="file_system" kind="struct" symbol="PathOwned" />:
-  Managed heap-allocated path.
-- <HostReference crate="graphics" kind="struct" symbol="OwnedWindow" />: Managed
-  window surface.
+- <CodeReference repo="applications" path="executables/file_manager">
+    <code>file_manager</code> crate
+  </CodeReference>
+  : File manager crate.
+- <Api path="executable::ExecutableTrait" />: Core host executable contract.
+- <Api path="virtual_file_system::Directory" />: VFS directory reading
+  interface.
+- <Api path="file_system::PathOwned" />: Managed heap-allocated path.
+- <Api path="graphics::OwnedWindow" />: Managed window surface.
 
 ## Related
 

@@ -5,7 +5,7 @@ description: "Synchronization primitives, async locks, and portable reference-co
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The `synchronization` crate standardizes synchronization primitives across Xila. It re-exports async synchronization tools from `embassy-sync` and the portable reference-counted pointers `Arc` and `Weak` from `portable_atomic_util`. It lives in the Core repository under `libraries/synchronization/`. The `xila` facade crate exposes it.
 
@@ -19,7 +19,7 @@ Xila runs on architectures from desktop x86_64 and 32-bit ARM Cortex-M processor
 
 The crate re-exports concurrency tools from `embassy-sync`:
 
-- Async mutexes: <HostReference crate="synchronization/mutex" kind="struct" symbol="Mutex"><code>synchronization::mutex::Mutex</code></HostReference> provides a non-blocking async lock for asynchronous tasks.
+- Async mutexes: <Api path="synchronization::mutex::Mutex"><code>synchronization::mutex::Mutex</code></Api> provides a non-blocking async lock for asynchronous tasks.
 - Reader-writer locks: `rwlock::RwLock` allows multiple readers or a single writer across tasks.
 - Channels: `channel::Channel` supplies bounded async queues for inter-task communication.
 - Signals: `signal::Signal` delivers one-shot notifications between producers and consumers.
@@ -27,7 +27,7 @@ The crate re-exports concurrency tools from `embassy-sync`:
 
 ### Portable reference counting
 
-The <HostReference crate="synchronization" kind="struct" symbol="Arc" /> and <HostReference crate="synchronization" kind="struct" symbol="Weak" /> types are re-exports from `portable_atomic_util` (<CodeReference path="libraries/synchronization/src/arc/mod.rs" />). That crate provides atomic reference counting. A target without atomic compare-and-swap instructions, such as the ESP32-C2, ESP32-C3 and ESP32-S2, needs a backend from `portable-atomic`: the firmware must enable its `unsafe-assume-single-core` or `critical-section` feature. The `synchronization` crate does not select the backend.
+The <Api path="synchronization::Arc" /> and <Api path="synchronization::Weak" /> types are re-exports from `portable_atomic_util` (<CodeReference path="libraries/synchronization/src/arc/mod.rs" />). That crate provides atomic reference counting. A target without atomic compare-and-swap instructions, such as the ESP32-C2, ESP32-C3 and ESP32-S2, needs a backend from `portable-atomic`: the firmware must enable its `unsafe-assume-single-core` or `critical-section` feature. The `synchronization` crate does not select the backend.
 
 The following diagram shows the categorization of synchronization primitives and the reference-counted pointer re-export:
 
@@ -55,15 +55,13 @@ The `embassy-sync` primitives coordinate cooperative tasks without blocking. The
 
 ## API reference
 
-- <HostReference crate="synchronization" />: package documentation and root
-  re-exports.
-- <HostReference crate="synchronization" kind="struct" symbol="Arc" />: shared
-  reference-counted pointer.
-- <HostReference crate="synchronization" kind="struct" symbol="Weak" />:
-  non-owning weak pointer to an `Arc` allocation.
-- <HostReference crate="synchronization/mutex" kind="struct" symbol="Mutex">
+- <Api path="synchronization" />: package documentation and root re-exports.
+- <Api path="synchronization::Arc" />: shared reference-counted pointer.
+- <Api path="synchronization::Weak" />: non-owning weak pointer to an `Arc`
+  allocation.
+- <Api path="synchronization::mutex::Mutex">
     <code>synchronization::mutex::Mutex</code>
-  </HostReference>
+  </Api>
   : cooperative async mutex.
 
 ## Related

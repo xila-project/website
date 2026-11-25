@@ -5,7 +5,7 @@ description: "Origin Private File System persistence, main-thread memory caching
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
-import HostReference from "@/components/HostReference.astro";
+import Api from "@/components/Api.astro";
 
 The browser runtime persists Xila storage inside the Origin Private File System (OPFS). It bridges synchronous block device operations with asynchronous browser APIs through a memory cache and exclusive Web Locks leases.
 
@@ -64,10 +64,9 @@ Deleting a disk removes its OPFS file handle immediately. Clearing browser site 
 
 ## API reference
 
-- <HostReference crate="file_system" kind="trait" symbol="DirectBlockDevice" />:
-  synchronous block device contract.
-- <HostReference crate="little_fs" kind="fn" symbol="mount_disk" />: safe disk
-  mounting without reformatting.
+- <Api path="file_system::DirectBlockDevice" />: synchronous block device
+  contract.
+- <Api path="little_fs::mount_disk" />: safe disk mounting without reformatting.
 - <CodeReference repo="platforms" path="drivers/wasm/src/devices/drive.rs" />:
   browser OPFS drive device.
 - <CodeReference repo="platforms" path="examples/wasm/src/storage.rs" />:
