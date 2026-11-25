@@ -28,14 +28,15 @@ direction: down
 idle: Idle { class: component }
 active: States that abort returns to Idle { class: layer
   grid-columns: 2
+  grid-gap: 80
   verified: Verified { class: component }
   receiving: Receiving { class: component }
   pending_boot: Pending boot { class: component }
   failed: Failed { class: component }
   receiving -> verified: finish
   verified -> pending_boot: activate
-  receiving -> failed: failure
-  verified -> failed: failure
+  receiving -> failed: error
+  verified -> failed: error
 }
 idle -> active.receiving: begin
 idle -> active.failed: begin fails
@@ -44,7 +45,7 @@ active -> idle: abort succeeds
 
 </div>
 
-A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
+A successful begin declares the image length. Writes stream data to the backend. Finish checks the received length and obtains a verification proof. Activation consumes that proof. Abort calls the backend and clears the transaction state when it succeeds. A failed abort puts the transaction in `Failed`. Confirmation of the running image is a separate backend operation that is allowed in `Idle`.
 
 The optional device adapter exposes `/devices/system/firmware`. Its control commands manage the transaction. Writes supply image bytes. See <CodeReference path="libraries/firmware_update/src/device.rs" /> for the device contract.
 

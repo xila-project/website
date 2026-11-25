@@ -65,7 +65,7 @@ stopped: Stopped { class: component }
 boot -> intro: Bootsplash::new
 intro.arms -> first_cycle: intro completed (900 ms)
 first_cycle -> ripple: first cycle completed
-ripple -> ripple: arm pulse, 1600 ms
+ripple -> ripple: 1600 ms pulse
 ripple -> stopped: Bootsplash::stop
 ```
 
