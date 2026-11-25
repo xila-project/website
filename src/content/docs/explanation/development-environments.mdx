@@ -51,6 +51,7 @@ direction: right
 
 repositories: Repositories {
   class: layer
+  grid-rows: 1
   core: "Core (portable OS)" { class: component }
   applications: "Applications (guests and shells)" { class: component }
   platforms: "Platforms (runtimes and drivers)" { class: component }
@@ -58,6 +59,7 @@ repositories: Repositories {
 
 targets: Targets {
   class: layer
+  grid-columns: 2
   host: "x86_64-unknown-linux-gnu" { class: component }
   guest: "wasm32-wasip1" { class: component }
   browser: "wasm32-unknown-unknown" { class: component }
@@ -66,8 +68,9 @@ targets: Targets {
 
 artifacts: Artifacts {
   class: layer
-  native: "Native desktop runtime" { class: io }
+  grid-columns: 2
   guests: "Guest binaries (*.wasm)" { class: io }
+  native: "Native desktop runtime" { class: io }
   browser_runtime: "Browser runtime" { class: io }
   nano: "Microcontroller firmware" { class: io }
 }
