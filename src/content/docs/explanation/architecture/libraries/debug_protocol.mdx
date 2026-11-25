@@ -84,10 +84,10 @@ ui: Graphics (LVGL)
 
 client -> device: JSON request (op, name)
 device -> protocol: validate_request(request)
-protocol --> device: Ok(())
+protocol -> device: Ok(()) { class: optional }
 device -> ui: hit_test_and_click(Login)
-ui --> device: click executed
-device --> client: JSON response (ok)
+ui -> device: click executed { class: optional }
+device -> client: JSON response (ok) { class: optional }
 ```
 
 </div>

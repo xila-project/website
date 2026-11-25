@@ -68,22 +68,19 @@ shape: sequence_diagram
 
 caller: Caller
 execute: executable::execute
-vfs: Virtual file system
+vfs: VFS
 device: Executable device
 task_manager: Task manager
-task: Spawned task
 
-caller -> execute: execute(context, path, inputs, standard, spawner)
+caller -> execute: execute(...)
 execute -> vfs: get_statistics(path)
-execute -> execute: is_execute_allowed(user, statistics)
-execute -> vfs: File::open(path, Read)
+execute -> execute: is_execute_allowed
+execute -> vfs: File::open(path)
 execute -> device: control(GET_MAIN_FUNCTION)
-device --> execute: main_function
+device -> execute: main_function { class: optional }
 execute -> task_manager: spawn(file_name, closure)
-task_manager --> execute: join_handle
-execute --> caller: Ok(join_handle)
-task_manager -> task: run closure
-task -> task: main(context, standard, inputs)
+task_manager -> execute: join_handle { class: optional }
+execute -> caller: Ok(join_handle) { class: optional }
 ```
 
 </div>

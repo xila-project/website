@@ -18,31 +18,28 @@ tracks the current stream in memory.
 
 ## How it works
 
-The following diagram shows successful transaction transitions and failure recovery.
+The following diagram shows successful transaction transitions and failure recovery. The transaction starts in the `Idle` state.
 
 <div className="diagram">
 
 ```d2 title="Firmware update transaction states and failure recovery"
 direction: down
 
-start: Start { class: io }
 idle: Idle { class: component }
-receiving: Receiving { class: component }
-verified: Verified { class: component }
-pending_boot: Pending boot { class: component }
-failed: Failed { class: component }
-
-start -> idle
-idle -> receiving: begin
-receiving -> verified: finish
-verified -> pending_boot: activate
-receiving -> failed: transaction failure
-verified -> failed: transaction failure
-idle -> failed: backend begin failure
-failed -> idle: abort succeeds
-receiving -> idle: abort succeeds
-verified -> idle: abort succeeds
-pending_boot -> idle: abort succeeds
+active: States that abort returns to Idle { class: layer
+  grid-columns: 2
+  verified: Verified { class: component }
+  receiving: Receiving { class: component }
+  pending_boot: Pending boot { class: component }
+  failed: Failed { class: component }
+  receiving -> verified: finish
+  verified -> pending_boot: activate
+  receiving -> failed: failure
+  verified -> failed: failure
+}
+idle -> active.receiving: begin
+idle -> active.failed: begin fails
+active -> idle: abort succeeds
 ```
 
 </div>

@@ -90,15 +90,15 @@ hasher: Hasher device
 
 client -> auth: authenticate_user(username, password)
 auth -> vfs: File::open(user record)
-vfs --> auth: user JSON (salt, hash)
+vfs -> auth: user JSON (salt, hash) { class: optional }
 auth -> vfs: File::open(hasher device)
 auth -> hasher: control(SET_ALGORITHM, Sha512)
 auth -> hasher: write(password)
 auth -> hasher: write(salt)
 auth -> hasher: read(hash_buffer)
-hasher --> auth: computed digest
+hasher -> auth: computed digest { class: optional }
 auth -> auth: compare digest with stored hash
-auth --> client: Ok(UserIdentifier)
+auth -> client: Ok(UserIdentifier) { class: optional }
 ```
 
 </div>

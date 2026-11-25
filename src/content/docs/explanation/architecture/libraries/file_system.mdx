@@ -87,7 +87,7 @@ The following diagram shows how storage layers compose from physical media to th
 ```d2 title="Block device stack from the physical media to the virtual file system root"
 direction: down
 
-physical: Physical block device (FileDriveDevice or DriveDevice) { class: hardware }
+physical: Block device (file or browser) { class: component }
 mbr: MBR partition table (XILA_DISK_SIGNATURE) { class: stored }
 partition: PartitionDevice (from sector 2048) { class: component }
 littlefs: "LittleFS (little_fs::FileSystem)" { class: stored }
