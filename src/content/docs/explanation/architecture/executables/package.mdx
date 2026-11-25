@@ -25,7 +25,7 @@ direction: down
 archive: "Package (.xpk)" { class: io }
 staging: "Private staging directory" { class: component }
 verify: "Verify signature, hashes, target, version" { class: component }
-entry: "Match registry entry" { class: component }
+entry: "Match registry entry (repository install only)" { class: component }
 journal: "Journaled activation" { class: component }
 bundle: "/applications/bundles/<identifier>" { class: stored }
 archive -> staging: "512-byte blocks"
@@ -37,7 +37,7 @@ journal -> bundle
 
 </div>
 
-The installer reads the archive in 512-byte TAR blocks and writes them to a staging directory (mode 0700) inside `/applications/bundles/`. Verification checks the signature, the payload hashes, the target, and the Xila version. A repository install also matches the archive against its registry entry; that step does not apply with `--public-key` or `--allow-untrusted`. A journaled activation then moves the bundle to `/applications/bundles/<identifier>/`. The commands `install`, `upgrade`, `remove`, `recover`, `list`, `info`, and `search` manage packages. The `repository` commands add, list, and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
+The installer reads the archive in 512-byte TAR blocks and writes them to a staging directory (mode 0700) inside `/applications/bundles/`. Verification checks the signature, the payload hashes, the target, and the Xila version, and rejects packages that request capabilities or whose entry point is not a bundled WASI binary. A repository install also matches the archive against its registry entry; that step does not apply with `--public-key` or `--allow-untrusted`. A journaled activation then moves the bundle to `/applications/bundles/<identifier>/`. The commands `install`, `upgrade`, `remove`, `recover`, `list`, `info`, and `search` manage packages. The `repository` commands add, list, and remove configured repositories. See [Package management](/explanation/package-management/) for the trust chain.
 
 ## Design choices and trade-offs
 
