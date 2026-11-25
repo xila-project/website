@@ -16,29 +16,59 @@ A package (a `.xpk` file) carries a manifest and payload. The [registry reposito
 
 The following diagram shows the publication and installation paths.
 
-```mermaid
-flowchart LR
-    Build[Build bundle] --> Sign[Developer signs]
-    Sign --> Release[Release package]
-    Release --> Entry[Generate entry]
-    Entry --> Publish[Repository signs metadata]
-    Publish --> Install[Device verifies and installs]
-    Release --> Install
+<div className="diagram">
+
+```d2 title="Publication and installation paths of a package"
+direction: right
+
+tool: "Package tool" { class: component }
+developer_key: "Developer key" { class: key }
+bundle: "Signed bundle" { class: record }
+archive: "Package (.xpk)" { class: stored }
+release: "Release asset" { class: stored }
+entry: "Registry entry" { class: record }
+repository_key: "Repository key" { class: key }
+registry: Registry { class: stored }
+device: "Device (verifies and installs)" { class: hardware }
+
+tool -> bundle: builds
+developer_key -> bundle: signs { class: trust }
+bundle -> archive: archives into
+archive -> release: released as
+archive -> entry: generates
+repository_key -> entry: signs { class: trust }
+entry -> registry: publishes
+release -> device: downloads
+device -> registry: reads entry
 ```
+
+</div>
 
 The desktop tool builds and signs a bundle, then makes a package from it. A registry entry (format 2) is generated from the package, never written by hand. Registry publication signs each entry, developer key, namespace file and the index with the repository key. The device downloads the package from its release URL.
 
 The following diagram shows the trust chain for a repository install.
 
-```mermaid
-flowchart LR
-    Root[Trusted root key] --> Repo[Repository key]
-    Repo --> Entry[Registry entry]
-    Repo --> Developer[Developer key]
-    Entry --> Developer
-    Developer --> Signature[Package signature]
-    Signature --> Hashes[File hashes]
+<div className="diagram">
+
+```d2 title="Trust chain of a repository install"
+direction: right
+
+root_key: "Trusted root key" { class: key }
+repository_key: "Repository key" { class: key }
+entry: "Registry entry" { class: record }
+developer_key: "Developer key" { class: key }
+signature: "Package signature" { class: record }
+hashes: "File hashes" { class: stored }
+
+root_key -> repository_key: authenticates { class: trust }
+repository_key -> entry: signs { class: trust }
+repository_key -> developer_key: authorizes { class: trust }
+entry -> developer_key: "names publisher"
+developer_key -> signature: signs { class: trust }
+signature -> hashes: covers { class: trust }
 ```
+
+</div>
 
 The root key authenticates repository keys. A repository key signs each entry, developer key, namespace file and the index. The entry names the authorized publisher, pins the archive URL, digest and size, and copies the display name and catalog metadata from the signed manifest. The developer key authenticates the manifest, which contains a SHA-256 digest for each file. The installer checks the downloaded package and its payload against these records.
 

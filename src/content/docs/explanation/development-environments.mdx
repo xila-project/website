@@ -44,42 +44,48 @@ The Espressif boards add more targets, built from the board crates in `examples/
 
 The following diagram shows which repository builds which runtime for which target architecture.
 
-```mermaid
-flowchart LR
-    subgraph Repositories
-        C["Core\n(portable OS)"]
-        A["Applications\n(guests & shells)"]
-        P["Platforms\n(runtimes & drivers)"]
-    end
+<div className="diagram">
 
-    subgraph Targets
-        T_HOST["x86_64-unknown-linux-gnu"]
-        T_GUEST["wasm32-wasip1"]
-        T_WASM["wasm32-unknown-unknown"]
-        T_ARM["thumbv7em-none-eabihf"]
-    end
+```d2 title="Which repository builds which runtime for which target"
+direction: right
 
-    subgraph Artifacts
-        OUT_NATIVE["Native desktop runtime\n(native_example)"]
-        OUT_GUESTS["Guest binaries\n(*.wasm)"]
-        OUT_BROWSER["Browser runtime\n(xila-wasm-example)"]
-        OUT_NANO["Microcontroller firmware\n(nano_33_ble_example)"]
-    end
+repositories: Repositories {
+  class: layer
+  core: "Core (portable OS)" { class: component }
+  applications: "Applications (guests and shells)" { class: component }
+  platforms: "Platforms (runtimes and drivers)" { class: component }
+}
 
-    C --> P
-    A -->|compiles to| T_GUEST
-    T_GUEST --> OUT_GUESTS
-    OUT_GUESTS -->|seeded into| P
+targets: Targets {
+  class: layer
+  host: "x86_64-unknown-linux-gnu" { class: component }
+  guest: "wasm32-wasip1" { class: component }
+  browser: "wasm32-unknown-unknown" { class: component }
+  arm: "thumbv7em-none-eabihf" { class: component }
+}
 
-    P -->|compiles to| T_HOST
-    T_HOST --> OUT_NATIVE
+artifacts: Artifacts {
+  class: layer
+  native: "Native desktop runtime" { class: io }
+  guests: "Guest binaries (*.wasm)" { class: io }
+  browser_runtime: "Browser runtime" { class: io }
+  nano: "Microcontroller firmware" { class: io }
+}
 
-    P -->|compiles to| T_WASM
-    T_WASM --> OUT_BROWSER
-
-    P -->|compiles to| T_ARM
-    T_ARM --> OUT_NANO
+repositories.core -> repositories.applications
+repositories.core -> repositories.platforms
+repositories.applications -> targets.guest: compiles to
+targets.guest -> artifacts.guests
+artifacts.guests -> repositories.platforms: seeded into
+repositories.platforms -> targets.host: compiles to
+targets.host -> artifacts.native
+repositories.platforms -> targets.browser: compiles to
+targets.browser -> artifacts.browser_runtime
+repositories.platforms -> targets.arm: compiles to
+targets.arm -> artifacts.nano
 ```
+
+</div>
 
 The build flow works as follows:
 
