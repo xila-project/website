@@ -75,7 +75,8 @@
 }
 
 .diagram .d2-svg :is(.layer, .boundary) > text {
-  fill: var(--diagram-muted) !important;
+  fill: var(--diagram-stroke) !important;
+  font-size: var(--sl-text-sm) !important;
 }
 
 .diagram .d2-svg .focus .shape :is(rect, path, polygon) {
