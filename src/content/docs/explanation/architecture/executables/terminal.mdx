@@ -26,31 +26,40 @@ Terminal acts as a terminal emulator and a virtual device:
 
 The following diagram shows the data flow between the graphical user interface, the mounted terminal character device, standard streams, and the child command-line shell task.
 
-```mermaid
-flowchart LR
-    subgraph GUI["Graphical terminal window"]
-        TextArea["Input text area"]
-        Display["Scrollable label display"]
-    end
-    subgraph Device["/devices/terminal_{task}"]
-        InQueue["Validated input queue"]
-        Waiters["WaitQueue readers"]
-    end
-    subgraph Streams["Standard streams"]
-        StdIn["Standard input (stdin)"]
-        StdOut["Standard output (stdout/stderr)"]
-    end
-    subgraph Shell["Command-line shell task"]
-        ShellExec["Shell executable"]
-    end
+<div className="diagram">
 
-    TextArea -->|"Enter or Send"| InQueue
-    InQueue -->|"Wake readers"| Waiters
-    Waiters --> StdIn
-    StdIn --> ShellExec
-    ShellExec --> StdOut
-    StdOut -->|"UTF-8 chunks"| Display
+```d2 title="Data flow between the terminal window, the character device, the standard streams, and the shell task"
+direction: right
+
+gui: Graphical terminal window {
+  class: layer
+  input: Input text area { class: io }
+  display: Scrollable label display { class: io }
+}
+device: "/devices/terminal_{task}" {
+  class: layer
+  queue: Validated input queue { class: component }
+  waiters: WaitQueue readers { class: component }
+}
+streams: Standard streams {
+  class: layer
+  stdin: "Standard input (stdin)" { class: io }
+  stdout: "Standard output (stdout/stderr)" { class: io }
+}
+shell: Command-line shell task {
+  class: layer
+  executable: Shell executable { class: component }
+}
+
+gui.input -> device.queue: Enter or Send
+device.queue -> device.waiters: Wake readers
+device.waiters -> streams.stdin
+streams.stdin -> shell.executable
+shell.executable -> streams.stdout
+streams.stdout -> gui.display: UTF-8 chunks
 ```
+
+</div>
 
 When Terminal starts:
 

@@ -19,10 +19,20 @@ The guest requests geocoding and forecast data from Open-Meteo through `/devices
 
 The following diagram shows the launch path.
 
-```mermaid
-flowchart LR
-    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Weather"] --> API["Guest API"]
+<div className="diagram">
+
+```d2 title="Launch path of the Weather guest application"
+direction: right
+
+shortcut: Shortcut { class: stored }
+runner: Wasm runner { class: focus }
+guest: Weather { class: component }
+api: Guest API { class: component }
+
+shortcut -> runner -> guest -> api
 ```
+
+</div>
 
 The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 

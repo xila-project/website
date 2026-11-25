@@ -22,13 +22,24 @@ The host executable mounts at `/applications/executables/wasm` in the VFS. It de
 
 The following diagram shows how a guest call reaches a device driver or display hardware.
 
-```mermaid
-flowchart LR
-    Guest["Guest application (wasm32-wasip1)"] --> Import["Host import (WASI or graphics)"]
-    Import --> HostRuntime["Host runtime (xila-wasm)"]
-    HostRuntime --> Subsystem["VFS or graphics subsystem"]
-    Subsystem --> Driver["Device driver or display hardware"]
+<div className="diagram">
+
+```d2 title="System call pathway from a guest application to a device driver or display hardware"
+direction: right
+
+guest: "Guest (wasm32-wasip1)" {
+  class: boundary
+  app: Guest application { class: component }
+}
+import: "Host import (WASI or graphics)" { class: component }
+runtime: "Host runtime (xila-wasm)" { class: focus }
+subsystem: "VFS or graphics subsystem" { class: component }
+driver: "Device driver or display hardware" { class: hardware }
+
+guest.app -> import -> runtime -> subsystem -> driver
 ```
+
+</div>
 
 The guest application runs in sandboxed WebAssembly linear memory and calls an imported host function. System calls enter through `wasi_snapshot_preview1` for standard I/O or through `xila_graphics_call` for graphical operations. The host runtime checks memory bounds and task capabilities, then forwards the request to the Core subsystems. The subsystems dispatch typed control commands or pixel operations to the device drivers.
 

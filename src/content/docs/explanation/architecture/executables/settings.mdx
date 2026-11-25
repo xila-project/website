@@ -27,20 +27,36 @@ Settings provides:
 
 The following diagram shows how the Settings window coordinates its five configuration panels with Xila's core subsystems.
 
-```mermaid
-flowchart TD
-    Window["Settings window (OwnedWindow)"] --> TabView["Tabview container"]
-    TabView --> General["General tab"]
-    TabView --> Appearance["Appearance tab"]
-    TabView --> Password["Password tab"]
-    TabView --> Network["Network tab"]
-    TabView --> About["About tab"]
+<div className="diagram">
 
-    Appearance --> GraphicsMgr["Graphics & Appearance preferences"]
-    Password --> UsersMgr["Users manager"]
-    Network --> NetworkMgr["Network subsystem"]
-    About --> AboutData["System info & Memory manager"]
+```d2 title="Settings window, its five tabs, and the Core subsystems they use"
+direction: down
+
+window: "Settings window (OwnedWindow)" { class: focus }
+tabview: Tabview container { class: component }
+general: General tab { class: component }
+appearance: Appearance tab { class: component }
+password: Password tab { class: component }
+network: Network tab { class: component }
+about: About tab { class: component }
+graphics: "Graphics & Appearance preferences" { class: component }
+users: Users manager { class: component }
+network_subsystem: Network subsystem { class: component }
+system_info: "System info & Memory manager" { class: component }
+
+window -> tabview
+tabview -> general
+tabview -> appearance
+tabview -> password
+tabview -> network
+tabview -> about
+appearance -> graphics
+password -> users
+network -> network_subsystem
+about -> system_info
 ```
+
+</div>
 
 Settings creates an <Api path="graphics::OwnedWindow" /> with the icon "Se" (Grey palette). It flattens the window chrome and hosts a full-size LVGL tab view with five panels:
 
