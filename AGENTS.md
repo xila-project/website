@@ -115,7 +115,12 @@ The build resolves these links with `public/api/api-index.json`. `npm run docs:r
 
 ### Diagrams
 
-Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. In a `.md` page, which has no JSX, write `<div class="diagram">`. Keep a blank line between the `div` tags and the code fence. Do not write new Mermaid diagrams; the existing `mermaid` pages keep their browser rendering until they are converted to D2 (tracked in issue #132).
+Write new diagrams in D2. A fenced `d2` code block is rendered at build time to a static inline SVG by `astro-d2`, which runs D2.js as WebAssembly. The build needs no `d2` binary, and the page loads no diagram script. Wrap every `d2` block in a `<div className="diagram">` so that the stylesheet applies. In a `.md` page, which has no JSX, write `<div class="diagram">`. Keep a blank line between the `div` tags and the code fence. The site has no Mermaid: every diagram is a D2 block.
+
+Two lessons from converting every diagram to D2:
+
+- In D2, `-->` is a plain solid arrow, so a returned value or an optional relation needs `class: optional`.
+- Prefer plain chains or one top-to-bottom flow under the 832 px content width, without arrows from outside a frame into its children.
 
 The stylesheet `src/styles/diagrams.css` sets every colour, stroke and font of a diagram from the theme variables, so one render serves the light and the dark theme. Set no colour in the D2 source; use only the theme variables through the shape classes below.
 
