@@ -30,6 +30,27 @@ fn xila_graphics_call(
 
 The function receives a numeric call identifier, up to seven word arguments (`a` through `g`), and an argument count. It also receives a guest memory address for return data. The address is optional.
 
+The following diagram shows one call from the guest to LVGL and its returns.
+
+<div className="diagram">
+
+```d2 title="One graphics call from the guest to LVGL"
+shape: sequence_diagram
+
+guest: Guest { class: component }
+host: "Host import" { class: component }
+lvgl: "Call executor and LVGL" { class: component }
+
+guest -> host: "xila_graphics_call(function, arguments)"
+host -> lvgl: "dispatch to the call executor"
+lvgl -> host: "result, or NativeFailure" { class: optional }
+host -> guest: "status code, optional result" { class: optional }
+```
+
+</div>
+
+The host import writes the optional result into guest memory at the given address and returns the status code to the guest.
+
 ## Status codes
 
 Every graphics call returns a numeric status code (<CodeReference path="subsystems/graphics/src/call/error.rs" />):
@@ -45,6 +66,8 @@ Every graphics call returns a numeric status code (<CodeReference path="subsyste
 | 6    | `ResourceLimit`         | Operation exceeds capacity limits for objects, canvas pixels, or buffers |
 | 7    | `InvalidValue`          | Argument value is out of bounds or represents an invalid enum state      |
 | 8    | `NativeFailure`         | Underlying LVGL graphics operation returned failure                      |
+
+The layer that returns each code differs. The host import (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/wasmi.rs" />) returns `InvalidMemory` when the module has no linear memory and `Unavailable` when the execution context has no graphics manager, before any dispatch. The call executor (<CodeReference path="subsystems/graphics/src/call/mod.rs" />) returns `Unsupported` for an unmapped call identifier, `InvalidArgumentsCount` for a wrong argument count, `Unavailable` when the state has no graphics manager, and `InvalidMemory` for a result pointer outside guest memory. Argument marshalling (<CodeReference path="subsystems/graphics/src/call/marshal.rs" />) returns `InvalidMemory`, `ResourceLimit`, and `InvalidValue`. The widget handlers and the object table return `InvalidHandle`. A failed LVGL operation, or a failed graphics lock acquisition, returns `NativeFailure`.
 
 ## Supported widget families
 
