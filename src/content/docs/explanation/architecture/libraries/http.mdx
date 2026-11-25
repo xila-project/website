@@ -59,12 +59,18 @@ The decoder runs an internal state machine (`ChunkState`) for chunk size parsing
 
 The following diagram shows how `BodyDecoder` compacts chunked HTTP transfer frames in-place within a single buffer:
 
-```mermaid
-flowchart TD
-    Raw["Raw buffer: [Hex size \\r\\n][Payload bytes][\\r\\n]"] --> Decoder["BodyDecoder state machine"]
-    Decoder --> Compact["In-place compaction"]
-    Compact --> Output["Decoded buffer: [Payload bytes (compacted)][Unused capacity]"]
+<div className="diagram">
+
+```d2 title="In-place chunked transfer decoding"
+direction: down
+raw: "Raw buffer: hex size, CRLF, payload bytes, CRLF" { class: io }
+decoder: BodyDecoder state machine { class: focus }
+decoded: "Decoded buffer: compacted payload bytes, unused capacity" { class: io }
+raw -> decoder: decode chunked frame
+decoder -> decoded: compact payload in place
 ```
+
+</div>
 
 Incoming data contains chunk boundaries, hexadecimal lengths, and carriage-return line feeds. The decoder strips the delimiter tokens and copies payload bytes toward the start of the buffer. The decoded content is then ready for the application, without separate copy buffers.
 

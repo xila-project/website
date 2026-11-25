@@ -46,14 +46,25 @@ LittleFS issues synchronous C callbacks for media operations. The `callbacks` mo
 
 The following flowchart illustrates how LittleFS callbacks interact with device contracts:
 
-```mermaid
-flowchart TD
-    App["VFS File / Directory operations"] --> FS["FileSystem (little_fs)"]
-    FS --> LFS["LittleFS C engine (littlefs2-sys)"]
-    LFS --> Callbacks["C callbacks (read, prog, erase, flush)"]
-    Callbacks --> Device["DirectBlockDevice (PartitionDevice / MemoryDevice)"]
-    Device --> ERASE["ERASE control command / write_pattern_sync"]
+<div className="diagram">
+
+```d2 title="LittleFS callbacks to the block device"
+direction: down
+app: VFS file and directory operations { class: io }
+fs: FileSystem (little_fs) { class: focus }
+engine: LittleFS C engine (littlefs2-sys) { class: component }
+callbacks: C callbacks (read, program, erase, flush) { class: component }
+device: DirectBlockDevice (PartitionDevice, MemoryDevice) { class: hardware }
+erase: Sector erase { class: hardware }
+app -> fs
+fs -> engine
+engine -> callbacks: synchronous C calls
+callbacks -> device
+device -> erase: ERASE control command
+device -> erase: write_pattern_sync fallback { class: optional }
 ```
+
+</div>
 
 Drivers must complete immediately, because C callbacks run synchronously on the executor thread. If a driver returns `Poll::Pending` or a short byte count, the callback returns `LFS_ERR_IO` instead of spinning.
 

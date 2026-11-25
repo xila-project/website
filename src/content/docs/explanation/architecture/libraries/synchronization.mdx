@@ -31,14 +31,25 @@ The <Api path="synchronization::Arc" /> and <Api path="synchronization::Weak" />
 
 The following diagram shows the categorization of synchronization primitives and the reference-counted pointer re-export:
 
-```mermaid
-flowchart TD
-    Sync["synchronization crate"] --> AsyncLocks["Async primitives\n(embassy-sync)"]
-    AsyncLocks --> Mutex["mutex::Mutex\nrwlock::RwLock"]
-    AsyncLocks --> Comm["channel::Channel\nsignal::Signal"]
-    Sync --> Blocking["blocking_mutex::Mutex\n(CriticalSectionRawMutex)"]
-    Sync --> ArcReexport["Arc / Weak\n(portable_atomic_util)"]
+<div className="diagram">
+
+```d2 title="Re-exports of the synchronization crate"
+direction: down
+sync: synchronization crate { class: focus }
+async: Async primitives (embassy-sync) {
+  class: layer
+  mutex: "mutex::Mutex, rwlock::RwLock" { class: component }
+  comm: "channel::Channel, signal::Signal" { class: component }
+}
+blocking: "blocking_mutex::Mutex (CriticalSectionRawMutex)" { class: component }
+pointers: "Arc and Weak (portable_atomic_util)" { class: component }
+sync -> async.mutex
+sync -> async.comm
+sync -> blocking
+sync -> pointers
 ```
+
+</div>
 
 The `embassy-sync` primitives coordinate cooperative tasks without blocking. The blocking mutexes protect critical sections. `Arc` and `Weak` come from `portable_atomic_util`, which adapts the reference counting to the target hardware.
 
