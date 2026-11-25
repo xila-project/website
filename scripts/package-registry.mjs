@@ -516,8 +516,14 @@ export async function fetchRegistryCatalog({
   }
 
   if (entries.length === 0 && skippedEntries.length > 0) {
+    const first = skippedEntries[0];
+    // Keep the first failure's kind in the prefix, so the catalog page can
+    // tell a network failure from invalid registry data.
+    const prefix = first.reason.startsWith("Failed to fetch the entry")
+      ? "Failed to fetch registry entries"
+      : "No registry entry could be loaded";
     throw new Error(
-      `No registry entry could be loaded. First failure: ${skippedEntries[0].entryPath}: ${skippedEntries[0].reason}`,
+      `${prefix}. First failure: ${first.entryPath}: ${first.reason}`,
     );
   }
 

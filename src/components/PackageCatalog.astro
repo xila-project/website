@@ -722,7 +722,6 @@ import { Icon } from "@astrojs/starlight/components";
         populateSelect(publisherSelect, publishers, "All publishers");
 
         loadingState.hidden = true;
-        render();
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -738,7 +737,11 @@ import { Icon } from "@astrojs/starlight/components";
         errorMessage.textContent = isNetworkError
           ? `Check the network connection, then retry. Details: ${details}`
           : `The registry returned invalid data. Details: ${details}`;
+        return;
       }
+      // Render outside the load error handling: a failure in render() is a
+      // programming error, not a network or registry data problem.
+      render();
     };
 
     const clearFilters = () => {

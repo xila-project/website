@@ -522,7 +522,51 @@ test("fails when no registry entry can be loaded", async () => {
         new Map([["https://registry.example.org/index.json", PARTIAL_INDEX]]),
       ),
     }),
-    /No registry entry could be loaded/,
+    /Failed to fetch registry entries\. First failure: packages\/xila\/clock\/0\.2\.0\.json: Failed to fetch the entry: HTTP 404\./,
+  );
+});
+
+test("classifies the aggregate entry error by the first failure", async () => {
+  // Every entry body is invalid JSON: not a fetch failure, so the aggregate
+  // error keeps the invalid-data prefix.
+  await assert.rejects(
+    fetchRegistryCatalog({
+      baseUrl: "https://registry.example.org",
+      fetchImpl: async (url) => {
+        if (url.endsWith("/index.json")) {
+          return { ok: true, status: 200, json: async () => PARTIAL_INDEX };
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            throw new SyntaxError("Unexpected token");
+          },
+        };
+      },
+    }),
+    /No registry entry could be loaded\. First failure: packages\/xila\/clock\/0\.2\.0\.json: Failed to parse the entry: /,
+  );
+
+  // Every entry fails validation: same invalid-data classification.
+  await assert.rejects(
+    fetchRegistryCatalog({
+      baseUrl: "https://registry.example.org",
+      fetchImpl: fixtureFetch(
+        new Map([
+          ["https://registry.example.org/index.json", PARTIAL_INDEX],
+          [
+            "https://registry.example.org/packages/xila/clock/0.2.0.json",
+            makeFormat2Entry({ name: "foo.bar" }),
+          ],
+          [
+            "https://registry.example.org/packages/xila/digits/0.2.0.json",
+            makeFormat2Entry({ name: "bar.baz" }),
+          ],
+        ]),
+      ),
+    }),
+    /No registry entry could be loaded\. First failure: packages\/xila\/clock\/0\.2\.0\.json: Registry entry has an invalid package name\./,
   );
 });
 
