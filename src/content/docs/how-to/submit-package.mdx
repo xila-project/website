@@ -42,23 +42,21 @@ release: "Released .xpk at an HTTPS URL" { class: io }
 form: "Submit a package issue form" { class: component }
 workflow: "Submission workflow" { class: component }
 pull_request: "Pull request: entry, and developer key if new" { class: component }
-validate: "tools/validate.sh" { class: component }
 publish: "xila-package registry sign" { class: component }
 registry: "Published registry at registry.xila.dev" { class: stored }
 repository_key: "Repository key" { class: key }
 
 release -> form: "URL, SHA-256, publisher"
-form -> workflow: "downloads and verifies the archive"
-workflow -> pull_request: "xila-package registry entry"
-pull_request -> validate: "pull request checks"
-validate -> publish: merged
+form -> workflow: "issue text"
+workflow -> pull_request: "downloads, verifies, generates the entry"
+pull_request -> publish: "validate.sh, then merge (automatic or after review)"
 publish -> registry: deploys
 repository_key -> publish: signs { class: trust }
 ```
 
 </div>
 
-You usually submit through the **Submit a package** issue form of the registry repository; the steps above describe the same submission done by hand. The submission workflow downloads the archive (HTTPS only), verifies its signature, generates the entry with `xila-package registry entry`, runs `tools/validate.sh`, and opens the pull request. The pull request runs the same validation, including the immutability check. After the merge, the publish workflow signs every entry, developer key, namespace file and the index with the repository key (the thick arrow) and deploys the signed site to registry.xila.dev.
+You usually submit through the **Submit a package** issue form of the registry repository; the steps above describe the same submission done by hand. The submission workflow downloads the archive (HTTPS only), verifies its signature, generates the entry with `xila-package registry entry`, runs `tools/validate.sh`, and opens the pull request. The pull request runs the same validation, including the immutability check. The workflow merges the pull request automatically only when the developer key already exists and the submission adds no key and no namespace file, the namespace and kind grants of the key cover the package, the version is new, validation passes, and the archive is a GitHub release asset of the repository that the signed package names in `metadata.source`; every other submission waits for a maintainer review. After the merge, the publish workflow signs every entry, developer key, namespace file and the index with the repository key (the thick arrow) and deploys the signed site to registry.xila.dev.
 
 ## Verify the result
 

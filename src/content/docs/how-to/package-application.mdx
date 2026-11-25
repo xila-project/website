@@ -64,7 +64,7 @@ archive -> package
 
 </div>
 
-`bundle init` creates the source folder with the editable `xila-package.json`. `bundle build` hashes every payload file and, with `--signing-key`, signs the manifest: the thick arrow shows the developer seed signing the bundle. `bundle verify` checks the payload hashes and the signature against the trusted public key. `bundle archive` packs the validated bundle into the deterministic `.xpk` package.
+`bundle init` creates the source folder with the editable `xila-package.json`. `bundle build` hashes every payload file and signs the manifest only when `--signing-key` is given; the thick arrow shows the developer seed signing the bundle. `bundle verify` checks the payload hashes and the signature against the trusted public key. `bundle archive` packs the validated bundle into the deterministic `.xpk` package.
 
 ## Verify the result
 
