@@ -137,6 +137,7 @@ The following diagram shows the bootloader entry, crash detection, and recovery 
 direction: down
 
 reset: "Power on or reset" { class: component }
+touch: "Host 1200-baud touch" { class: io }
 boot: "Bootloader requested?" { class: decision }
 bootloader: "Arduino bootloader" { class: component }
 firmware: "Xila firmware" { class: component }
@@ -144,7 +145,6 @@ crash: "Crash record" { class: stored }
 log: "Log previous crash message" { class: component }
 start: "Mount file system and start shell" { class: component }
 stable: "mark_stable clears crash count" { class: component }
-touch: "Host 1200-baud touch" { class: io }
 
 reset -> boot
 boot -> bootloader: "double-tap or GPREGRET 0xB0"
@@ -155,7 +155,7 @@ start -> stable
 firmware -> crash: "panic or fault"
 crash -> reset: "count below 3"
 crash -> bootloader: "third crash in a row"
-touch -> reset: "1200-baud touch"
+touch -> reset: "sets GPREGRET and resets"
 ```
 
 </div>

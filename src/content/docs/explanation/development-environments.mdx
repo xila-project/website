@@ -47,45 +47,31 @@ The following diagram shows which repository builds which runtime for which targ
 <div className="diagram">
 
 ```d2 title="Which repository builds which runtime for which target"
-direction: right
+direction: down
 
-repositories: Repositories {
-  class: layer
-  grid-rows: 1
-  core: "Core (portable OS)" { class: component }
-  applications: "Applications (guests and shells)" { class: component }
-  platforms: "Platforms (runtimes and drivers)" { class: component }
-}
+core: "Core (portable OS)" { class: component }
+applications: "Applications (guests and shells)" { class: component }
+platforms: "Platforms (runtimes and drivers)" { class: focus }
+guest: "wasm32-wasip1" { class: component }
+guests: "Guest binaries (*.wasm)" { class: io }
+host: "x86_64-unknown-linux-gnu" { class: component }
+browser: "wasm32-unknown-unknown" { class: component }
+arm: "thumbv7em-none-eabihf" { class: component }
+native: "Native desktop runtime" { class: io }
+browser_runtime: "Browser runtime" { class: io }
+nano: "Microcontroller firmware" { class: io }
 
-targets: Targets {
-  class: layer
-  grid-columns: 2
-  host: "x86_64-unknown-linux-gnu" { class: component }
-  guest: "wasm32-wasip1" { class: component }
-  browser: "wasm32-unknown-unknown" { class: component }
-  arm: "thumbv7em-none-eabihf" { class: component }
-}
-
-artifacts: Artifacts {
-  class: layer
-  grid-columns: 2
-  guests: "Guest binaries (*.wasm)" { class: io }
-  native: "Native desktop runtime" { class: io }
-  browser_runtime: "Browser runtime" { class: io }
-  nano: "Microcontroller firmware" { class: io }
-}
-
-repositories.core -> repositories.applications
-repositories.core -> repositories.platforms
-repositories.applications -> targets.guest: compiles to
-targets.guest -> artifacts.guests
-artifacts.guests -> repositories.platforms: seeded into
-repositories.platforms -> targets.host: compiles to
-targets.host -> artifacts.native
-repositories.platforms -> targets.browser: compiles to
-targets.browser -> artifacts.browser_runtime
-repositories.platforms -> targets.arm: compiles to
-targets.arm -> artifacts.nano
+core -> applications
+applications -> guest: compiles to
+guest -> guests
+guests -> platforms: seeded into
+core -> platforms
+platforms -> host: compiles to
+platforms -> browser: compiles to
+platforms -> arm: compiles to
+host -> native
+browser -> browser_runtime
+arm -> nano
 ```
 
 </div>
