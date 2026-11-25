@@ -6,13 +6,12 @@ description: "Create a Wasm application from the template, run it in Xila, packa
 
 In this tutorial, you create a WebAssembly (Wasm) application from the Xila template, run it in Xila's headless runtime, and package it as a signed `.xpk` file. At the end, you have a signed package and the steps to publish it in the Xila registry.
 
-The following diagram shows the files that you create in each stage.
+The following diagram shows the files that you create in each stage. The last two steps run `xila-package bundle build` and `xila-package bundle archive`.
 
 <div className="diagram">
 
 ```d2 title="Files created in each stage of the tutorial"
 direction: down
-grid-columns: 2
 
 project: "Your Rust project" { class: component }
 guest: "hello-xila.wasm" { class: stored }
@@ -21,11 +20,11 @@ bundle: "Signed bundle" { class: record }
 archive: "HelloXila.xpk" { class: stored }
 entry: "Registry entry" { class: record }
 
-project -> guest: "cargo build"
-guest -> runtime: "docker run"
-guest -> bundle: "xila-package bundle build"
-bundle -> archive: "xila-package bundle archive"
-archive -> entry: "release and submission"
+project -> guest: cargo build
+guest -> runtime: docker run
+guest -> bundle: bundle build
+bundle -> archive: bundle archive
+archive -> entry: release and submission
 ```
 
 </div>

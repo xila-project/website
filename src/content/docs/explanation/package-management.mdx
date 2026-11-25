@@ -20,10 +20,9 @@ The following diagram shows the publication and installation paths.
 
 ```d2 title="Publication and installation paths of a package"
 direction: down
-grid-columns: 2
 
-tool: "Package tool" { class: component }
 developer_key: "Developer key" { class: key }
+tool: "Package tool" { class: component }
 bundle: "Signed bundle" { class: record }
 archive: "Package (.xpk)" { class: stored }
 entry: "Registry entry" { class: record }
@@ -33,13 +32,12 @@ device: "Device (verifies and installs)" { class: hardware }
 
 tool -> bundle: builds
 developer_key -> bundle: signs { class: trust }
-bundle -> archive: archives into
+bundle -> archive: archives
 archive -> entry: generates
 repository_key -> entry: signs { class: trust }
-repository_key -> registry: "signs index" { class: trust }
-entry -> registry: publishes
-archive -> device: downloads
-device -> registry: "reads entry"
+entry -> registry: published in
+registry -> device: entry
+archive -> device: downloaded
 ```
 
 </div>
@@ -52,19 +50,15 @@ The following diagram shows the trust chain for a repository install.
 
 ```d2 title="Trust chain of a repository install"
 direction: down
-grid-columns: 2
 
 root_key: "Trusted root key" { class: key }
 repository_key: "Repository key" { class: key }
-entry: "Registry entry" { class: record }
 developer_key: "Developer key" { class: key }
 signature: "Package signature" { class: record }
 hashes: "File hashes" { class: component }
 
 root_key -> repository_key: authenticates { class: trust }
-repository_key -> entry: signs { class: trust }
 repository_key -> developer_key: authorizes { class: trust }
-entry -> developer_key: "names publisher"
 developer_key -> signature: signs { class: trust }
 signature -> hashes: covers
 ```
