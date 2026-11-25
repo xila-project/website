@@ -8,6 +8,24 @@ This guide shows how to create, switch and permanently delete Xila disk images i
 
 By default, the demonstration runs on a memory disk: each tab starts from the current seed image and discards changes on reload. The saved-disk controls below appear after you turn on **Keep my files between visits** in the Xila Help panel.
 
+The following diagram shows the states of a disk in the browser demonstration.
+
+<div className="diagram">
+
+```d2 title="Disk states of the browser demonstration"
+direction: down
+memory: "Memory disk (default)" { class: component }
+closed: "Saved disk, closed" { class: stored }
+open: "Saved disk, open in one tab" { class: stored }
+memory -> open: "Keep my files between visits"
+closed -> open: "Use selected disk"
+open -> closed: "Tab closes or switches disk"
+```
+
+</div>
+
+A saved disk is a file in the Origin Private File System (OPFS). While one tab has it open, that tab holds the exclusive Web Lock `xila-opfs:<name>`: the active disk cannot be removed from its own tab, and removing a disk that another tab has open fails, because the removal must acquire the same lock. A second tab that opens the same disk fails with `Resource busy`. When the tab closes or switches disks, it releases the lock and the disk is closed again.
+
 ## Before you begin
 
 - Open the browser demonstration at [platforms.xila.dev](https://platforms.xila.dev/) or your local Trunk development server.

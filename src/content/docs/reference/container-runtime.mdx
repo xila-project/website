@@ -44,6 +44,27 @@ Both modes accept these options:
 
 Mount host directories into Docker first, then expose them separately through Xila's `--mount`. A Docker bind mount alone gives no Xila VFS access. The runtime does not pass ambient host environment variables to guests. Use read-only mounts unless writes are necessary.
 
+The following diagram shows the two mounts that a host directory needs before a guest can read it from the Xila virtual file system (VFS).
+
+<div className="diagram">
+
+```d2 title="Two mounts from a host directory to the Xila virtual file system"
+direction: down
+host: "Host directory" { class: stored }
+docker_bind: "Docker bind mount" { class: component }
+runtime: "xila-runtime process" { class: component }
+xila_mount: "Xila --mount (ro or rw)" { class: component }
+vfs: "Xila VFS path, for example /fixtures" { class: io }
+host -> docker_bind
+docker_bind -> runtime
+runtime -> xila_mount
+xila_mount -> vfs
+```
+
+</div>
+
+The Docker bind mount exposes the host directory at a container path, for example `/mnt/xila/fixtures`, where the `xila-runtime` process can open it. The separate `--mount host=PATH,xila=PATH,ro|rw` option then mounts that container path in the VFS, for example at `/fixtures`. A guest reads the files only at the Xila VFS path: without the second mount, the bind-mounted files stay invisible to the guest.
+
 A writable volume at `/var/lib/xila` retains the LittleFS disk across container runs. A newer seed **never overwrites** an existing disk. On SIGINT and SIGTERM, the runtime tries to flush and unmount the disk before exiting. Abrupt termination may lose recent writes. The image is non-root. It supports a read-only container root filesystem with writable state and a temporary `/tmp`.
 
 This runner does not start a graphics or network manager. The graphical headless driver and its debug transport are separate from this executable. Guests are limited to the WASI API subset that Xila implements.

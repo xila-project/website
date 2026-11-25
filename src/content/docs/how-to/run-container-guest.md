@@ -61,7 +61,7 @@ You may append `shell --network=none` after the image name to select this mode e
      -- /applications/executables/wasm /fixtures/app.wasm
    ```
 
-The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
+The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. The headless runtime reference shows this [two-mount flow in a diagram](/reference/container-runtime/#isolation-and-durability). Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
 
 ## Verify the result
 
