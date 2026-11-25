@@ -338,11 +338,3 @@ starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) pre {
 .external-reference-link:hover {
   text-decoration: underline;
 }
-
-/* Mermaid diagrams: no code-block frame, centered. */
-.sl-markdown-content pre.mermaid {
-  display: flex;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-}

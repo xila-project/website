@@ -19,7 +19,7 @@ Copy the selected file into the appropriate source directory, choose a descripti
 - **Asides:** `:::note`, `:::tip`, `:::caution` and `:::danger`, at most two per page, never holding prerequisites or steps. Put `:::caution` or `:::danger` next to the destructive action.
 - **Code blocks:** always set a language (`sh` for the host shell, `text` for Xila's terminal and for output). Introduce each block with a sentence that names the working directory and context. No prompt characters.
 - **Links:** root-relative internal links with a trailing slash; descriptive link text. Link Rust API items with a `rust:` link or the `Api` component, source files with `CodeReference` and third-party crates with `DocsRsReference`.
-- **Diagrams:** new diagrams use fenced `d2` blocks (see the example below and [Diagrams](../../AGENTS.md#diagrams)); one idea each, introduced by a sentence and described again in prose. The existing `mermaid` pages keep their browser rendering until they are converted.
+- **Diagrams:** new diagrams use fenced `d2` blocks (see the example below and [Diagrams](../../AGENTS.md#diagrams)); one idea each, introduced by a sentence and described again in prose.
 - **Last section:** `## Related` (tutorials end with `## Next steps`).
 
 Follow [AGENTS.md](../../AGENTS.md) for accuracy, style, navigation, and validation. The public [documentation contribution guide](../../src/content/docs/how-to/write-documentation.mdx) explains the workflow.

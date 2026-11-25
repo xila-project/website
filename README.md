@@ -38,7 +38,7 @@ the operating system.
 - Built with [Astro + Starlight](https://starlight.astro.build/) and the [Starlight Black](https://github.com/adrian-ub/starlight-theme-black) theme, adapted to Xila's black-and-white identity
 - Reader-focused documentation organized with [Diátaxis](https://diataxis.fr/)
 - Local authoring templates informed by [The Good Docs Project](https://github.com/thegooddocsproject/templates)
-- Integrated with [Mermaid](https://mermaid-js.github.io/) for diagrams
+- Diagrams written in [D2](https://d2lang.com/) and rendered to static SVG at build time
 - Full-text search powered by [Pagefind](https://pagefind.app/)
 - Prettier formatting for consistent style
 

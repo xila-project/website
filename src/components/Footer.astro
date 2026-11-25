@@ -17,26 +17,6 @@ import Default from "@astrojs/starlight/components/Footer.astro";
   {new Date().getFullYear()}
 </p>
 
-<script>
-  // Render Mermaid diagrams; the library is only loaded on pages that have one.
-  const render = async () => {
-    const nodes = document.querySelectorAll<HTMLElement>(
-      "pre.mermaid:not([data-processed])",
-    );
-    if (nodes.length === 0) return;
-    const { default: mermaid } = await import("mermaid");
-    const dark = document.documentElement.dataset.theme === "dark";
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: dark ? "dark" : "neutral",
-      securityLevel: "strict",
-      fontFamily: "Montserrat, Arial, Helvetica, sans-serif",
-    });
-    await mermaid.run({ nodes });
-  };
-  render();
-</script>
-
 <style>
   .xila-footer {
     display: flex;

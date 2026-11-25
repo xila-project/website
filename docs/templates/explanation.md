@@ -12,7 +12,7 @@ description: "One sentence, under 160 characters, naming the concept and why it 
 
 ## How it works
 
-<!-- The mental model, with ### sub-sections. Add a Mermaid diagram when there are more than two moving parts: one sentence before it saying what it shows, and the same relationships in prose after it. -->
+<!-- The mental model, with ### sub-sections. Add a D2 diagram when there are more than two moving parts: one sentence before it saying what it shows, and the same relationships in prose after it. -->
 
 ## Design choices and trade-offs
 

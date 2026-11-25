@@ -1,5 +1,4 @@
 import { remarkApiLinks } from "./scripts/remark-api-links.mjs";
-import { remarkMermaid } from "./scripts/remark-mermaid.mjs";
 import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
 import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
 import { getPagefindOptions, xilaSearch } from "./scripts/search-index.mjs";
@@ -209,7 +208,7 @@ export default defineConfig({
   site: "https://www.xila.dev",
   trailingSlash: "ignore",
   markdown: {
-    remarkPlugins: [remarkMermaid, remarkD2Preamble, remarkApiLinks],
+    remarkPlugins: [remarkD2Preamble, remarkApiLinks],
     rehypePlugins: [rehypeDiagramSvg],
   },
   integrations: [
