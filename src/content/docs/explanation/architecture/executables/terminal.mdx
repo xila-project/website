@@ -24,41 +24,63 @@ Terminal acts as a terminal emulator and a virtual device:
 
 ### Data flow and stream wiring
 
-The following diagram shows the data flow between the graphical user interface, the mounted terminal character device, standard streams, and the child command-line shell task.
+The following diagram shows the input path from the graphical window through the mounted character device to the standard input of the child shell task.
 
 <div className="diagram">
 
-```d2 title="Data flow between the terminal window, the character device, and the shell task"
-direction: down
+```d2 title="Input path from the terminal window to the shell task"
+grid-columns: 3
+grid-gap: 16
 
-gui: Graphical terminal window {
+gui: "Graphical\nterminal window" {
   class: layer
-  input: Input text area { class: io }
-  display: Scrollable label display { class: io }
+  input: "Input text\narea" { class: io }
 }
-device: "/devices/terminal_{task}" {
+device: "/devices/\nterminal_{task}" {
   class: layer
-  queue: Validated input queue { class: component }
-  waiters: WaitQueue readers { class: component }
-  buffer: Display text buffer { class: component }
+  grid-rows: 2
+  queue: "Validated input\nqueue" { class: component }
+  waiters: "WaitQueue\nreaders" { class: component }
 }
-shell: Command-line shell task {
-  class: layer
-  stdin: "Standard input (stdin)" { class: io }
-  executable: Shell executable { class: component }
-  stdout: "Standard output (stdout/stderr)" { class: io }
-}
+stdin: "Standard input\n(stdin)" { class: io; width: 180; height: 80 }
 
 gui.input -> device.queue: Enter or Send
 device.queue -> device.waiters: Wake readers
-device.waiters -> shell.stdin
-shell.stdin -> shell.executable
-shell.executable -> shell.stdout
-shell.stdout -> device.buffer: Write
-device.buffer -> gui.display: UTF-8 chunks
+device.waiters -> stdin
 ```
 
 </div>
+
+The text area sends each submitted line to the validated input queue, which wakes the registered readers, and the shell reads the line from its standard input.
+
+The following diagram shows the output path from the shell task through the character device back to the window display.
+
+<div className="diagram">
+
+```d2 title="Output path from the shell task to the terminal window display"
+grid-columns: 3
+grid-gap: 16
+
+shell: "Command-line\nshell task" {
+  class: layer
+  grid-rows: 2
+  executable: "Shell\nexecutable" { class: component }
+  stdout: "Standard output\n(stdout/stderr)" { class: io }
+}
+device: "/devices/\nterminal_{task}" {
+  class: layer
+  buffer: "Display text\nbuffer" { class: component }
+}
+display: "Scrollable\ndisplay" { class: io; width: 150; height: 80 }
+
+shell.executable -> shell.stdout
+shell.stdout -> device.buffer: Write
+device.buffer -> display: UTF-8 chunks
+```
+
+</div>
+
+The shell writes to its standard output, which points to the device, and the device appends the UTF-8 chunks to its display text buffer and updates the scrollable display.
 
 When Terminal starts:
 

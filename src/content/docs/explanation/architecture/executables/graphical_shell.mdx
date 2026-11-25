@@ -55,23 +55,27 @@ grid-columns: 2
 
 storage: File system storage {
   class: layer
+  label.near: top-left
   grid-rows: 2
   static: "/configuration/shared/\napplications/shortcuts/*.json" { class: stored }
   bundles: "/applications/bundles/*/\nshortcut.json" { class: stored }
 }
 drawer: Application drawer {
   class: layer
+  label.near: top-left
   icons: Render shortcut icons and labels { class: component }
   click: User click event { class: io }
 }
 discovery: Graphical shell discovery {
   class: layer
+  label.near: top-left
   scan: Scan directories on drawer open { class: component }
   parse: Parse JSON descriptor { class: component }
   resolve: "Resolve @bundle/ path references" { class: component }
 }
 execution: Runtime execution {
   class: layer
+  label.near: top-left
   execute: "executable::execute" { class: component }
   spawn: Spawn native or Wasm task { class: component }
 }

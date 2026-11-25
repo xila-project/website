@@ -34,26 +34,26 @@ direction: down
 
 window: "Settings window (OwnedWindow)" { class: focus }
 tabview: Tabview container { class: component }
-general: General tab { class: component }
-appearance: Appearance tab { class: component }
-password: Password tab { class: component }
-network: Network tab { class: component }
-about: About tab { class: component }
-graphics: "Graphics & Appearance preferences" { class: component }
-users: Users manager { class: component }
-network_subsystem: Network subsystem { class: component }
-system_info: "System info & Memory manager" { class: component }
+panels: Configuration panels {
+  class: layer
+  grid-columns: 2
+  appearance: Appearance tab { class: component }
+  graphics: "Graphics & Appearance preferences" { class: component }
+  password: Password tab { class: component }
+  users: Users manager { class: component }
+  general: General tab { class: component }
+  network: Network tab { class: component }
+  network_subsystem: Network subsystem { class: component }
+  about: About tab { class: component }
+  system_info: "System info & Memory manager" { class: component }
+}
 
 window -> tabview
-tabview -> general
-tabview -> appearance
-tabview -> password
-tabview -> network
-tabview -> about
-appearance -> graphics
-password -> users
-network -> network_subsystem
-about -> system_info
+tabview -> panels
+panels.appearance -> panels.graphics
+panels.password -> panels.users
+panels.network -> panels.network_subsystem
+panels.about -> panels.system_info
 ```
 
 </div>
