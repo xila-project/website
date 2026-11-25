@@ -59,10 +59,10 @@ The following diagram shows how `AnyByLayout` bridges typed application control 
 <div className="diagram">
 
 ```d2 title="Typed control payload across the virtual file system"
-direction: right
+direction: down
 input: Caller with typed input T { class: io }
 any: "AnyByLayout::from(&input)" { class: component }
-vfs: VFS character device control { class: focus }
+vfs: VFS character device control { class: component }
 cast: "cast::<T>(): verified size and alignment" { class: component }
 driver: Device driver execution { class: hardware }
 cast_out: "cast_output::<O>()" { class: component }

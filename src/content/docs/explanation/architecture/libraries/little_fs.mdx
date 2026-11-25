@@ -55,7 +55,7 @@ fs: FileSystem (little_fs) { class: focus }
 engine: LittleFS C engine (littlefs2-sys) { class: component }
 callbacks: C callbacks (read, program, erase, flush) { class: component }
 device: DirectBlockDevice (PartitionDevice, MemoryDevice) { class: hardware }
-erase: Sector erase { class: hardware }
+erase: Sector erase { class: component }
 app -> fs
 fs -> engine
 engine -> callbacks: synchronous C calls

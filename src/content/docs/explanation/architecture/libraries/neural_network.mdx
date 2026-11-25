@@ -20,10 +20,10 @@ The following diagram shows the loader descriptor lifecycle.
 <div className="diagram">
 
 ```d2 title="Loader descriptor lifecycle"
-direction: right
+direction: down
 start: Start { class: io }
 staging: Staging { class: component }
-ready: Ready { class: focus }
+ready: Ready { class: component }
 end: End { class: io }
 start -> staging: open
 staging -> staging: write model bytes

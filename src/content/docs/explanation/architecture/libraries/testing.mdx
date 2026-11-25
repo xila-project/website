@@ -82,20 +82,25 @@ The following diagram shows the in-memory test environment initialized by `initi
 ```d2 title="In-memory test environment"
 direction: down
 init: "testing::initialize" { class: focus }
-vfs: Virtual file system (memory-backed LittleFS) { class: stored }
-devices: Test devices under /devices/ {
+instance: In-memory Xila instance {
   class: layer
-  random: "/devices/random/source (RandomDevice)" { class: hardware }
-  time: "/devices/time/clock (TimeDevice)" { class: hardware }
-  hasher: "/devices/compute/hasher (HashDevice)" { class: hardware }
-  stdio: "/devices/standard_io/* (ConsoleDevice)" { class: hardware }
+  grid-columns: 1
+  vfs: Virtual file system (memory-backed LittleFS) { class: stored }
+  devices: Test devices under /devices/ {
+    class: layer
+    grid-columns: 1
+    random: "random/source (RandomDevice)" { class: component }
+    stdio: "standard_io/* (ConsoleDevice)" { class: component }
+    time: "time/clock (TimeDevice)" { class: component }
+    hasher: "compute/hasher (HashDevice)" { class: component }
+  }
+  accounts: "Seeded accounts (/system/accounts/*)" { class: stored }
+  streams: "Standard<'static> streams" { class: io }
 }
-accounts: "Seeded accounts (/system/accounts/*)" { class: stored }
-streams: "Standard<'static> streams" { class: io }
-init -> vfs: formats and mounts
-init -> devices: mounts
-init -> accounts: seeds
-init -> streams: opens
+init -> instance.vfs: formats and mounts
+init -> instance.devices: mounts
+init -> instance.accounts: seeds
+init -> instance.streams: opens
 ```
 
 </div>
