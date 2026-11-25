@@ -19,10 +19,22 @@ The interface reads the system time and tracks elapsed time. Settings are stored
 
 The following diagram shows the launch path.
 
-```mermaid
-flowchart LR
-    Shortcut["Shortcut"] --> Runner["Wasm runner"] --> Guest["Clock"] --> API["Guest API"]
+<div className="diagram">
+
+```d2 title="Launch path of the Clock guest application"
+direction: right
+
+shortcut: Shortcut file { class: stored }
+runner: Wasm runner { class: focus }
+clock: Clock { class: component }
+api: Guest API { class: component }
+
+shortcut -> runner: Launches
+runner -> clock: Starts
+clock -> api: Uses
 ```
+
+</div>
 
 The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 

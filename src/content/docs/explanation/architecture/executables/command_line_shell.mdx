@@ -27,16 +27,28 @@ The command-line shell meets these requirements:
 
 The following diagram shows how the shell processes input through parsing, resolution, and execution.
 
-```mermaid
-flowchart TD
-    Input["Input source (interactive, -c, or -s)"] --> Tokenizer["Tokenizer and parser"]
-    Tokenizer --> Split["Split pipelines and operators (|, &&, ||, ;, &)"]
-    Split --> Resolve{"Command resolution"}
-    Resolve -->|"Built-in match"| Builtin["Execute built-in command"]
-    Resolve -->|"Path with /"| Direct["Execute absolute or relative path"]
-    Resolve -->|"Command name"| Search["Search directories in Paths variable"]
-    Search --> External["executable::execute"]
+<div className="diagram">
+
+```d2 title="Command processing from the input source to execution"
+input: "Input source (interactive, -c, or -s)" { class: io }
+tokenizer: Tokenizer and parser { class: component }
+split: "Split pipelines and operators (|, &&, ||, ;, &)" { class: component }
+resolve: Command resolution { class: decision }
+builtin: Execute built-in command { class: component }
+direct: "Execute absolute or relative path" { class: component }
+search: "Search directories in Paths variable" { class: component }
+external: "executable::execute" { class: component }
+
+input -> tokenizer
+tokenizer -> split
+split -> resolve
+resolve -> builtin: Built-in match
+resolve -> direct: Path with /
+resolve -> search: Command name
+search -> external
 ```
+
+</div>
 
 The shell has four entry paths:
 

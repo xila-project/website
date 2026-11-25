@@ -26,13 +26,25 @@ Activity solves this problem as a standalone graphical executable:
 
 The following diagram shows the sampling loop and the data flow between the kernel subsystems and the Activity user interface.
 
-```mermaid
-flowchart LR
-    Task["task::Manager"] -->|"Task count"| Model["Activity model"]
-    Memory["memory::global_manager"] -->|"Used and total bytes"| Model
-    Time["time::uptime"] -->|"Uptime"| Model
-    Model -->|"Format and scale"| View["LVGL dashboard view"]
+<div className="diagram">
+
+```d2 title="Data flow from the core subsystems to the Activity dashboard"
+core: Core subsystems {
+  class: layer
+  task: "task::Manager" { class: component }
+  memory: "memory::global_manager" { class: component }
+  time: "time::uptime" { class: component }
+}
+model: Activity model { class: focus }
+view: LVGL dashboard view { class: component }
+
+core.task -> model: Task count
+core.memory -> model: Used and total bytes
+core.time -> model: Uptime
+model -> view: Format and scale
 ```
+
+</div>
 
 The application runs a continuous asynchronous event loop. Each iteration checks for pending user interface events. Each iteration also evaluates the status of any active test workload. The application also collects fresh metrics when the configured sample interval expires:
 

@@ -26,21 +26,31 @@ File manager fills this role:
 
 The following diagram shows the components of the File manager window.
 
-```mermaid
-flowchart TD
-    Window["FileManager window (OwnedWindow)"] --> Toolbar["Navigation toolbar"]
-    Window --> Status["Status line label"]
-    Window --> List["Scrollable file list"]
+<div className="diagram">
 
-    Toolbar --> Up["Up button (LV_SYMBOL_UP)"]
-    Toolbar --> Home["Home button (LV_SYMBOL_HOME)"]
-    Toolbar --> Refresh["Refresh button (LV_SYMBOL_REFRESH)"]
-    Toolbar --> PathInput["Path input (lv_textarea)"]
-    Toolbar --> Go["Go button (LV_SYMBOL_RIGHT)"]
+```d2 title="Components of the File manager window"
+window: "FileManager window (OwnedWindow)" { class: focus }
+toolbar: Navigation toolbar {
+  class: layer
+  up: Up button { class: component }
+  home: Home button { class: component }
+  refresh: Refresh button { class: component }
+  path: Path input { class: component }
+  go: Go button { class: component }
+}
+status: Status line label { class: component }
+list: Scrollable file list {
+  class: layer
+  dirs: Directory entries { class: component }
+  files: File entries { class: component }
+}
 
-    List --> Dirs["Directory entries (LV_SYMBOL_DIRECTORY)"]
-    List --> Files["File entries (LV_SYMBOL_FILE)"]
+window -> toolbar
+window -> status
+window -> list
 ```
+
+</div>
 
 When started, File manager creates an <Api path="graphics::OwnedWindow" /> with the icon "Fm" (Cyan hue). It arranges the contents in a vertical flex layout:
 

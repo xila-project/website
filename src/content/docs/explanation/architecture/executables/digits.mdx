@@ -19,18 +19,24 @@ Digits crops the drawn ink and fits it into a 28 by 28 input. It embeds a Tensor
 
 The following sequence shows model loading and prediction.
 
-```mermaid
-sequenceDiagram
-    participant D as Digits
-    participant N as NN device
-    D->>N: Open for reading and writing
-    D->>N: Seek to zero and write model
-    D->>N: LOAD with LoadRequest
-    D->>N: Query tensor information and counts
-    D->>N: Select input, seek and write pixels
-    D->>N: COMPUTE
-    D->>N: Select output, seek and read scores
+<div className="diagram">
+
+```d2 title="Model loading and prediction on the neural-network device"
+shape: sequence_diagram
+
+digits: Digits { class: component }
+nn: Neural-network device { class: hardware }
+
+digits -> nn: Open for reading and writing
+digits -> nn: Seek to zero and write model
+digits -> nn: LOAD with LoadRequest
+digits -> nn: Query tensor information and counts
+digits -> nn: Select input, seek and write pixels
+digits -> nn: COMPUTE
+digits -> nn: Select output, seek and read scores
 ```
+
+</div>
 
 Digits writes the model to the device. It then sends <Api path="device::neural_network::LOAD"><code>device::neural_network::LOAD</code></Api> with a TensorFlow Lite `LoadRequest`. It checks the input and output tensors, writes the input, and sends <Api path="device::neural_network::COMPUTE"><code>device::neural_network::COMPUTE</code></Api>. It reads ten scores and ranks the three highest.
 
