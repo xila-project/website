@@ -81,8 +81,8 @@ The following diagram shows the in-memory test environment initialized by `initi
 
 ```d2 title="In-memory test environment"
 direction: down
-init: "testing::initialize" { class: focus }
-environment: In-memory Xila instance {
+init: "testing::initialize" { class: component }
+environment: Test environment {
   class: layer
   grid-columns: 1
   vfs: Virtual file system (memory-backed LittleFS) { class: stored }
@@ -94,14 +94,7 @@ environment: In-memory Xila instance {
   accounts: "Seeded accounts (/system/accounts/*)" { class: stored }
   streams: "Standard<'static> streams" { class: io }
 }
-init -> environment.vfs: formats and mounts
-init -> environment.random
-init -> environment.stdio
-init -> environment.time
-init -> environment.null
-init -> environment.hasher
-init -> environment.accounts: seeds
-init -> environment.streams: opens
+init -> environment: "formats, mounts, seeds and opens"
 ```
 
 </div>
