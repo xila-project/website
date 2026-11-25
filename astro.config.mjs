@@ -315,6 +315,9 @@ export default defineConfig({
         Search: "./src/components/Search.astro",
         Sidebar: "./src/components/Sidebar.astro",
         SiteTitle: "./src/components/SiteTitle.astro",
+        // Local replacement for the theme's ThemeSelect override, which calls
+        // the StarlightThemeProvider global that Starlight 0.43 removed.
+        ThemeSelect: "./src/components/ThemeSelect.astro",
       },
     }),
     xilaSearch(),
