@@ -112,21 +112,44 @@ XILA_BUNDLES_DIR=target/local-bundles mise run image:native
 
 The `Cargo.toml` manifests in each repository pin dependent Git revisions by default.
 
-1. To develop across local working copies simultaneously, run the override script in the Platforms repository:
+1. To develop across local working copies simultaneously, run the override script in the Platforms repository. The `--output` option accepts any path. The example writes the file to `target/xila-local-overrides.toml`, inside the Platforms checkout, where Git ignores the `target/` directory:
 
 ```sh
 python3 tools/dev/local_overrides.py \
   --core ../core \
   --applications ../applications \
   --platforms . \
-  --output /tmp/xila-local-overrides.toml
+  --output target/xila-local-overrides.toml
 ```
 
 2. Pass the generated configuration file to Cargo commands:
 
 ```sh
-cargo check --config /tmp/xila-local-overrides.toml -p xila-native-example
+cargo check --config target/xila-local-overrides.toml -p xila-native-example
 ```
+
+The diagram below shows how the script wires the local repositories into Cargo.
+
+<div className="diagram">
+
+```d2 title="Local cross-repository overrides for Cargo"
+direction: down
+core: Core { class: component }
+applications: Applications { class: component }
+platforms: Platforms { class: focus }
+script: "local_overrides.py" { class: component }
+overrides: "xila-local-overrides.toml" { class: stored }
+cargo: "cargo --config" { class: component }
+core -> script
+applications -> script
+platforms -> script
+script -> overrides: writes
+overrides -> cargo: "--config"
+```
+
+</div>
+
+The script reads the manifests of the Core, Applications and Platforms repositories and writes a `[patch]` configuration that maps each pinned Git dependency to its local path. Cargo applies the file through `--config` when you build in the Platforms repository, so the build resolves the Core and Applications dependencies to the local checkouts.
 
 Do not commit temporary modifications to `Cargo.lock` that reference local paths.
 

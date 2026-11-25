@@ -34,7 +34,7 @@ Both modes accept these options:
 - `shell` starts Xila's built-in `/applications/executables/command_line_shell`. It needs stdin to log in. A fresh seeded installation accepts **administrator** with an empty password. It forbids overriding `User` with `--env`.
 - `run` starts an **absolute** executable path in Xila's VFS after `--`. For a WASI guest, use `/applications/executables/wasm`, then the guest module's **Xila VFS path**, then any arguments.
 - `--disk PATH` selects the mutable LittleFS disk. The default is `/var/lib/xila/drive.img`.
-- `--seed PATH` selects the seed image. Xila uses it **only when no disk exists**. The default is `/usr/share/xila/base.img`.
+- `--seed PATH` selects the seed image. Xila uses it **only when no disk exists**. The default is `/usr/share/xila/base.img`. The [native tutorial](/tutorials/native/#create-a-reference-disk-image) shows the seed-to-live-disk flow with a diagram.
 - `--network=none` is the **only** accepted Xila network mode. Docker's separate `--network none` disables container networking.
 - `--mount host=...,xila=...,ro|rw` exposes a selected **runtime-host directory** to Xila's VFS. The optional `uid`, `gid`, `file_mode`, and `directory_mode` settings control ownership and permissions.
 - `--env KEY=VALUE` adds a guest environment setting. Repeat the option for multiple settings.

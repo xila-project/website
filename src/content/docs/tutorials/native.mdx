@@ -53,6 +53,27 @@ In this tutorial, you create a reference disk image that contains the released W
 
    The task downloads the released, signed application packages pinned in `tools/fs_image/profiles/bundles.lock.json`. The task then runs the `xila-fs-image` tool. When the task finishes, the 16 MiB LittleFS image is at `target/seed/native/seed.img`.
 
+The diagram below shows how the seed image is built and how it becomes the live disk at the first start.
+
+<div className="diagram">
+
+```d2 title="How the seed image becomes the live disk"
+direction: down
+lock: "bundles.lock.json" { class: stored }
+packages: "Released signed packages" { class: stored }
+tool: "xila-fs-image" { class: component }
+seed: "target/seed/native/seed.img" { class: stored }
+disk: "./drive.img (live disk)" { class: stored }
+lock -> packages: pins
+packages -> tool: reads
+tool -> seed: writes
+seed -> disk: "imported only when no disk exists"
+```
+
+</div>
+
+The lock file pins each released package by URL and SHA-256 and carries the publisher key. The `image:native` task downloads the packages, verifies them, and the `xila-fs-image` tool writes the seed image from them. At the first start, the runtime imports the seed into `./drive.img` only when no disk exists. Every later start reuses the existing disk and ignores the seed.
+
 ## Start the native runtime
 
 1. In the Platforms repository root, run the native runtime:
