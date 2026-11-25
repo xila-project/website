@@ -77,17 +77,27 @@ The <Api path="testing::load_file" /> helper copies a file from the host filesys
 
 The following diagram shows the in-memory test environment initialized by `initialize`:
 
-```mermaid
-flowchart TD
-    Init["testing::initialize"] --> VFS["Virtual file system\n(Memory-backed LittleFS)"]
-    Init --> Devices["Test devices mounted under /devices/"]
-    Devices --> Random["/devices/random/source\n(RandomDevice)"]
-    Devices --> Time["/devices/time/clock\n(TimeDevice)"]
-    Devices --> Hasher["/devices/compute/hasher\n(HashDevice)"]
-    Devices --> Stdio["/devices/standard_io/*\n(ConsoleDevice)"]
-    Init --> Seed["Seeded accounts\n(/system/accounts/*)"]
-    Init --> StdStreams["Standard<'static> streams"]
+<div className="diagram">
+
+```d2 title="In-memory test environment"
+direction: down
+init: "testing::initialize" { class: component }
+environment: Test environment {
+  class: layer
+  grid-columns: 1
+  vfs: Virtual file system (memory-backed LittleFS) { class: stored }
+  random: "/devices/random/source (RandomDevice)" { class: component }
+  stdio: "/devices/standard_io/* (ConsoleDevice)" { class: component }
+  time: "/devices/time/clock (TimeDevice)" { class: component }
+  null: "/devices/standard_io/null (NullDevice)" { class: component }
+  hasher: "/devices/compute/hasher (HashDevice)" { class: component }
+  accounts: "Seeded accounts (/system/accounts/*)" { class: stored }
+  streams: "Standard<'static> streams" { class: io }
+}
+init -> environment: "formats, mounts, seeds and opens"
 ```
+
+</div>
 
 The initializer formats an in-memory LittleFS instance and creates the default directory hierarchy. It mounts mock devices under `/devices/`, seeds the administrator account under `/system/accounts/`, and opens the standard streams.
 
