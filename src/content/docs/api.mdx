@@ -1,0 +1,36 @@
+---
+title: "Xila APIs"
+docType: reference
+description: "Entry page of the generated Rust API documentation: the host API for native code and the guest API for WebAssembly applications."
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+Xila has two Rust APIs. Each API has its own generated documentation (rustdoc) and its own crate root. Each crate, module, type, trait and function has its own page.
+
+<CardGrid>
+  <LinkCard
+    title="Host API: xila"
+    description="For native code. Crates of the Core workspace, started from the xila crate."
+    href="/api/host/xila/index.html"
+  />
+  <LinkCard
+    title="Guest API: wasm"
+    description="For WebAssembly applications that target wasm32-wasip1."
+    href="/api/guest/wasm/index.html"
+  />
+</CardGrid>
+
+## Host API
+
+The host API is the API of native Rust code. It is the rustdoc of the Rust crates in the Core workspace, built for the `x86_64-unknown-linux-gnu` target. The `xila` crate is the entry point: it re-exports the subsystems and libraries of Core. Use this API in native code that uses Core, for example to compose a host runtime. For the crates and the Cargo features, see the [Host API reference](/reference/host/).
+
+## Guest API
+
+The guest API is the API of WebAssembly (Wasm) applications. It is the rustdoc of the `xila-wasm` crate in the Applications repository, built for the `wasm32-wasip1` target. Rustdoc names this crate `wasm`. Guest crates depend on `xila-wasm` to call Xila. For the features and the imports, see the [Guest API reference](/reference/guest/).
+
+## Find an item
+
+- Use the search of the site. It finds the items of both APIs by name.
+- Open the [API reference](/reference/api/) to browse the pages under the site header.
+- Use the search field of rustdoc on an API page to find the members of an item, such as methods and fields.

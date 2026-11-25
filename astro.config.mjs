@@ -1,12 +1,18 @@
 import { remarkApiLinks } from "./scripts/remark-api-links.mjs";
 import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
 import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
+import {
+  getApiCustomSitemaps,
+  xilaApiSitemap,
+} from "./scripts/api-sitemap.mjs";
 import { getPagefindOptions, xilaSearch } from "./scripts/search-index.mjs";
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightThemeBlack from "starlight-theme-black";
 import sitemap from "@astrojs/sitemap";
 import astroD2 from "astro-d2";
+
+const site = "https://www.xila.dev";
 
 const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
@@ -86,6 +92,7 @@ const sidebar = [
     label: "Reference",
     items: [
       page("Overview", "/reference/"),
+      page("Xila APIs", "/api/"),
       page("API reference", "/reference/api/"),
       {
         label: "Run Xila",
@@ -205,14 +212,23 @@ const sidebar = [
 ];
 
 export default defineConfig({
-  site: "https://www.xila.dev",
+  site,
   trailingSlash: "ignore",
+  // The directories of the two APIs have no page of rustdoc: they lead to the
+  // crate roots. Astro writes a page with a link for each of them.
+  redirects: {
+    "/api/host": "/api/host/xila/index.html",
+    "/api/guest": "/api/guest/wasm/index.html",
+  },
   markdown: {
     remarkPlugins: [remarkD2Preamble, remarkApiLinks],
     rehypePlugins: [rehypeDiagramSvg],
   },
   integrations: [
-    sitemap(),
+    // The sitemap index lists sitemap-api.xml, which xilaApiSitemap() writes
+    // from the API index. It must come after sitemap().
+    sitemap({ customSitemaps: getApiCustomSitemaps(site) }),
+    xilaApiSitemap(),
     // D2 renders the code fences with the language `d2` to inline SVG at
     // build time. D2.js runs D2 as WebAssembly, so the build needs no `d2`
     // binary. The fonts only serve the measurement of the labels.
