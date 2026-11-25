@@ -82,12 +82,11 @@ header.header {
 /* Previous and next links: labelled, with a rule above them. ":root:root"
    outranks the theme's Pagination component, whose attribute-scoped selector
    ([data-astro-cid-...]) has a higher specificity than a plain class since
-   Starlight 0.43. */
+   Starlight 0.43. The theme sizes the block itself (margin-top and
+   padding-top), as on earlier versions. */
 :root:root .pagination-links {
   align-items: stretch;
   gap: 1rem;
-  margin-top: 3rem;
-  padding-top: 1.5rem;
   border-top: 1px solid var(--border);
 }
 
@@ -151,6 +150,19 @@ header.header {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
+}
+
+/*
+ * "Copy page" actions: the theme's MarkdownActions scopes its icon sizes to
+ * [data-astro-cid-...], which the SVGs rendered by its child icon components
+ * do not carry since Starlight 0.43, so the icons grew to the viewport.
+ * ":root:root" restores the theme's icon size.
+ */
+:root:root .markdown-actions-item svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
 }
 
 /*
@@ -262,6 +274,14 @@ header.header {
   .expressive-code .frame pre::after {
     display: none;
   }
+}
+
+/*
+ * Tab labels: since Starlight 0.43 the tab anchors carry no class, so the
+ * theme's `.sl-markdown-content a:not([class])` underline applies to them.
+ */
+:root:root .sl-markdown-content [role="tab"] {
+  text-decoration: none;
 }
 
 /*
