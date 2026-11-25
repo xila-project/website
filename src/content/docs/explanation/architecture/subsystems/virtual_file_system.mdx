@@ -40,7 +40,7 @@ validate: "Validate absolute path\nResolve symbolic links" { class: component }
 permission: "Check directory\nexecute permission" { class: component }
 mount: "Find longest matching mount point\nStrip it to get the relative path" { class: component }
 kind: "Resource kind?" { class: decision }
-file_system: "File system" { class: stored }
+file_system: "File or directory on a file system" { class: stored }
 character: "Character device" { class: component }
 block: "Block device" { class: component }
 pipe: "Pipe" { class: component }
@@ -49,7 +49,7 @@ requested -> validate
 validate -> permission
 permission -> mount
 mount -> kind
-kind -> file_system: "File or directory"
+kind -> file_system
 kind -> character
 kind -> block
 kind -> pipe

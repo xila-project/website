@@ -50,7 +50,7 @@ The <Api path="task::Manager" /> maintains registered tasks and active spawners 
 1. **Task registration**: calling `Manager::spawn` creates a logical task entry and assigns a unique <Api path="task::TaskIdentifier" />.
 2. **Spawner selection**: if no specific spawner is requested, `Manager::reserve_spawner` reserves the registration with the fewest active tasks and returns its spawner.
 3. **Task allocation**: the manager claims a slot in an `embassy_executor::raw::TaskStorage`, records the slot address as the internal identifier of the task, and issues a spawn token to the chosen spawner.
-4. **Waker-based identity recovery**: once executing, `Manager::get_current_internal_identifier()` reads the waker data of the current future. `try_get_current_task_identifier()` maps this internal identifier back to the logical `TaskIdentifier`. `get_current_task_identifier()` is a compatibility wrapper of `try_get_current_task_identifier()`.
+4. **Waker-based identity recovery**: once executing, `Manager::get_current_internal_identifier()` reads the waker data of the current future. `try_get_current_task_identifier()` maps this internal identifier back to the logical `TaskIdentifier`. `get_current_task_identifier()` is a compatibility wrapper of `try_get_current_task_identifier()` that panics when the task is not registered.
 
 This waker-based lookup allows file system and permissions logic to determine the calling task without requiring thread-local storage or explicit handle arguments in every function call.
 
