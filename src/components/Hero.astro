@@ -73,7 +73,16 @@ if (hero && actions.length > 0) {
 </div>
 
 <style>
-  :global(body:has(.homepage-hero)) {
+  /*
+   * The orbit rings around the home logo are wider than the viewport on
+   * medium screens, which scrolls the page horizontally. Clip them at the
+   * page root: it spans the whole window at every width, so the rings are
+   * cut at the viewport edge, where nothing is visible anyway, while the
+   * dotted hero background keeps reaching the side gutters on wide screens.
+   * Clipping the body does not remove the scrollable overflow: the viewport
+   * takes its overflow from the body and stays scrollable.
+   */
+  :global(body:has(.homepage-hero) .page) {
     overflow-x: clip;
   }
 
