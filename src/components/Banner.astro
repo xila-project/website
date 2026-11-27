@@ -38,7 +38,7 @@ const trail = isHero ? undefined : findTrail(route.sidebar, []);
 // Top-level pages (the docs hub, About) have no parent group: no trail.
 const crumbs: Crumb[] =
   trail && trail.length > 0
-    ? [{ label: "Docs", href: "/docs/" }, ...trail]
+    ? [{ label: "Documentation", href: "/documentation/" }, ...trail]
     : [];
 ---
 

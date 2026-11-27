@@ -22,6 +22,10 @@ const movedDocumentation = [
   "/how-to/run-nano-33-ble",
   "/how-to/flash-wt32-sc01",
   "/how-to/validate-core",
+  "/how-to/run-container-guest",
+  "/how-to/reset-browser-storage",
+  "/reference/container-runtime",
+  "/docs",
 ];
 
 const headerLink = { "data-header-link": "" };
@@ -38,7 +42,7 @@ const group = (label, base, entries, collapsed = true) => ({
 const architecture = "/explanation/architecture";
 
 const sidebar = [
-  page("Documentation", "/docs/"),
+  page("Documentation", "/documentation/"),
   {
     label: "Tutorials",
     items: [
@@ -61,8 +65,8 @@ const sidebar = [
         items: [
           page("Install Xila on a board", "/how-to/install-on-a-board/"),
           page("Control GPIO pins", "/how-to/control-gpio-pins/"),
-          page("Run Xila with Docker", "/how-to/run-container-guest/"),
-          page("Manage browser disks", "/how-to/reset-browser-storage/"),
+          page("Run Xila with Docker", "/how-to/run-xila-with-docker/"),
+          page("Manage browser disks", "/how-to/manage-browser-disks/"),
         ],
       },
       {
@@ -103,7 +107,7 @@ const sidebar = [
         items: [
           page("Supported hardware", "/reference/supported-hardware/"),
           page("Shell commands", "/reference/shell/"),
-          page("Headless Xila runtime", "/reference/container-runtime/"),
+          page("Headless Xila runtime", "/reference/headless-runtime/"),
         ],
       },
       {
@@ -270,7 +274,11 @@ export default defineConfig({
           // list, and SiteTitle.astro marks the current item in it: the
           // data-header-link attribute selects the items to mark.
           navLinks: [
-            { label: "Documentation", link: "/docs/", attrs: headerLink },
+            {
+              label: "Documentation",
+              link: "/documentation/",
+              attrs: headerLink,
+            },
             { label: "Tutorials", link: "/tutorials/", attrs: headerLink },
             { label: "How-to guides", link: "/how-to/", attrs: headerLink },
             { label: "Reference", link: "/reference/", attrs: headerLink },

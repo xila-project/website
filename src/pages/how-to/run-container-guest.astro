@@ -1,0 +1,18 @@
+---
+import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/how-to/run-xila-with-docker/";
+// Fragments of the old "Run Xila with Docker" page, mapped to the section
+// with the same name of the renamed page.
+const fragments: Record<string, string> = {
+  "before-you-begin": `${target}#before-you-begin`,
+  steps: `${target}#steps`,
+  "prepare-persistent-state": `${target}#prepare-persistent-state`,
+  "launch-the-interactive-xila-shell": `${target}#launch-the-interactive-xila-shell`,
+  "run-an-existing-guest-instead": `${target}#run-an-existing-guest-instead`,
+  "verify-the-result": `${target}#verify-the-result`,
+  related: `${target}#related`,
+};
+---
+
+<LegacyRedirect target={target} fragments={fragments} />

@@ -21,7 +21,7 @@ const { Icons } = await import(
 );
 
 const links = {
-  "/docs/": "open-book",
+  "/documentation/": "open-book",
   "/about/": "information",
 
   "/tutorials/native/": "desktop",
@@ -34,9 +34,9 @@ const links = {
   "/how-to/run-guest/": "rocket",
   "/how-to/package-application/": "seti:zip",
   "/how-to/submit-package/": "seti:json",
-  "/how-to/run-container-guest/": "seti:docker",
+  "/how-to/run-xila-with-docker/": "seti:docker",
   "/how-to/contribute-core/": "seti:git",
-  "/how-to/reset-browser-storage/": "database",
+  "/how-to/manage-browser-disks/": "database",
   "/how-to/write-documentation/": "pencil",
 
   "/reference/host/": "seti:rust",
@@ -45,7 +45,7 @@ const links = {
   "/reference/package-format/": "document",
   "/reference/development-commands/": "seti:powershell",
   "/reference/wasm-runtime/": "server",
-  "/reference/container-runtime/": "seti:docker",
+  "/reference/headless-runtime/": "seti:docker",
   "/reference/graphics-bindings/": "seti:image",
 
   "/explanation/architecture/components/": "magnifier",
