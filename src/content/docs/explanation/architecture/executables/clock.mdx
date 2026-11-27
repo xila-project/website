@@ -7,36 +7,15 @@ description: "Understand how Clock shows time and provides an alarm, stopwatch a
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-Clock shows the time and provides an alarm, a stopwatch, and a countdown timer. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
+Clock shows the time and provides an alarm, a stopwatch, and a countdown timer. It runs as a [guest application](/explanation/architecture/guest-applications/) in the Applications repository.
 
 ## Context
 
-The guest application uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint. Its shortcut launches the guest through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
+See [Guest applications](/explanation/architecture/guest-applications/) for how the bundle is packaged and launched. The native and browser image profiles include this bundle.
 
 ## How it works
 
 The interface reads the system time and tracks elapsed time. Settings are stored in two alternating files, so a torn write keeps the last valid settings.
-
-The following diagram shows the launch path.
-
-<div className="diagram">
-
-```d2 title="Launch path of the Clock guest application"
-direction: right
-
-shortcut: Shortcut file { class: stored }
-runner: Wasm runner { class: component }
-clock: Clock { class: component }
-api: Guest API { class: component }
-
-shortcut -> runner: Launches
-runner -> clock: Starts
-clock -> api: Uses
-```
-
-</div>
-
-The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
 ## Design choices and trade-offs
 
@@ -58,5 +37,6 @@ The stopwatch keeps at most 32 laps. The countdown timer is limited to 23 hours,
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)
 - [Guest API reference](/reference/guest/)

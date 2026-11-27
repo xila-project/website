@@ -31,12 +31,12 @@ Supporting repositories include `package_manager` for application packaging and 
 
 Xila compiles to these main Rust target triples:
 
-| Target                     | Purpose                                 | Execution model                                           | Built by                           |
-| -------------------------- | --------------------------------------- | --------------------------------------------------------- | ---------------------------------- |
-| `x86_64-unknown-linux-gnu` | Native desktop runtime and host testing | Native machine code running on host Linux                 | Platforms (`examples/native`)      |
-| `wasm32-wasip1`            | Sandboxed guest applications            | WebAssembly bytecode interpreted by Wasmi inside Xila     | Applications (`executables/*`)     |
-| `wasm32-unknown-unknown`   | Browser runtime                         | WebAssembly bytecode executed directly by the web browser | Platforms (`examples/wasm`)        |
-| `thumbv7em-none-eabihf`    | Embedded microcontroller firmware       | Bare-metal ARM Cortex-M4F machine code                    | Platforms (`examples/nano_33_ble`) |
+| Target                     | Purpose                                                                       | Execution model                                           | Built by                           |
+| -------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- |
+| `x86_64-unknown-linux-gnu` | Native desktop runtime and host testing                                       | Native machine code running on host Linux                 | Platforms (`examples/native`)      |
+| `wasm32-wasip1`            | [Sandboxed guest applications](/explanation/architecture/guest-applications/) | WebAssembly bytecode interpreted by Wasmi inside Xila     | Applications (`executables/*`)     |
+| `wasm32-unknown-unknown`   | Browser runtime                                                               | WebAssembly bytecode executed directly by the web browser | Platforms (`examples/wasm`)        |
+| `thumbv7em-none-eabihf`    | Embedded microcontroller firmware                                             | Bare-metal ARM Cortex-M4F machine code                    | Platforms (`examples/nano_33_ble`) |
 
 The Espressif boards add more targets, built from the board crates in `examples/boards`: `xtensa-esp32-none-elf` (WT32-SC01), `xtensa-esp32s3-none-elf` (WT32-SC01 Plus, ESP32-S3 QEMU), `riscv32imac-unknown-none-elf` (ESP32-C6 QEMU) and `riscv32imafc-unknown-none-elf` (ESP32-P4 Function EV Board).
 
@@ -85,7 +85,7 @@ The build flow works as follows:
 
 ## Design choices and trade-offs
 
-- **Strict guest isolation via WASI Preview 1:** Guest applications run in isolated Wasmi instances compiled to `wasm32-wasip1`. Guests cannot inspect host memory or invoke arbitrary host syscalls. All interactions go through typed Xila device paths and application binary interface (ABI) calls.
+- **Strict guest isolation via WASI Preview 1:** see [Guest applications](/explanation/architecture/guest-applications/) for how Xila isolates guests from the host.
 - **`no_std` kernel core:** Core subsystems avoid dependencies on standard operating system libraries. The same VFS, task scheduler, and authentication logic therefore run on Linux, in browser WebAssembly, and on bare-metal ARM microcontrollers.
 - **Cooperative scheduling for constrained targets:** desktop Linux can use preemptive threads. Browser and bare-metal targets use cooperative task execution with fuel-based limits and explicit yield points.
 - **Build-time disk provisioning:** Application bundles and filesystem hierarchies are assembled at build time into reference disk images. This avoids heavy package installations or compilations on memory-limited microcontrollers.

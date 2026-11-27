@@ -1,0 +1,73 @@
+---
+title: "Guest applications"
+docType: explanation
+description: "What WebAssembly guest applications are, how Xila packages, launches, and isolates them, and where they run."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
+
+Xila applications are guest applications: sandboxed WebAssembly (Wasm) modules compiled to `wasm32-wasip1` instead of native machine code. They live in the Applications repository. The Wasm executable, the `xila-wasm` host runtime, loads each guest module from the virtual file system (VFS) and runs it with the Wasmi interpreter.
+
+## Context
+
+Running applications as sandboxed Wasm modules isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller development boards, native desktop builds, and browser platforms.
+
+Guest applications run in an isolated linear memory space. They cannot dereference host pointers, inspect host memory, or call native C libraries directly.
+
+## How it works
+
+### Packaging and launch
+
+Each guest application ships as an application bundle. Its package metadata identifies the Wasm entrypoint, and its launcher shortcut starts the guest through `/applications/executables/wasm`. Platforms seeds the compiled guest binaries into the reference disk images of the image profiles.
+
+The following diagram shows the launch path of a guest application.
+
+<div className="diagram">
+
+```d2 title="Launch path of a guest application"
+direction: right
+
+shortcut: Shortcut file { class: stored }
+runner: Wasm runner { class: component }
+guest: Guest application { class: component }
+api: Guest API { class: component }
+
+shortcut -> runner: Launches
+runner -> guest: Starts
+guest -> api: Uses
+```
+
+</div>
+
+The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
+
+### Host and guest boundary
+
+Xila maintains a strict separation between guest code and the host environment:
+
+- Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API, that is through typed Xila device paths and graphics ABI calls. They cannot invoke arbitrary host system calls.
+- Each guest runs in its own isolated Wasmi instance (WASI Preview 1), so one guest cannot inspect host memory or affect another guest.
+- The browser runtime compiles the Xila host kernel and drivers to `wasm32-unknown-unknown`. The browser then runs the Xila host, which executes `wasm32-wasip1` guest applications in Wasmi.
+
+Graphical operations cross an explicit foreign function interface boundary; see [Graphics bindings](/explanation/architecture/executables/bindings/).
+
+## Design choices and trade-offs
+
+- **Strict guest isolation via WASI Preview 1:** guests cannot inspect host memory or invoke arbitrary host system calls. All interactions go through typed Xila device paths and graphics ABI calls.
+- **One binary format for every target:** one `wasm32-wasip1` module runs on microcontrollers, native desktops, and browsers, so application builds do not depend on the host CPU architecture.
+
+## API reference
+
+- <Api api="guest" path="wasm" />: the guest WebAssembly API.
+- <CodeReference repo="applications" path="executables/wasm" />: the `xila-wasm`
+  host runtime and guest API helpers.
+
+## Related
+
+- [Wasm executable](/explanation/architecture/executables/wasm/): how the host loads, schedules, and runs guest modules.
+- [Build a guest application](/how-to/build-guest/)
+- [Run a guest application](/how-to/run-guest/)
+- [Guest API reference](/reference/guest/)
+- [Wasm runtime](/reference/wasm-runtime/)
+- [Graphics bindings](/explanation/architecture/executables/bindings/)

@@ -12,7 +12,7 @@ The Wasm executable loads WebAssembly (Wasm) guest applications from the virtual
 
 ## Context
 
-Xila applications run as sandboxed WebAssembly modules instead of native machine code. This isolates application memory from the kernel and gives all host CPU architectures one binary format. Applications run identically on microcontroller development boards, native desktop builds, and browser platforms.
+Guest applications are sandboxed WebAssembly modules; see [Guest applications](/explanation/architecture/guest-applications/) for what they are and where they run.
 
 The host executable mounts at `/applications/executables/wasm` in the VFS. It depends on Core subsystems (<Api path="virtual_file_system::VirtualFileSystem" />, <Api path="task::Manager" />, and <Api path="graphics::Manager" />) and implements <Api path="executable::ExecutableTrait" /> to integrate into Xila's process lifecycle.
 
@@ -65,13 +65,6 @@ Xila uses asynchronous cooperative multitasking. To prevent a guest module from 
 - The host runtime yields control to Xila's task scheduler, allowing other system tasks and display updates to run.
 - When the task resumes, fuel is replenished and execution continues.
 
-### Host and guest architectural boundary
-
-Xila maintains a strict separation between guest code and the host environment:
-
-- Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API.
-- The browser runtime compiles the Xila host kernel and drivers to `wasm32-unknown-unknown`. The browser then runs the Xila host, which executes `wasm32-wasip1` guest applications in Wasmi.
-
 ## Design choices and trade-offs
 
 - Eager compilation: Translating all functions at module load time adds a little startup latency. It removes the risk of compilation failures during time-critical event processing or when fuel runs low.
@@ -97,6 +90,7 @@ Xila maintains a strict separation between guest code and the host environment:
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/): what guest applications are and the host and guest boundary.
 - [Build a guest application](/how-to/build-guest/)
 - [Run a guest application](/how-to/run-guest/)
 - [Wasm runtime](/reference/wasm-runtime/)

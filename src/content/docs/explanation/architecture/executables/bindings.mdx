@@ -11,7 +11,7 @@ Xila's graphics bindings connect sandboxed WebAssembly (Wasm) guest applications
 
 ## Context
 
-Guest applications compile to `wasm32-wasip1` and run in an isolated linear memory space. They cannot dereference host pointers or call native C libraries directly. User interface operations must therefore cross an explicit foreign function interface boundary.
+Guest applications run in an isolated linear memory space and cannot dereference host pointers or call native C libraries directly; see [Guest applications](/explanation/architecture/guest-applications/). User interface operations must therefore cross an explicit foreign function interface boundary.
 
 The graphics bindings solve this problem without exposing raw pointers or compromising kernel safety:
 
@@ -90,6 +90,7 @@ All data transfers across the boundary are strictly bounded. This keeps memory u
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Graphics bindings reference](/reference/graphics-bindings/)
 - [Wasm runtime](/reference/wasm-runtime/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)

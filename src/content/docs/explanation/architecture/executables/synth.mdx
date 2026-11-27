@@ -7,34 +7,15 @@ description: "Understand how Synth plays synthesized notes."
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-Synth plays synthesized notes. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
+Synth plays synthesized notes. It runs as a [guest application](/explanation/architecture/guest-applications/) in the Applications repository.
 
 ## Context
 
-The guest application uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint. Its shortcut launches the guest through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
+See [Guest applications](/explanation/architecture/guest-applications/) for how the bundle is packaged and launched. The native and browser image profiles include this bundle.
 
 ## How it works
 
 The interface offers a keyboard and sine, square, and triangle waveforms. It writes the generated audio to `/devices/audio/playback`.
-
-The following diagram shows the launch path.
-
-<div className="diagram">
-
-```d2 title="Launch path of the Synth guest application"
-direction: right
-
-shortcut: Shortcut { class: stored }
-runner: Wasm runner { class: component }
-guest: Synth { class: component }
-api: Guest API { class: component }
-
-shortcut -> runner -> guest -> api
-```
-
-</div>
-
-The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
 ## Design choices and trade-offs
 
@@ -56,5 +37,6 @@ The synthesizer supports up to eight voices.
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)
 - [Guest API reference](/reference/guest/)

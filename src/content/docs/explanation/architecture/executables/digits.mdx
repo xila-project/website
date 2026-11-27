@@ -7,11 +7,11 @@ description: "Understand how Digits recognizes handwritten digits through a neur
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-Digits recognizes handwritten digits. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) named `xila-digits` in the Applications repository.
+Digits recognizes handwritten digits. It runs as a [guest application](/explanation/architecture/guest-applications/) named `xila-digits` in the Applications repository.
 
 ## Context
 
-Digits depends on the drawing representation of Pixel Painter and a neural-network device. Its package specifies a Wasm entrypoint. Its shortcut launches `/applications/executables/wasm`. The native and browser image profiles include the bundle.
+Digits depends on the drawing representation of Pixel Painter and a neural-network device. See [Guest applications](/explanation/architecture/guest-applications/) for how the bundle is packaged and launched. The native and browser image profiles include the bundle.
 
 ## How it works
 
@@ -59,6 +59,7 @@ Digits requires one float32 input shaped `[1, 784]` and one float32 output shape
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Neural network](/explanation/architecture/libraries/neural_network/)
 - [Pixel Painter](/explanation/architecture/executables/pixel_painter/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)
