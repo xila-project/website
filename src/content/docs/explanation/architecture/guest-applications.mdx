@@ -46,7 +46,7 @@ The shortcut starts the Wasm runner with the bundle entrypoint. The runner start
 
 Xila maintains a strict separation between guest code and the host environment:
 
-- Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API, that is through typed Xila device paths and application binary interface (ABI) calls. They cannot invoke arbitrary host syscalls.
+- Guest applications compile to `wasm32-wasip1`. They interact solely through WASI system calls and the safe guest API, that is through typed Xila device paths and graphics ABI calls. They cannot invoke arbitrary host system calls.
 - Each guest runs in its own isolated Wasmi instance (WASI Preview 1), so one guest cannot inspect host memory or affect another guest.
 - The browser runtime compiles the Xila host kernel and drivers to `wasm32-unknown-unknown`. The browser then runs the Xila host, which executes `wasm32-wasip1` guest applications in Wasmi.
 
@@ -54,7 +54,7 @@ Graphical operations cross an explicit foreign function interface boundary; see 
 
 ## Design choices and trade-offs
 
-- **Strict guest isolation via WASI Preview 1:** guests cannot inspect host memory or invoke arbitrary host syscalls. All interactions go through typed Xila device paths and ABI calls.
+- **Strict guest isolation via WASI Preview 1:** guests cannot inspect host memory or invoke arbitrary host system calls. All interactions go through typed Xila device paths and graphics ABI calls.
 - **One binary format for every target:** one `wasm32-wasip1` module runs on microcontrollers, native desktops, and browsers, so application builds do not depend on the host CPU architecture.
 
 ## API reference
