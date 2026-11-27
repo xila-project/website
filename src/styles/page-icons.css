@@ -84,6 +84,11 @@
   :is(
     a.entry-link,
     a.group-link
+  )[href="/explanation/architecture/guest-applications/"]::before,
+.sidebar-content
+  :is(
+    a.entry-link,
+    a.group-link
   )[href="/explanation/development-environments/"]::before,
 .sidebar-content
   :is(a.entry-link, a.group-link)[href="/explanation/browser-storage/"]::before,
@@ -774,6 +779,34 @@
     [href^="/explanation/architecture/components#"]
   )::before {
   mask-image: var(--xila-icon-magnifier);
+}
+
+.sidebar-content
+  :is(
+    a.entry-link,
+    a.group-link
+  )[href="/explanation/architecture/guest-applications/"]::before,
+.sl-markdown-content
+  .sl-link-card:has(
+    > .stack
+      > a:is(
+        [href="/explanation/architecture/guest-applications/"],
+        [href="/explanation/architecture/guest-applications"],
+        [href^="/explanation/architecture/guest-applications/#"],
+        [href^="/explanation/architecture/guest-applications#"]
+      )
+  )::before,
+.sl-markdown-content
+  .sl-heading-wrapper:has(> :is(#related-documentation, #next-steps))
+  + ul
+  > li
+  > a:first-child:is(
+    [href="/explanation/architecture/guest-applications/"],
+    [href="/explanation/architecture/guest-applications"],
+    [href^="/explanation/architecture/guest-applications/#"],
+    [href^="/explanation/architecture/guest-applications#"]
+  )::before {
+  mask-image: var(--xila-icon-seti-wasm);
 }
 
 .sidebar-content

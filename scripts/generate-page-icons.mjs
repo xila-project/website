@@ -49,6 +49,7 @@ const links = {
   "/reference/graphics-bindings/": "seti:image",
 
   "/explanation/architecture/components/": "magnifier",
+  "/explanation/architecture/guest-applications/": "seti:wasm",
   "/explanation/development-environments/": "laptop",
   "/explanation/browser-storage/": "database",
   "/explanation/package-management/": "seti:zip",

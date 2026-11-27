@@ -7,36 +7,15 @@ description: "Understand how Calculator evaluates mathematical expressions."
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-Calculator evaluates mathematical expressions. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
+Calculator evaluates mathematical expressions. It runs as a [guest application](/explanation/architecture/guest-applications/) in the Applications repository.
 
 ## Context
 
-The guest application uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint. Its shortcut launches the guest through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
+See [Guest applications](/explanation/architecture/guest-applications/) for how the bundle is packaged and launched. The native and browser image profiles include this bundle.
 
 ## How it works
 
 The keypad offers basic and scientific layouts. The expression engine uses `nanoexpr`.
-
-The following diagram shows the launch path.
-
-<div className="diagram">
-
-```d2 title="Launch path of the Calculator guest application"
-direction: right
-
-shortcut: Shortcut file { class: stored }
-runner: Wasm runner { class: component }
-calculator: Calculator { class: component }
-api: Guest API { class: component }
-
-shortcut -> runner: Launches
-runner -> calculator: Starts
-calculator -> api: Uses
-```
-
-</div>
-
-The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
 ## Design choices and trade-offs
 
@@ -58,5 +37,6 @@ The interface switches between a compact and a wide layout at 560 by 360 pixels.
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)
 - [Guest API reference](/reference/guest/)

@@ -140,6 +140,7 @@ const sidebar = [
         items: [
           page("Architecture overview", `${architecture}/`),
           page("Component map", `${architecture}/components/`),
+          page("Guest applications", `${architecture}/guest-applications/`),
           page(
             "Development environments and targets",
             "/explanation/development-environments/",

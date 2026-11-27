@@ -7,34 +7,15 @@ description: "Understand how Text Editor edits UTF-8 text files."
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-Text Editor edits UTF-8 text files. It is a WebAssembly (Wasm) guest application (`wasm32-wasip1`) in the Applications repository.
+Text Editor edits UTF-8 text files. It runs as a [guest application](/explanation/architecture/guest-applications/) in the Applications repository.
 
 ## Context
 
-The guest application uses Xila graphics through the guest API. Its package metadata identifies the Wasm entrypoint. Its shortcut launches the guest through `/applications/executables/wasm`. The native and browser image profiles include this bundle.
+See [Guest applications](/explanation/architecture/guest-applications/) for how the bundle is packaged and launched. The native and browser image profiles include this bundle.
 
 ## How it works
 
 The editor opens a file as a temporary working copy and edits it in pages. Saving writes the working copy back to the file.
-
-The following diagram shows the launch path.
-
-<div className="diagram">
-
-```d2 title="Launch path of the Text Editor guest application"
-direction: right
-
-shortcut: Shortcut { class: stored }
-runner: Wasm runner { class: component }
-guest: Text Editor { class: component }
-api: Guest API { class: component }
-
-shortcut -> runner -> guest -> api
-```
-
-</div>
-
-The shortcut starts the Wasm runner with the bundle entrypoint. The runner starts the guest, which uses the guest API for its interface.
 
 ## Design choices and trade-offs
 
@@ -56,5 +37,6 @@ The editing page size is 4096 bytes.
 
 ## Related
 
+- [Guest applications](/explanation/architecture/guest-applications/)
 - [Wasm executable](/explanation/architecture/executables/wasm/)
 - [Guest API reference](/reference/guest/)
