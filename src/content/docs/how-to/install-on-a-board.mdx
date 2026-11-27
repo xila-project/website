@@ -50,10 +50,12 @@ The requirements of your board:
 
 The firmware builds from the Platforms repository root.
 
+{/* Use HTML headings for board steps so the table of contents stays board-independent. */}
+
 <Tabs syncKey="board">
   <TabItem label="Arduino Nano 33 BLE">
 
-    <h4 id="check-the-memory-layout-nano-33-ble">Check the memory layout</h4>
+    <h3 id="check-the-memory-layout-nano-33-ble">Check the memory layout</h3>
 
     The board partitions the 1 MiB internal flash and 256 KiB RAM into fixed regions:
 
@@ -65,7 +67,7 @@ The firmware builds from the Platforms repository root.
 
     RAM is organized from `0x20000000` into static data, the dynamic heap, a 32 KiB stack, and a dedicated 256-byte uninitialized crash record at the top of memory (`0x2003FF00`-`0x2003FFFF`).
 
-    <h4 id="build-the-firmware-nano-33-ble">Build the firmware</h4>
+    <h3 id="build-the-firmware-nano-33-ble">Build the firmware</h3>
 
     1. In the Platforms repository root, compile the embedded runtime:
 
@@ -85,7 +87,7 @@ The firmware builds from the Platforms repository root.
     Flashing writes only to the firmware flash region (`0x10000`-`0x80000`) and preserves the file system. Erasing the storage flash pages (`0x80000`-`0x100000`) permanently deletes all saved user accounts, configurations, and data.
     :::
 
-    <h4 id="flash-through-the-bootloader-nano-33-ble">Flash through the bootloader</h4>
+    <h3 id="flash-through-the-bootloader-nano-33-ble">Flash through the bootloader</h3>
 
     1. Connect the Arduino Nano 33 BLE to your computer using a micro-USB cable.
     2. In the Platforms repository root, run the flashing task:
@@ -104,7 +106,7 @@ The firmware builds from the Platforms repository root.
 
     If the board fails to enter the bootloader automatically, double-tap the physical reset button on the board (the onboard orange LED pulses) and run the command again.
 
-    <h4 id="recover-the-board-nano-33-ble">Recover the board</h4>
+    <h3 id="recover-the-board-nano-33-ble">Recover the board</h3>
 
     The following diagram shows the bootloader entry, crash detection, and recovery paths for the Arduino Nano 33 BLE.
 
@@ -145,7 +147,7 @@ The firmware builds from the Platforms repository root.
     - **Three-panic bootloader latch:** `board::crash()` counts crashes in `GPREGRET2`. On the third crash in a row before the firmware reaches `mark_stable()`, it resets into the bootloader instead of restarting the firmware.
     - **Bring-up timeout:** When built with `--features bring-up`, hardware timer `TIMER1` counts down 60 seconds. If no host terminal opens the serial port within this period, the board automatically resets into the bootloader.
 
-    <h4 id="troubleshooting-nano-33-ble">Troubleshooting</h4>
+    <h3 id="troubleshooting-nano-33-ble">Troubleshooting</h3>
 
     | Symptom                                      | Cause                                     | Fix                                                                                                                                     |
     | -------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -157,7 +159,7 @@ The firmware builds from the Platforms repository root.
   </TabItem>
   <TabItem label="WT32-SC01">
 
-    <h4 id="build-the-firmware-wt32-sc01">Build the firmware</h4>
+    <h3 id="build-the-firmware-wt32-sc01">Build the firmware</h3>
 
     1. In a host shell, clone the Platforms repository and enter it:
 
@@ -215,7 +217,7 @@ The firmware builds from the Platforms repository root.
 
     `espflash flash` writes the bootloader, the partition table and the `factory` application partition. It never writes the `storage` partition, so the accounts, the installed applications and the stored files survive a firmware update. The merged `-flash.bin` image spans the whole flash: a raw write at offset `0x0` also replaces the `storage` partition with erased content. Use the merged image only to provision a new or wiped board.
 
-    <h4 id="find-the-serial-port-wt32-sc01">Find the serial port</h4>
+    <h3 id="find-the-serial-port-wt32-sc01">Find the serial port</h3>
 
     1. Connect the board to the computer.
     2. In a host shell, list the serial devices:
@@ -234,7 +236,7 @@ The firmware builds from the Platforms repository root.
 
     Do not use `/dev/ttyACM0` or `/dev/ttyUSB0`. The number of the device can change after you flash the board, and other boards on the same computer can take a number. The `/dev/serial/by-id/` path stays the same. Name the port in every `espflash` command, so that `espflash` does not choose a port.
 
-    <h4 id="seed-the-storage-wt32-sc01">Seed the storage</h4>
+    <h3 id="seed-the-storage-wt32-sc01">Seed the storage</h3>
 
     A seeded storage image carries the application shortcuts of the graphical shell, the official package registry and the first-installation marker. Without it, the board formats its storage at the first boot and the application menu is empty. The [seed image diagram](/tutorials/native/#create-a-reference-disk-image) in the native tutorial shows how the native seed image is built from the pinned, released packages.
 
@@ -265,7 +267,7 @@ The firmware builds from the Platforms repository root.
     | ---------------------------------------------------------------------------------------------------------------- | ----------------------- | ---------------------- |
     | <CodeReference repo="platforms" path="examples/boards/wt32-sc01/partitions.csv">`partitions.csv`</CodeReference> | `0x10000`, 2.25 MiB     | `0x250000`, 1.6875 MiB |
 
-    <h4 id="flash-the-firmware-wt32-sc01">Flash the firmware</h4>
+    <h3 id="flash-the-firmware-wt32-sc01">Flash the firmware</h3>
 
     1. In the Platforms repository root, flash the board. The command writes the bootloader, the partition table and the application. It does not write the `storage` partition.
 
@@ -278,7 +280,7 @@ The firmware builds from the Platforms repository root.
 
     2. Watch the boot log that `--monitor` prints. Press `Ctrl+C` to close the monitor.
 
-    <h4 id="update-only-the-application-wt32-sc01">Update only the application</h4>
+    <h3 id="update-only-the-application-wt32-sc01">Update only the application</h3>
 
     To update the firmware and keep the bootloader, the partition table and the storage, write only the `factory` partition. The partition table of the board must already match the one in the repository.
 
@@ -302,7 +304,7 @@ The firmware builds from the Platforms repository root.
          "$factory_offset" target/espressif-emulator/wt32-sc01-application.bin
        ```
 
-    <h4 id="troubleshooting-wt32-sc01">Troubleshooting</h4>
+    <h3 id="troubleshooting-wt32-sc01">Troubleshooting</h3>
 
     | Symptom                                                                                  | Cause                                                                                                   | Fix                                                                                                                                                               |
     | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -319,7 +321,7 @@ The firmware builds from the Platforms repository root.
   </TabItem>
   <TabItem label="WT32-SC01 Plus">
 
-    <h4 id="build-the-firmware-wt32-sc01-plus">Build the firmware</h4>
+    <h3 id="build-the-firmware-wt32-sc01-plus">Build the firmware</h3>
 
     1. In a host shell, clone the Platforms repository and enter it:
 
@@ -375,7 +377,7 @@ The firmware builds from the Platforms repository root.
 
     `espflash flash` writes the bootloader, the partition table and the `factory` application partition. It never writes the `storage` partition, so the accounts, the installed applications and the stored files survive a firmware update. The merged `-flash.bin` image spans the whole flash: a raw write at offset `0x0` also replaces the `storage` partition with erased content. Use the merged image only to provision a new or wiped board.
 
-    <h4 id="find-the-serial-port-wt32-sc01-plus">Find the serial port</h4>
+    <h3 id="find-the-serial-port-wt32-sc01-plus">Find the serial port</h3>
 
     1. Connect the board to the computer.
     2. In a host shell, list the serial devices:
@@ -394,7 +396,7 @@ The firmware builds from the Platforms repository root.
 
     Do not use `/dev/ttyACM0` or `/dev/ttyUSB0`. The `ttyACM` number of the Plus can change after you flash it, and other boards on the same computer can take a number. The `/dev/serial/by-id/` path stays the same. Name the port in every `espflash` command, so that `espflash` does not choose a port.
 
-    <h4 id="seed-the-storage-wt32-sc01-plus">Seed the storage</h4>
+    <h3 id="seed-the-storage-wt32-sc01-plus">Seed the storage</h3>
 
     A seeded storage image carries the application shortcuts of the graphical shell, the official package registry and the first-installation marker. Without it, the board formats its storage at the first boot and the application menu is empty. The [seed image diagram](/tutorials/native/#create-a-reference-disk-image) in the native tutorial shows how the native seed image is built from the pinned, released packages.
 
@@ -425,7 +427,7 @@ The firmware builds from the Platforms repository root.
     | ---------------------------------------------------------------------------------------------------------------------- | ----------------------- | ------------------------------------- |
     | <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/partitions.csv">`partitions.csv`</CodeReference> | `0x10000`, 4 MiB        | `0x410000`, 3056 blocks of 4096 bytes |
 
-    <h4 id="flash-the-firmware-wt32-sc01-plus">Flash the firmware</h4>
+    <h3 id="flash-the-firmware-wt32-sc01-plus">Flash the firmware</h3>
 
     1. In the Platforms repository root, flash the board. The command writes the bootloader, the partition table and the application. It does not write the `storage` partition.
 
@@ -440,7 +442,7 @@ The firmware builds from the Platforms repository root.
 
     With the Plus, the bootloader and the application use different flash modes. The second-stage bootloader uses dual I/O at 80 MHz, which the ROM requires, and it switches the flash chip to quad I/O. The application image uses quad I/O at 80 MHz. The bootloader that `espflash` bundles writes both modes. Do not configure a local bootloader in `espflash`: it can bypass the bundled bootloader that selects quad I/O.
 
-    <h4 id="update-only-the-application-wt32-sc01-plus">Update only the application</h4>
+    <h3 id="update-only-the-application-wt32-sc01-plus">Update only the application</h3>
 
     To update the firmware and keep the bootloader, the partition table and the storage, write only the `factory` partition. The partition table of the board must already match the one in the repository.
 
@@ -470,7 +472,7 @@ The firmware builds from the Platforms repository root.
     The `administrator` account cannot write to `/configuration/system`. Only root and the members of its group can. The `sudo` command runs external commands only, not commands of the shell such as `echo`. For a root task, such as the microSD format request of the Plus, first start a root shell with `sudo command_line_shell`. See the microSD section of the <CodeReference repo="platforms" path="examples/boards/wt32-sc01-plus/README.md">WT32-SC01 Plus README</CodeReference>.
     :::
 
-    <h4 id="troubleshooting-wt32-sc01-plus">Troubleshooting</h4>
+    <h3 id="troubleshooting-wt32-sc01-plus">Troubleshooting</h3>
 
     | Symptom                                                                                  | Cause                                                                                                   | Fix                                                                                                                                                               |
     | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -492,6 +494,8 @@ The firmware builds from the Platforms repository root.
 <Tabs syncKey="board">
   <TabItem label="Arduino Nano 33 BLE">
 
+    <h4 id="open-the-console-and-log-in-nano-33-ble">Arduino Nano 33 BLE console</h4>
+
     1. Open a serial terminal connected to the board:
 
     ```sh
@@ -510,6 +514,8 @@ The firmware builds from the Platforms repository root.
   </TabItem>
   <TabItem label="WT32-SC01">
 
+    <h4 id="open-the-console-and-log-in-wt32-sc01">WT32-SC01 console</h4>
+
     The WT32-SC01 sends the console through UART0 and the CP210x bridge at 115200 baud.
 
     1. In a host shell, open a serial terminal on the port:
@@ -520,6 +526,8 @@ The firmware builds from the Platforms repository root.
 
   </TabItem>
   <TabItem label="WT32-SC01 Plus">
+
+    <h4 id="open-the-console-and-log-in-wt32-sc01-plus">WT32-SC01 Plus console</h4>
 
     The Plus sends the console through its built-in USB Serial/JTAG controller.
 
