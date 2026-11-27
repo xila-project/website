@@ -35,7 +35,6 @@ const links = {
   "/how-to/package-application/": "seti:zip",
   "/how-to/submit-package/": "seti:json",
   "/how-to/run-container-guest/": "seti:docker",
-  "/how-to/validate-core/": "approve-check-circle",
   "/how-to/contribute-core/": "seti:git",
   "/how-to/reset-browser-storage/": "database",
   "/how-to/write-documentation/": "pencil",

@@ -21,6 +21,7 @@ const site = "https://www.xila.dev";
 const movedDocumentation = [
   "/how-to/run-nano-33-ble",
   "/how-to/flash-wt32-sc01",
+  "/how-to/validate-core",
 ];
 
 const headerLink = { "data-header-link": "" };
@@ -85,7 +86,6 @@ const sidebar = [
           ),
           page("Integrate Xila into a host", "/how-to/integrate-host/"),
           page("Contribute a Core change", "/how-to/contribute-core/"),
-          page("Validate a Core change", "/how-to/validate-core/"),
           page("Write or update documentation", "/how-to/write-documentation/"),
         ],
       },
