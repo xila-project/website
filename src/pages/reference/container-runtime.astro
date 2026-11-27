@@ -1,0 +1,15 @@
+---
+import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/reference/headless-runtime/";
+// Fragments of the old "Headless Xila runtime" page, mapped to the section
+// with the same name of the renamed page.
+const fragments: Record<string, string> = {
+  "image-and-executable": `${target}#image-and-executable`,
+  "command-syntax": `${target}#command-syntax`,
+  "isolation-and-durability": `${target}#isolation-and-durability`,
+  related: `${target}#related`,
+};
+---
+
+<LegacyRedirect target={target} fragments={fragments} />

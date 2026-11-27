@@ -1,0 +1,17 @@
+---
+import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/documentation/";
+// Fragments of the old "Xila documentation" page, mapped to the section
+// with the same name of the renamed page.
+const fragments: Record<string, string> = {
+  "first-experience": `${target}#first-experience`,
+  "try-xila": `${target}#try-xila`,
+  "run-xila-on-a-board": `${target}#run-xila-on-a-board`,
+  "build-applications": `${target}#build-applications`,
+  "develop-xila": `${target}#develop-xila`,
+  "find-a-component": `${target}#find-a-component`,
+};
+---
+
+<LegacyRedirect target={target} fragments={fragments} />

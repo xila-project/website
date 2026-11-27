@@ -21,7 +21,7 @@ const { Icons } = await import(
 );
 
 const links = {
-  "/docs/": "open-book",
+  "/documentation/": "open-book",
   "/about/": "information",
 
   "/tutorials/native/": "desktop",
@@ -45,7 +45,7 @@ const links = {
   "/reference/package-format/": "document",
   "/reference/development-commands/": "seti:powershell",
   "/reference/wasm-runtime/": "server",
-  "/reference/container-runtime/": "seti:docker",
+  "/reference/headless-runtime/": "seti:docker",
   "/reference/graphics-bindings/": "seti:image",
 
   "/explanation/architecture/components/": "magnifier",

@@ -61,14 +61,14 @@ You may append `shell --network=none` after the image name to select this mode e
      -- /applications/executables/wasm /fixtures/app.wasm
    ```
 
-The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. The headless runtime reference shows this [two-mount flow in a diagram](/reference/container-runtime/#isolation-and-durability). Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
+The Docker bind mount exposes the file to the **runtime process**. The separate Xila `--mount` grants its VFS **read-only** access at `/fixtures`. The headless runtime reference shows this [two-mount flow in a diagram](/reference/headless-runtime/#isolation-and-durability). Arguments after `app.wasm` go to the guest. A nonzero guest exit status propagates to Docker.
 
 ## Verify the result
 
 In shell mode, confirm the login prompt works and a command executes inside Xila. In guest mode, inspect the application's output and exit code. The volume survives `--rm` and holds the existing disk. Do not delete `xila-state` if it contains data that you want to keep.
 
-For bind-mounted state instead of a named volume, grant write permission to UID/GID 10001. See the [headless runtime reference](/reference/container-runtime/) for disk/seed paths, additional read-write mounts, and explicit guest environment options.
+For bind-mounted state instead of a named volume, grant write permission to UID/GID 10001. See the [headless runtime reference](/reference/headless-runtime/) for disk/seed paths, additional read-write mounts, and explicit guest environment options.
 
 ## Related
 
-- [Headless Xila runtime](/reference/container-runtime/)
+- [Headless Xila runtime](/reference/headless-runtime/)

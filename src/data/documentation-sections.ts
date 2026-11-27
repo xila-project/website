@@ -14,7 +14,7 @@ export const DOCUMENTATION_SECTIONS: DocumentationSection[] = [
   {
     label: "Overview",
     description: "Find the section that matches your need.",
-    href: "/docs/",
+    href: "/documentation/",
   },
   {
     label: "Tutorials",
