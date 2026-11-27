@@ -14,6 +14,15 @@ import astroD2 from "astro-d2";
 
 const site = "https://www.xila.dev";
 
+// Documentation pages that moved to another URL. Each old URL has a custom
+// redirect page (src/pages/... rendering src/components/LegacyRedirect.astro)
+// that keeps the URL fragment working. The redirect pages stay out of the
+// sitemap.
+const movedDocumentation = [
+  "/how-to/run-nano-33-ble",
+  "/how-to/flash-wt32-sc01",
+];
+
 const headerLink = { "data-header-link": "" };
 const page = (label, link) => ({ label, link });
 const group = (label, base, entries, collapsed = true) => ({
@@ -213,9 +222,6 @@ export default defineConfig({
   redirects: {
     "/api/host": "/api/host/xila/index.html",
     "/api/guest": "/api/guest/wasm/index.html",
-    // A page that moves or is removed keeps its old URL working.
-    "/how-to/run-nano-33-ble": "/how-to/install-on-a-board/",
-    "/how-to/flash-wt32-sc01": "/how-to/install-on-a-board/",
   },
   markdown: {
     remarkPlugins: [remarkD2Preamble, remarkApiLinks],
@@ -224,7 +230,11 @@ export default defineConfig({
   integrations: [
     // The sitemap index lists sitemap-api.xml, which xilaApiSitemap() writes
     // from the API index. It must come after sitemap().
-    sitemap({ customSitemaps: getApiCustomSitemaps(site) }),
+    sitemap({
+      customSitemaps: getApiCustomSitemaps(site),
+      filter: (page) =>
+        !movedDocumentation.includes(new URL(page).pathname.replace(/\/$/, "")),
+    }),
     xilaApiSitemap(),
     // D2 renders the code fences with the language `d2` to inline SVG at
     // build time. D2.js runs D2 as WebAssembly, so the build needs no `d2`

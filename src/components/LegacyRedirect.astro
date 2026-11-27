@@ -1,0 +1,43 @@
+---
+// Redirect page for a documentation page that moved to another URL. The
+// redirect pages that Astro generates from the `redirects` config drop the
+// URL fragment, so this page keeps it with a script and falls back to a meta
+// refresh and a canonical link without JavaScript.
+const target = "/how-to/install-on-a-board/";
+const canonical = Astro.site ? new URL(target, Astro.site).href : target;
+
+// Headings of the old pages that were renamed or moved into a board tab.
+const fragments: Record<string, string> = {
+  "control-gpio-pins": "/how-to/control-gpio-pins/",
+  "connect-to-the-serial-console-and-log-in": `${target}#open-the-console-and-log-in`,
+  "update-only-the-application": `${target}#update-only-the-application-wt32-sc01`,
+  "check-the-memory-layout": `${target}#steps`,
+  "build-the-firmware": `${target}#steps`,
+  "flash-through-the-bootloader": `${target}#steps`,
+  "recover-the-board": `${target}#steps`,
+  "find-the-serial-port": `${target}#steps`,
+  "seed-the-storage": `${target}#steps`,
+  "flash-the-firmware": `${target}#steps`,
+  troubleshooting: `${target}#steps`,
+};
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <link rel="canonical" href={canonical} />
+    <meta name="robots" content="noindex" />
+    <title>Page moved</title>
+    <script is:inline define:vars={{ target, fragments }}>
+      var hash = window.location.hash.slice(1);
+      window.location.replace(fragments[hash] || target + window.location.hash);
+    </script>
+  </head>
+  <body>
+    <p>
+      This page moved to <a href={target}>{target}</a>.
+    </p>
+  </body>
+</html>
