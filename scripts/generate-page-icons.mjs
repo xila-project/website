@@ -34,9 +34,9 @@ const links = {
   "/how-to/run-guest/": "rocket",
   "/how-to/package-application/": "seti:zip",
   "/how-to/submit-package/": "seti:json",
-  "/how-to/run-container-guest/": "seti:docker",
+  "/how-to/run-xila-with-docker/": "seti:docker",
   "/how-to/contribute-core/": "seti:git",
-  "/how-to/reset-browser-storage/": "database",
+  "/how-to/manage-browser-disks/": "database",
   "/how-to/write-documentation/": "pencil",
 
   "/reference/host/": "seti:rust",

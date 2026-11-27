@@ -22,6 +22,8 @@ const movedDocumentation = [
   "/how-to/run-nano-33-ble",
   "/how-to/flash-wt32-sc01",
   "/how-to/validate-core",
+  "/how-to/run-container-guest",
+  "/how-to/reset-browser-storage",
 ];
 
 const headerLink = { "data-header-link": "" };
@@ -61,8 +63,8 @@ const sidebar = [
         items: [
           page("Install Xila on a board", "/how-to/install-on-a-board/"),
           page("Control GPIO pins", "/how-to/control-gpio-pins/"),
-          page("Run Xila with Docker", "/how-to/run-container-guest/"),
-          page("Manage browser disks", "/how-to/reset-browser-storage/"),
+          page("Run Xila with Docker", "/how-to/run-xila-with-docker/"),
+          page("Manage browser disks", "/how-to/manage-browser-disks/"),
         ],
       },
       {

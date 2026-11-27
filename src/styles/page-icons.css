@@ -48,14 +48,11 @@
 .sidebar-content
   :is(a.entry-link, a.group-link)[href="/how-to/submit-package/"]::before,
 .sidebar-content
-  :is(a.entry-link, a.group-link)[href="/how-to/run-container-guest/"]::before,
+  :is(a.entry-link, a.group-link)[href="/how-to/run-xila-with-docker/"]::before,
 .sidebar-content
   :is(a.entry-link, a.group-link)[href="/how-to/contribute-core/"]::before,
 .sidebar-content
-  :is(
-    a.entry-link,
-    a.group-link
-  )[href="/how-to/reset-browser-storage/"]::before,
+  :is(a.entry-link, a.group-link)[href="/how-to/manage-browser-disks/"]::before,
 .sidebar-content
   :is(a.entry-link, a.group-link)[href="/how-to/write-documentation/"]::before,
 .sidebar-content
@@ -447,15 +444,15 @@
 }
 
 .sidebar-content
-  :is(a.entry-link, a.group-link)[href="/how-to/run-container-guest/"]::before,
+  :is(a.entry-link, a.group-link)[href="/how-to/run-xila-with-docker/"]::before,
 .sl-markdown-content
   .sl-link-card:has(
     > .stack
       > a:is(
-        [href="/how-to/run-container-guest/"],
-        [href="/how-to/run-container-guest"],
-        [href^="/how-to/run-container-guest/#"],
-        [href^="/how-to/run-container-guest#"]
+        [href="/how-to/run-xila-with-docker/"],
+        [href="/how-to/run-xila-with-docker"],
+        [href^="/how-to/run-xila-with-docker/#"],
+        [href^="/how-to/run-xila-with-docker#"]
       )
   )::before,
 .sl-markdown-content
@@ -463,10 +460,10 @@
   + ul
   > li
   > a:first-child:is(
-    [href="/how-to/run-container-guest/"],
-    [href="/how-to/run-container-guest"],
-    [href^="/how-to/run-container-guest/#"],
-    [href^="/how-to/run-container-guest#"]
+    [href="/how-to/run-xila-with-docker/"],
+    [href="/how-to/run-xila-with-docker"],
+    [href^="/how-to/run-xila-with-docker/#"],
+    [href^="/how-to/run-xila-with-docker#"]
   )::before {
   mask-image: var(--xila-icon-seti-docker);
 }
@@ -497,18 +494,15 @@
 }
 
 .sidebar-content
-  :is(
-    a.entry-link,
-    a.group-link
-  )[href="/how-to/reset-browser-storage/"]::before,
+  :is(a.entry-link, a.group-link)[href="/how-to/manage-browser-disks/"]::before,
 .sl-markdown-content
   .sl-link-card:has(
     > .stack
       > a:is(
-        [href="/how-to/reset-browser-storage/"],
-        [href="/how-to/reset-browser-storage"],
-        [href^="/how-to/reset-browser-storage/#"],
-        [href^="/how-to/reset-browser-storage#"]
+        [href="/how-to/manage-browser-disks/"],
+        [href="/how-to/manage-browser-disks"],
+        [href^="/how-to/manage-browser-disks/#"],
+        [href^="/how-to/manage-browser-disks#"]
       )
   )::before,
 .sl-markdown-content
@@ -516,10 +510,10 @@
   + ul
   > li
   > a:first-child:is(
-    [href="/how-to/reset-browser-storage/"],
-    [href="/how-to/reset-browser-storage"],
-    [href^="/how-to/reset-browser-storage/#"],
-    [href^="/how-to/reset-browser-storage#"]
+    [href="/how-to/manage-browser-disks/"],
+    [href="/how-to/manage-browser-disks"],
+    [href^="/how-to/manage-browser-disks/#"],
+    [href^="/how-to/manage-browser-disks#"]
   )::before {
   mask-image: var(--xila-icon-database);
 }
