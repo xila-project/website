@@ -76,6 +76,27 @@ test("parses registry index and extracts package entry paths only", () => {
   ]);
 });
 
+test("shows a replacement only when its entry is available", () => {
+  const index = parseRegistryIndex({
+    format_version: 1,
+    version: 1,
+    expires: 2,
+    files: [],
+    replacements: [{ name: "xila.clock", replaced_by: "dev.xila.clock" }],
+  });
+  const legacy = parseRegistryEntry(makeFormat2Entry());
+  const replacement = parseRegistryEntry(
+    makeFormat2Entry({ name: "dev.xila.clock" }),
+  );
+  assert.equal(groupPackages([legacy], index.replacements)[0].replacedBy, null);
+  assert.equal(
+    groupPackages([legacy, replacement], index.replacements).find(
+      ({ name }) => name === legacy.name,
+    ).replacedBy,
+    replacement.name,
+  );
+});
+
 test("rejects malformed or duplicate registry index entries", () => {
   assert.throws(() => parseRegistryIndex({ format_version: 2, files: [] }));
   assert.throws(() =>
