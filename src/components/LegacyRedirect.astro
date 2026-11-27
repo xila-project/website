@@ -1,0 +1,37 @@
+---
+// Redirect page for a documentation page that moved to another URL. The
+// redirect pages that Astro generates from the `redirects` config drop the
+// URL fragment, so this page keeps it with a script and falls back to a meta
+// refresh and a canonical link without JavaScript.
+interface Props {
+  target: string;
+  // Old fragments of the moved page, mapped to the anchors of the new page.
+  fragments: Record<string, string>;
+}
+
+const { target, fragments } = Astro.props;
+const canonical = Astro.site ? new URL(target, Astro.site).href : target;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <link rel="canonical" href={canonical} />
+    <meta name="robots" content="noindex" />
+    <title>Page moved</title>
+    <script is:inline define:vars={{ target, fragments }}>
+      var hash = window.location.hash.slice(1);
+      var destination = Object.hasOwn(fragments, hash)
+        ? fragments[hash]
+        : target + window.location.hash;
+      window.location.replace(destination);
+    </script>
+  </head>
+  <body>
+    <p>
+      This page moved to <a href={target}>{target}</a>.
+    </p>
+  </body>
+</html>

@@ -1,0 +1,164 @@
+---
+title: "Control GPIO pins"
+docType: how-to
+description: "List the GPIO pins of a board and read or write them through the character devices under /devices/gpio/."
+---
+
+import { TabItem, Tabs } from "@astrojs/starlight/components";
+
+Xila mounts the GPIO pins of a board as character devices under `/devices/gpio/`. This guide shows how to list the pins of your board and read or write them. [Install Xila on a board](/how-to/install-on-a-board/) first, then log in on the serial console. For the features of each board, see [Supported hardware](/reference/supported-hardware/).
+
+## Before you begin
+
+- Xila installed on the board and a logged-in command-line shell. See [Install Xila on a board](/how-to/install-on-a-board/).
+- A board whose firmware mounts GPIO devices. The tabs below list the devices of each board.
+
+## Steps
+
+### List the GPIO devices of your board
+
+1. In the Xila shell, list the mounted GPIO devices:
+
+```text
+ls /devices/gpio
+```
+
+The output lists the devices of your board:
+
+<Tabs syncKey="board">
+  <TabItem label="Arduino Nano 33 BLE">
+
+    | GPIO device                                                                 | Board resource     | Notes                      |
+    | --------------------------------------------------------------------------- | ------------------ | -------------------------- |
+    | `/devices/gpio/d0` to `/devices/gpio/d13`                                   | Header digital pins |                            |
+    | `/devices/gpio/a0` to `/devices/gpio/a7`                                    | Header analog pins  |                            |
+    | `/devices/gpio/d13`                                                         | Onboard yellow LED  | Active-high, initially off |
+    | `/devices/gpio/led_red`, `/devices/gpio/led_green`, `/devices/gpio/led_blue` | Onboard RGB LEDs    | Active-low, initially off  |
+
+    Internal power-enable lines (sensor power rails and I2C pull-ups) remain reserved and cannot be altered through GPIO devices.
+
+  </TabItem>
+  <TabItem label="WT32-SC01">
+
+    | GPIO device           | Notes         |
+    | --------------------- | ------------- |
+    | `/devices/gpio/pin2`  | Strapping pin |
+    | `/devices/gpio/pin4`  |               |
+    | `/devices/gpio/pin5`  | Strapping pin |
+    | `/devices/gpio/pin12` | Strapping pin |
+    | `/devices/gpio/pin25` |               |
+    | `/devices/gpio/pin26` |               |
+    | `/devices/gpio/pin27` |               |
+    | `/devices/gpio/pin32` |               |
+    | `/devices/gpio/pin33` |               |
+    | `/devices/gpio/pin34` | Input only    |
+    | `/devices/gpio/pin35` | Input only    |
+    | `/devices/gpio/pin36` | Input only    |
+
+    The firmware withholds every other pin, so that no GPIO device can change the display, the touch panel, the console, the flash or the memory.
+
+    :::caution
+    Keep GPIO 12 low or floating at reset. The chip samples GPIO 12 at reset: if an external circuit holds it high, the chip selects 1.8 V for the flash and PSRAM supply instead of 3.3 V, and the board does not boot. GPIO 12 has an internal pull-down.
+    :::
+
+  </TabItem>
+  <TabItem label="WT32-SC01 Plus">
+
+    The firmware mounts exactly these GPIO devices:
+
+    | GPIO device           |
+    | --------------------- |
+    | `/devices/gpio/pin10` |
+    | `/devices/gpio/pin11` |
+    | `/devices/gpio/pin12` |
+    | `/devices/gpio/pin13` |
+    | `/devices/gpio/pin14` |
+    | `/devices/gpio/pin21` |
+
+    The firmware withholds every other pin, so that no GPIO device can change the display, the touch panel, the console, the flash or the memory.
+
+  </TabItem>
+</Tabs>
+
+### Read and write a pin
+
+<Tabs syncKey="board">
+  <TabItem label="Arduino Nano 33 BLE">
+
+    1. In the Xila shell, read the device file of the pin to read its state:
+
+    ```text
+    cat /devices/gpio/d13
+    ```
+
+    The device outputs `0` or `1` followed by a newline.
+
+    2. Write to the device file of the pin to update its output level:
+
+    ```text
+    # Turn on the yellow LED:
+    echo 1 > /devices/gpio/d13
+
+    # Turn off the yellow LED:
+    echo 0 > /devices/gpio/d13
+    ```
+
+    For the active-low RGB LEDs, writing `0` turns the LED on, and writing `1` turns it off:
+
+    ```text
+    # Turn on the red LED:
+    echo 0 > /devices/gpio/led_red
+
+    # Turn off the red LED:
+    echo 1 > /devices/gpio/led_red
+    ```
+
+    Writing any character other than `0` or `1` (surrounded by optional whitespace) returns an error.
+
+  </TabItem>
+  <TabItem label="WT32-SC01">
+
+    The command-line shell has no command that sends GPIO control commands. A read or write on a GPIO device fails with `DeviceUnavailable` until an application configures the pin.
+
+    Applications use the `CONFIGURE`, `RELEASE` and `GET_CAPABILITIES` control commands of kind `b'g'` on `/devices/gpio/pin<number>`, and then read or write one byte (`0` or `1`). `RELEASE` returns the pin to high impedance. Closing the device does not release the pin: the pin keeps its configuration, and an output keeps its level, until an application sends `RELEASE` or `CONFIGURE` again. See [Peripherals](/explanation/architecture/libraries/peripherals/).
+
+  </TabItem>
+  <TabItem label="WT32-SC01 Plus">
+
+    The command-line shell has no command that sends GPIO control commands. A read or write on a GPIO device fails with `DeviceUnavailable` until an application configures the pin.
+
+    Applications use the `CONFIGURE`, `RELEASE` and `GET_CAPABILITIES` control commands of kind `b'g'` on `/devices/gpio/pin<number>`, and then read or write one byte (`0` or `1`). `RELEASE` returns the pin to high impedance. Closing the device does not release the pin: the pin keeps its configuration, and an output keeps its level, until an application sends `RELEASE` or `CONFIGURE` again. See [Peripherals](/explanation/architecture/libraries/peripherals/).
+
+  </TabItem>
+</Tabs>
+
+## Verify the result
+
+1. In the serial terminal, verify that the shell prompt (`user@host:directory$`) appears after logging in.
+2. Run `ls /devices/gpio` and check that the output lists the pins of your board.
+
+<Tabs syncKey="board">
+  <TabItem label="Arduino Nano 33 BLE">
+
+    3. Run `echo 1 > /devices/gpio/d13` and observe that the yellow onboard LED lights up.
+    4. Run `echo 0 > /devices/gpio/d13` and observe that the yellow LED turns off.
+
+  </TabItem>
+  <TabItem label="WT32-SC01">
+
+    3. Run `cat /devices/gpio/pin2` before an application configures the pin. The read fails with `DeviceUnavailable`, as expected.
+
+  </TabItem>
+  <TabItem label="WT32-SC01 Plus">
+
+    3. Run `cat /devices/gpio/pin10` before an application configures the pin. The read fails with `DeviceUnavailable`, as expected.
+
+  </TabItem>
+</Tabs>
+
+## Related
+
+- [Install Xila on a board](/how-to/install-on-a-board/)
+- [Supported hardware](/reference/supported-hardware/)
+- [Peripherals](/explanation/architecture/libraries/peripherals/)
+- [Shell commands](/reference/shell/)

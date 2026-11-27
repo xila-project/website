@@ -99,10 +99,11 @@ When adding, moving, or removing documentation:
 - add the page to the explicit `sidebar` in `astro.config.mjs` when it should appear in site navigation;
 - set the sidebar label of every page to its page title (`title` frontmatter); the allowed short forms are `Overview` for a section or group index page and `Documentation` for the `Xila documentation` page;
 - update relevant related links and incoming links;
+- when a page moves or is removed, add a redirect from the old URL; the redirect must keep URL fragments working (use a custom redirect page when the built-in one drops the fragment) and map renamed headings to their new anchors;
 - update the architecture component map when the page changes component discovery;
 - preserve meaningful anchors and query parameters when changing API/reference links.
 
-The site is pre-production. Move pages directly and update links instead of adding redirects unless URL compatibility is explicitly requested.
+The site is pre-production. Move pages directly and update links instead of renaming URLs.
 
 Link Rust API items with a `rust:` Markdown link or the `Api` component, and source files with `CodeReference`. Verify referenced crates and source paths exist before adding them.
 

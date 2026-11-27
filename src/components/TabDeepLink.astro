@@ -1,0 +1,58 @@
+<script is:inline>
+  (function () {
+    async function reveal() {
+      const Tabs = await customElements.whenDefined("starlight-tabs");
+
+      let fragment = window.location.hash.slice(1);
+      if (!fragment) return;
+      try {
+        fragment = decodeURIComponent(fragment);
+      } catch {
+        // Use the raw fragment if it contains invalid percent encoding.
+      }
+
+      const target = document.getElementById(fragment);
+      const panel = target?.closest('[role="tabpanel"]');
+      const group = panel?.closest("starlight-tabs");
+      const tab = document.getElementById(
+        panel?.getAttribute("aria-labelledby") ?? "",
+      );
+      if (!(group instanceof Tabs) || !tab) return;
+
+      // See website#175 for the Starlight markup, selection method, and storage key.
+      const syncKey = group.dataset.syncKey;
+      const label = tab.textContent.trim();
+      const groups = syncKey
+        ? document.querySelectorAll("starlight-tabs[data-sync-key]")
+        : [group];
+      for (const tabs of groups) {
+        if (!(tabs instanceof Tabs) || tabs.dataset.syncKey !== syncKey)
+          continue;
+        const index = tabs.tabs.findIndex(
+          (candidate) => candidate.textContent.trim() === label,
+        );
+        const match = tabs.tabs[index];
+        if (match && match.getAttribute("aria-selected") !== "true") {
+          // Select the tab without navigating through its link or moving focus.
+          tabs.switchTab(match, index, false);
+        }
+      }
+
+      if (syncKey) {
+        try {
+          window.localStorage.setItem(
+            "starlight-synced-tabs__" + syncKey,
+            label,
+          );
+        } catch {
+          // The visible selection works when storage is unavailable.
+        }
+      }
+      target.scrollIntoView();
+    }
+
+    window.addEventListener("hashchange", reveal);
+    window.addEventListener("load", reveal);
+    reveal();
+  })();
+</script>
