@@ -1,0 +1,15 @@
+---
+import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/how-to/contribute-core/";
+// Fragments of the old "Validate a Core change" page, mapped to the section
+// with the same name of the merged "Contribute a Core change" page.
+const fragments: Record<string, string> = {
+  "before-you-begin": `${target}#before-you-begin`,
+  steps: `${target}#steps`,
+  "verify-the-result": `${target}#verify-the-result`,
+  related: `${target}#related`,
+};
+---
+
+<LegacyRedirect target={target} fragments={fragments} />
