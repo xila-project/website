@@ -49,14 +49,8 @@ const sidebar = [
         label: "Run Xila",
         collapsed: true,
         items: [
-          page(
-            "Run Xila on the Arduino Nano 33 BLE",
-            "/how-to/run-nano-33-ble/",
-          ),
-          page(
-            "Flash Xila on a WT32-SC01 or WT32-SC01 Plus",
-            "/how-to/flash-wt32-sc01/",
-          ),
+          page("Install Xila on a board", "/how-to/install-on-a-board/"),
+          page("Control GPIO pins", "/how-to/control-gpio-pins/"),
           page("Run Xila with Docker", "/how-to/run-container-guest/"),
           page("Manage browser disks", "/how-to/reset-browser-storage/"),
         ],
@@ -219,6 +213,9 @@ export default defineConfig({
   redirects: {
     "/api/host": "/api/host/xila/index.html",
     "/api/guest": "/api/guest/wasm/index.html",
+    // A page that moves or is removed keeps its old URL working.
+    "/how-to/run-nano-33-ble": "/how-to/install-on-a-board/",
+    "/how-to/flash-wt32-sc01": "/how-to/install-on-a-board/",
   },
   markdown: {
     remarkPlugins: [remarkD2Preamble, remarkApiLinks],
