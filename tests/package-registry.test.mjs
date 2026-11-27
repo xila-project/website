@@ -91,11 +91,10 @@ test("rejects malformed or duplicate registry index entries", () => {
   );
 });
 
-test("parses format 2 entries including metadata: null and format 1 compatibility", () => {
+test("parses format 2 entries including metadata: null", () => {
   const v2 = parseRegistryEntry(makeFormat2Entry());
   assert.equal(v2.formatVersion, 2);
   assert.equal(v2.xilaVersion, "0.1");
-  assert.equal(v2.minimumXilaAbi, null);
   assert.equal(v2.metadata.license, "Apache-2.0");
 
   const v2NullMeta = parseRegistryEntry(
@@ -103,31 +102,19 @@ test("parses format 2 entries including metadata: null and format 1 compatibilit
   );
   assert.equal(v2NullMeta.metadata, null);
   assert.equal(v2NullMeta.displayName, null);
-
-  const v1 = parseRegistryEntry({
-    format_version: 1,
-    name: "xila.clock",
-    version: "0.1.0",
-    target: "wasm32-wasip1",
-    minimum_xila_abi: 1,
-    capabilities: [],
-    display_name: "Clock",
-    metadata: null,
-    publisher: "xila",
-    archive: {
-      url: "https://github.com/xila-project/applications/releases/download/xila.clock-v0.1.0/xila.clock-0.1.0-wasm32-wasip1.xpk",
-      sha256: VALID_SHA256,
-      size: 99840,
-    },
-  });
-  assert.equal(v1.formatVersion, 1);
-  assert.equal(v1.xilaVersion, null);
-  assert.equal(v1.minimumXilaAbi, 1);
 });
 
 test("rejects unsafe or invalid registry entries", () => {
   assert.throws(() =>
     parseRegistryEntry(makeFormat2Entry({ format_version: 99 })),
+  );
+  // The registry publishes format 2 only; format 1 entries are rejected.
+  assert.throws(
+    () =>
+      parseRegistryEntry(
+        makeFormat2Entry({ format_version: 1, minimum_xila_abi: 1 }),
+      ),
+    /Unsupported registry entry format version: 1/,
   );
   assert.throws(() =>
     parseRegistryEntry(
@@ -193,8 +180,7 @@ test("accepts only schema-valid package names", () => {
     parseRegistryEntry(makeFormat2Entry({ name: `xila.${repeat(63)}` })).name,
     `xila.${repeat(63)}`,
   );
-  // Legacy two-component names stay valid only under the xila namespace, so
-  // format 1 entries keep working.
+  // Legacy two-component names stay valid only under the xila namespace.
   assert.equal(
     parseRegistryEntry(makeFormat2Entry({ name: "xila.clock" })).name,
     "xila.clock",

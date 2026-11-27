@@ -4,10 +4,9 @@ export const DEFAULT_FETCH_CONCURRENCY = 6;
 const SHA256_RE = /^[0-9a-f]{64}$/;
 // Patterns from package_manager `schemas/registry-entry.schema.json`. The
 // package name pattern accepts the format 2 rule (at least three components)
-// and the legacy two-component `xila.<name>` rule, so format 1 entries stay
-// valid. Each name component is limited to 63 characters. The name and the
-// version go into the install command, so they must not hold spaces or shell
-// characters.
+// and the legacy two-component `xila.<name>` rule. Each name component is
+// limited to 63 characters. The name and the version go into the install
+// command, so they must not hold spaces or shell characters.
 const PACKAGE_NAME_RE =
   /^(?:[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?){2,}|xila\.[a-z0-9](?:[a-z0-9_-]{0,61}[a-z0-9])?)$/;
 const PACKAGE_VERSION_RE = /^[A-Za-z0-9.+-]{1,64}$/;
@@ -106,15 +105,14 @@ export function parseRegistryIndex(raw) {
 }
 
 /**
- * Parse and validate a registry entry payload.
- * Format version 2 is current (`xila_version`); format version 1 (`minimum_xila_abi`)
- * is accepted for compatibility with published entries.
+ * Parse and validate a registry entry payload (format version 2,
+ * `xila_version`), the only format the registry publishes.
  */
 export function parseRegistryEntry(raw) {
   if (!isRecord(raw)) {
     throw new Error("Registry entry must be a JSON object.");
   }
-  if (raw.format_version !== 1 && raw.format_version !== 2) {
+  if (raw.format_version !== 2) {
     throw new Error(
       `Unsupported registry entry format version: ${String(raw.format_version)}.`,
     );
@@ -165,23 +163,11 @@ export function parseRegistryEntry(raw) {
     throw new Error(`Registry entry ${raw.name} has invalid display_name.`);
   }
 
-  let xilaVersion = null;
-  let minimumXilaAbi = null;
-  if (raw.format_version === 2) {
-    if (
-      typeof raw.xila_version !== "string" ||
-      !XILA_VERSION_RE.test(raw.xila_version)
-    ) {
-      throw new Error(`Registry entry ${raw.name} has invalid xila_version.`);
-    }
-    xilaVersion = raw.xila_version;
-  } else {
-    if (!Number.isInteger(raw.minimum_xila_abi) || raw.minimum_xila_abi < 0) {
-      throw new Error(
-        `Registry entry ${raw.name} has invalid minimum_xila_abi.`,
-      );
-    }
-    minimumXilaAbi = raw.minimum_xila_abi;
+  if (
+    typeof raw.xila_version !== "string" ||
+    !XILA_VERSION_RE.test(raw.xila_version)
+  ) {
+    throw new Error(`Registry entry ${raw.name} has invalid xila_version.`);
   }
 
   let metadata = null;
@@ -233,8 +219,7 @@ export function parseRegistryEntry(raw) {
     name: raw.name,
     version: raw.version,
     target: raw.target,
-    xilaVersion,
-    minimumXilaAbi,
+    xilaVersion: raw.xila_version,
     capabilities: [...raw.capabilities],
     displayName:
       raw.display_name && raw.display_name.trim().length > 0

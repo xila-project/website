@@ -232,9 +232,7 @@ import { Icon } from "@astrojs/starlight/components";
     };
 
     const compatibilityLabel = (entry: CatalogEntry) =>
-      entry.xilaVersion !== null
-        ? `Xila >= ${entry.xilaVersion}`
-        : `ABI ${entry.minimumXilaAbi}`;
+      `Xila >= ${entry.xilaVersion}`;
 
     const navigateTo = (
       packageName: string,
