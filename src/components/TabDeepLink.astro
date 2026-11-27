@@ -1,0 +1,39 @@
+---
+// Deep links into a board tab. When the URL fragment names an element inside
+// a tab panel, this script selects that tab in every synced tab group
+// (Starlight stores the choice under the syncKey) and scrolls to the
+// element. It runs on load and on hashchange.
+---
+
+<script is:inline>
+  (function () {
+    function reveal() {
+      var hash = window.location.hash;
+      if (!hash || hash.length < 2) return;
+      var el = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (!el) return;
+      var panel = el.closest('[role="tabpanel"]');
+      if (el.getAttribute("role") === "tabpanel") panel = el;
+      if (!panel) return;
+      var tab = document.getElementById(panel.getAttribute("aria-labelledby") || "");
+      if (!tab) return;
+      var group = tab.closest("starlight-tabs");
+      var syncKey = group && group.getAttribute("data-sync-key");
+      var label = (tab.textContent || "").trim();
+      if (syncKey && label) {
+        try {
+          window.localStorage.setItem("starlight-synced-tabs__" + syncKey, label);
+        } catch (error) {}
+      }
+      if (tab.getAttribute("aria-selected") !== "true") {
+        tab.click();
+        // A tab is a link to its panel: keep the original fragment in the URL.
+        if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+      }
+      el.scrollIntoView();
+    }
+    window.addEventListener("hashchange", reveal);
+    window.addEventListener("load", reveal);
+    reveal();
+  })();
+</script>

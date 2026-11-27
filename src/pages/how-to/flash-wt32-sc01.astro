@@ -1,5 +1,19 @@
 ---
 import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/how-to/install-on-a-board/";
+// Fragments of the old "Flash Xila on a WT32-SC01 or WT32-SC01 Plus" page,
+// mapped to the matching section of the WT32-SC01 tab of the new page. The
+// WT32-SC01 Plus tab has the same sections under -wt32-sc01-plus anchors, and
+// the tab groups are synced, so the reader can switch boards with one click.
+const fragments: Record<string, string> = {
+  "build-the-firmware": `${target}#build-the-firmware-wt32-sc01`,
+  "find-the-serial-port": `${target}#find-the-serial-port-wt32-sc01`,
+  "seed-the-storage": `${target}#seed-the-storage-wt32-sc01`,
+  "flash-the-firmware": `${target}#flash-the-firmware-wt32-sc01`,
+  "update-only-the-application": `${target}#update-only-the-application-wt32-sc01`,
+  troubleshooting: `${target}#troubleshooting-wt32-sc01`,
+};
 ---
 
-<LegacyRedirect />
+<LegacyRedirect target={target} fragments={fragments} />

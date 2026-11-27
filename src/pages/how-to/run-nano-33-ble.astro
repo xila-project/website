@@ -1,5 +1,19 @@
 ---
 import LegacyRedirect from "@/components/LegacyRedirect.astro";
+
+const target = "/how-to/install-on-a-board/";
+// Fragments of the old "Run Xila on the Arduino Nano 33 BLE" page, mapped to
+// the matching section of the Arduino Nano 33 BLE tab of the new page (or to
+// the new GPIO page).
+const fragments: Record<string, string> = {
+  "control-gpio-pins": "/how-to/control-gpio-pins/",
+  "connect-to-the-serial-console-and-log-in": `${target}#open-the-console-and-log-in`,
+  "check-the-memory-layout": `${target}#check-the-memory-layout-nano-33-ble`,
+  "build-the-firmware": `${target}#build-the-firmware-nano-33-ble`,
+  "flash-through-the-bootloader": `${target}#flash-through-the-bootloader-nano-33-ble`,
+  "recover-the-board": `${target}#recover-the-board-nano-33-ble`,
+  troubleshooting: `${target}#troubleshooting-nano-33-ble`,
+};
 ---
 
-<LegacyRedirect />
+<LegacyRedirect target={target} fragments={fragments} />
