@@ -76,6 +76,8 @@ The <Api path="authentication::Context" /> struct bundles references to the virt
 - <Api path="authentication::create_group" />: Allocate a group identifier,
   register it in the users manager, and write the group JSON file.
 
+User and group mutations are serialized: one asynchronous mutex guards every create, rename, remove and password change, so the file system and the users manager stay in step. Password changes hold the mutex until they finish using the temporary record. Records are created with exclusive file creation and removed again when registration fails, and a renamed user record is moved back when the users manager rejects the new name.
+
 The following diagram shows the sequence of operations during user authentication:
 
 <div className="diagram">

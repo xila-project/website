@@ -1,13 +1,13 @@
 ---
 title: "Core"
 docType: explanation
-description: "Minimal devices and the optional Wi-Fi mock supplied by Core."
+description: "Minimal devices and the optional Wi-Fi and Bluetooth mocks supplied by Core."
 ---
 
 import CodeReference from "@/components/CodeReference.astro";
 import Api from "@/components/Api.astro";
 
-The Core repository's `drivers_core` crate supplies minimal devices and an optional Wi-Fi mock.
+The Core repository's `drivers_core` crate supplies minimal devices and optional Wi-Fi and Bluetooth mocks.
 
 ## Context
 
@@ -19,15 +19,19 @@ The null character device returns zero bytes on reads and accepts all bytes on w
 
 The `wifi_mock` feature exposes a deterministic Wi-Fi controller and runner. The native example can register it as `wlan0` for control-plane testing.
 
+The `bluetooth_mock` feature exposes a deterministic in-memory Bluetooth Low Energy HCI controller with configurable peers and attribute tables, for tests of the [Bluetooth](/explanation/architecture/subsystems/bluetooth/) subsystem. It runs on logical ticks that the test advances explicitly and never opens a host Bluetooth device.
+
 ## Design choices and trade-offs
 
-The crate is `no_std`. The mock is feature-gated and does not operate a host radio.
+The crate is `no_std`. The mocks are feature-gated and do not operate a host radio.
 
 ## API reference
 
 - <Api path="drivers_core" />: Core driver crate.
 - <Api path="drivers_core::NullDevice" />: Null character device.
 - <CodeReference path="drivers/core/src/wifi" />: Wi-Fi mock source.
+- <CodeReference path="drivers/core/src/bluetooth" />: simulated Bluetooth LE
+  controller source.
 
 ## Related
 

@@ -1,0 +1,97 @@
+---
+title: "Crash"
+docType: explanation
+description: "Understand the XCR1 crash report format, its storage under /system/crashes/, and the retained crash-loop guard."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
+
+The crash subsystem (<Api path="crash" />, the `xila-crash` crate) defines the XCR1 crash report format and stores validated reports in the restricted `/system/crashes/` directory. It is the first phase of the crash reporting work tracked in [Core issue 900](https://github.com/xila-project/core/issues/900). Enable the `crash` Cargo feature on the `xila` facade crate to use it; the facade enables the `persistence` feature of the crate.
+
+## Context
+
+A panic or a fatal signal must survive the reset it causes, or the developer loses the only evidence of what happened. The subsystem therefore provides an allocation-free report writer that runs from a panic path into caller-provided storage, a retained crash-loop counter, and an import path that publishes complete, checksummed reports into a restricted directory of the persistent file system.
+
+## How it works
+
+### The report path
+
+The following diagram shows the path of a crash report from the panic to the stored file.
+
+<div className="diagram">
+
+```d2 title="Path of a crash report from the panic to /system/crashes"
+direction: down
+
+panic: "Panic, exception or fatal signal\n(active task tracked without a lock)" { class: io }
+writer: "Writer: XCR1 record in caller storage\n(magic committed last, CRC-32)" { class: component }
+slot: "Retained slot or pending host file\n(boot guard counts the crash loop)" { class: stored }
+import: "import() after the file system mounts\nand the users load" { class: component }
+store: "/system/crashes/<sequence>-kernel.xcr\n(published by rename, rotated by size)" { class: stored }
+reader: "Record::read validates\nmagic, version and checksum" { class: component }
+
+panic -> writer
+writer -> slot
+slot -> import: "next boot"
+import -> store: rename from .pending
+store -> reader
+```
+
+</div>
+
+On a crash, the platform capture path fills an XCR1 record with the <Api path="crash::Writer" />: the header, the captured frames, the message, the stack bytes and a log tail. The record is written into a retained slot or a pending host file, and the boot guard increments the crash-loop counter. On the next boot, after the persistent file system is mounted and the system users are loaded, `import` validates the record and publishes it under `/system/crashes/` by renaming a `.pending` file, so a reader never sees a partial report.
+
+### The XCR1 record format
+
+A record starts with the 4-byte magic `XCR1` (<Api path="crash::MAGIC" />), a little-endian IEEE CRC-32 of all bytes from offset 8 stored at offset 4, the format version (<Api path="crash::VERSION" />, currently 1), and a fixed 256-byte header (<Api path="crash::HEADER_SIZE" />). The header holds the record kind, architecture, reset reason and raw reset reason, exception code, consecutive crash count, uptime in microseconds, build epoch, program counter, stack pointer, link register, fault address, stack base, code load offset, core identifier, task identifier, a build identifier (ELF SHA-256, GNU build identifier or Wasm fingerprint), and the task, target and firmware version strings. After the header come the captured frames (8 bytes each), the message, the captured stack bytes and the log tail. <Api path="crash::Record::read" /> rejects a record with a wrong magic, an unsupported version or a wrong checksum.
+
+Record kinds (<Api path="crash::RecordKind" />) distinguish a kernel panic, a kernel exception, a watchdog reset, an abnormal hardware reset and an application crash. Truncation of the frames, message, stack or log tail is reported in the record flags.
+
+### Storage under /system/crashes/
+
+Stored reports are files named `<sequence>-kernel.xcr` in `/system/crashes/` (`Path::SYSTEM_CRASHES`), oldest first by sequence number. The directory is restricted: root has all permissions, the `administrator` group has read and execute, and others have none. Report files are owned by root with read-write for root and read for the `administrator` group. A `.sequence` file keeps the last used identifier across a `clear`, so a reset in the middle of a clear cannot reuse a name.
+
+Publication writes the complete report to `.pending` with exclusive creation, sets its ownership and permissions, and renames it to its final name. Rotation keeps the newest reports: at most 4 when the mounted storage is smaller than 1 MiB, at most 8 otherwise. Import refuses a record larger than the native record capacity and any record of kind `ApplicationCrash`, and skips import when the recorded consecutive crash count has reached the crash-loop limit.
+
+### Capacities and the boot guard
+
+Two record capacities exist: <Api path="crash::ESPRESSIF_RECORD_CAPACITY" /> (4,096 bytes) for Espressif targets and <Api path="crash::NATIVE_RECORD_CAPACITY" /> (16,384 bytes) for native targets. The capture <Api path="crash::Limits" /> bound the frames, message, stack and log tail: 24 frames, 512 bytes of message, 1,024 bytes of stack and 2,048 bytes of log tail on Espressif targets; 64, 2,048, 2,048 and 10,240 on native targets.
+
+The boot guard is a separate retained 16-byte slot (<Api path="crash::BOOT_GUARD_SIZE" />) with its own `XBG1` magic and CRC-32 over the counter. <Api path="crash::BootGuard" /> counts consecutive crashes up to <Api path="crash::CRASH_LOOP_LIMIT" /> (3) and resets the count when the system marks a boot stable. An invalid slot counts as zero.
+
+During capture, the active task is tracked without a lock, so the report can name the task that crashed.
+
+## Design choices and trade-offs
+
+- **Allocation-free writer**: the writer works on caller-provided storage and commits the magic last through volatile writes, so it runs from a panic path without the allocator.
+- **Checksummed, rename-published records**: the CRC-32 lets a reader detect torn writes, and publication by rename guarantees that only complete reports appear in `/system/crashes/`.
+- **Bounded retention**: rotation by storage size keeps flash use predictable on small boards.
+
+## Limits
+
+- The log tail of a report is zero until the log ring buffer of [Core issue 840](https://github.com/xila-project/core/issues/840) is available.
+- The board integration, the `crash` shell command and the `xila crash decode` command are still in review, respectively in [Platforms pull request 248](https://github.com/xila-project/platforms/pull/248), [Applications pull request 228](https://github.com/xila-project/applications/pull/228) and [Tools pull request 11](https://github.com/xila-project/tools/pull/11). They are not part of this page yet.
+
+## API reference
+
+- <Api path="crash" /> - crate root and the XCR1 format.
+- <Api path="crash::Record" /> - validated report reader.
+- <Api path="crash::Writer" /> - allocation-free report writer.
+- <Api path="crash::Header" /> - the 256-byte fixed header.
+- <Api path="crash::BootGuard" /> - retained crash-loop counter.
+- <Api path="crash::RecordKind" /> - record kind enumeration.
+- <CodeReference path="subsystems/crash/src/record.rs" /> - record format,
+  writer and reader.
+- <CodeReference path="subsystems/crash/src/persistence.rs" /> - storage,
+  import, rotation and clear under `/system/crashes/`.
+- <CodeReference path="subsystems/crash/src/boot_guard.rs" /> - the retained
+  boot guard.
+
+## Related
+
+- [Log](/explanation/architecture/subsystems/log/) - the log tail captured in a report.
+- [LittleFS](/explanation/architecture/libraries/little_fs/) - the persistent file system that holds `/system/crashes/`.
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) - restricted directory permissions.
+- [Task](/explanation/architecture/subsystems/task/) - active task tracking during capture.
+- [Users](/explanation/architecture/subsystems/users/) - the `administrator` group reads the stored reports.

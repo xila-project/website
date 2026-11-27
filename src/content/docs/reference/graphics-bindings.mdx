@@ -51,6 +51,8 @@ host -> guest: "status code, optional result" { class: optional }
 
 The host import writes the optional result into guest memory at the given address and returns the status code to the guest.
 
+The call executor (<CodeReference path="subsystems/graphics/src/call/mod.rs" />) takes the process-wide graphics lock for exactly one call and holds nothing between calls: <Api path="graphics::call::execute" /> blocks the thread while another holder has the lock, and a caller on a cooperative executor that already holds a <Api path="graphics::GraphicsGuard" /> runs the call with <Api path="graphics::call::execute_locked" /> inside its LVGL session instead.
+
 ## Status codes
 
 Every graphics call returns a numeric status code (<CodeReference path="subsystems/graphics/src/call/error.rs" />):
