@@ -66,7 +66,7 @@ After the merge, the publish workflow signs every entry, developer key, namespac
 
 ## Verify the result
 
-Validation checks entry placement, publisher authorization and downloaded package signatures, hashes and metadata: `xila-package registry check --archives` re-downloads every entry's archive (HTTPS only, at most 5 redirects, 16 MiB and 120 seconds each) and checks its size, SHA-256, signature and copied fields, so an archive replaced after publication no longer matches its entry. The pull request runs the same registry validation.
+Validation checks entry placement, publisher authorization, and every archive's signature, hash and metadata. The registry's `tools/validate.sh` downloads each entry's archive itself, with curl, into a temporary directory where each file is named after its URL: HTTPS only, including redirects, at most 5 redirects, 16 MiB (`--max-filesize 16777216`) and 120 seconds (`--max-time 120`) per download, with 3 retries. It then runs `xila-package registry check <root> --archives <directory>`, which does not download anything: it verifies each downloaded archive against its entry, checking the size and SHA-256, the signed manifest with the publisher's public key, and the fields the entry copied from that manifest. An archive replaced after publication therefore no longer matches its entry. The pull request runs the same registry validation.
 
 ## Related
 

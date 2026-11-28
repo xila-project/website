@@ -88,7 +88,7 @@ Terminal implements <Api path="file_system::CharacterDevice" /> and <Api path="f
 
 The terminal forwards graphical keys to the shell's own line editor and keeps the cursor in the graphical command field:
 
-1. **Key forwarding**: On `LV_EVENT_KEY`, the terminal maps the key to the bytes the shell editor expects: arrows, Home, End and Delete become their CSI escape sequences (`\x1b[A` to `\x1b[D`, `\x1b[H`, `\x1b[F`, `\x1b[3~`), Backspace becomes `\x08`, Enter becomes `\n`, and Tab becomes `\t`. Any other key queues the UTF-8 encoding of the full Unicode code point that LVGL delivers, instead of truncating it to one byte.
+1. **Key forwarding**: On `LV_EVENT_KEY`, the terminal maps the key to the bytes the shell editor expects: arrows, Home, End and Delete become their control sequence introducer (CSI) escape sequences (`\x1b[A` to `\x1b[D`, `\x1b[H`, `\x1b[F`, `\x1b[3~`), Backspace becomes `\x08`, Enter becomes `\n`, and Tab becomes `\t`. Any other key queues the UTF-8 encoding of the full Unicode code point that LVGL delivers, instead of truncating it to one byte.
 2. **Submission and editing**: The shell reads those bytes from its standard input and edits the line itself, including history recall and Tab completion. Pressing Enter or clicking the Send button submits the field content; the shell then echoes the line to the display buffer through its standard output.
 3. **Completion button**: The toolbar has a completion button beside Send that sends Tab to the shell.
 4. **Reader notification**: The event loop wakes all readers registered in `input_waiters`. The shell's `read` call then returns the queued bytes.

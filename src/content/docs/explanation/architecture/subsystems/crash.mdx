@@ -17,7 +17,7 @@ A panic or a fatal signal must survive the reset it causes, or the developer los
 
 ### The report path
 
-The following diagram shows the path of a crash report from the panic to the stored file.
+The following diagram shows the path of a crash report from the panic to the stored file. The dashed frame is the board integration still in review, not current behavior.
 
 <div className="diagram">
 
@@ -26,21 +26,27 @@ direction: down
 
 panic: "Panic, exception or fatal signal\n(active task tracked without a lock)" { class: io }
 writer: "Writer: XCR1 record in caller storage\n(magic committed last, CRC-32)" { class: component }
-slot: "Retained slot or pending host file\n(boot guard counts the crash loop)" { class: stored }
+capture: "Board integration in review\n(platforms#248, applications#228)" {
+  class: boundary
+  slot: "Retained slot or pending host file" { class: stored }
+  guard: "Boot guard counts the crash loop" { class: component }
+}
 import: "import() after the file system mounts\nand the users load" { class: component }
 store: "/system/crashes/<sequence>-kernel.xcr\n(published by rename, rotated by size)" { class: stored }
 reader: "Record::read validates\nmagic, version and checksum" { class: component }
 
 panic -> writer
-writer -> slot
-slot -> import: "next boot"
+writer -> capture
+capture -> import: "next boot"
 import -> store: rename from .pending
 store -> reader
 ```
 
 </div>
 
-On a crash, the platform capture path fills an XCR1 record with the <Api path="crash::Writer" />: the header, the captured frames, the message, the stack bytes and a log tail. The record is written into a retained slot or a pending host file, and the boot guard increments the crash-loop counter. On the next boot, after the persistent file system is mounted and the system users are loaded, `import` validates the record and publishes it under `/system/crashes/` by renaming a `.pending` file, so a reader never sees a partial report.
+Core provides the record format, the writer and reader, the boot guard and the storage. What is merged today is therefore the format and the storage path: on the next boot, after the persistent file system is mounted and the system users are loaded, `import` validates a record and publishes it under `/system/crashes/` by renaming a `.pending` file, so a reader never sees a partial report.
+
+The capture path that calls the <Api path="crash::Writer" /> on a crash is not merged yet: it is the board integration still in review, in [Platforms pull request 248](https://github.com/xila-project/platforms/pull/248) and [Applications pull request 228](https://github.com/xila-project/applications/pull/228). When it lands, a panic fills an XCR1 record with the header, the captured frames, the message, the stack bytes and a log tail; the record goes into a retained slot or a pending host file, and the boot guard increments the crash-loop counter.
 
 ### The XCR1 record format
 
@@ -62,6 +68,18 @@ The boot guard is a separate retained 16-byte slot (<Api path="crash::BOOT_GUARD
 
 During capture, the active task is tracked without a lock, so the report can name the task that crashed.
 
+### Decoding a report
+
+The `xila` command line decodes a stored report with `xila crash decode` (the Tools repository, merged in [Tools pull request 11](https://github.com/xila-project/tools/pull/11)). In a host shell:
+
+```sh
+xila crash decode report.xcr --elf firmware.elf
+xila crash decode report.xcr --elf-directory ./firmware-builds --json
+xila crash decode - --elf firmware.elf < report.base64
+```
+
+The report can be binary or Base64; use `-` to read it from standard input. The decoder validates the report with <Api path="crash::Record::read" /> and checks the ELF build identifier of the given firmware or process before it resolves addresses; `--elf-directory` selects the ELF with the recorded identifier from a directory, and `--allow-mismatch` proceeds with a named `--elf` even when the identifier is missing or differs. It resolves the program counters and inline calls of the frames to symbols and source locations. When the report has no frames, it recovers callers from the captured stack window and the ELF debug frame rules, and `--unwind-stack` does the same even when the report contains frames. `--json` writes the result as JSON.
+
 ## Design choices and trade-offs
 
 - **Allocation-free writer**: the writer works on caller-provided storage and commits the magic last through volatile writes, so it runs from a panic path without the allocator.
@@ -71,7 +89,7 @@ During capture, the active task is tracked without a lock, so the report can nam
 ## Limits
 
 - The log tail of a report is zero until the log ring buffer of [Core issue 840](https://github.com/xila-project/core/issues/840) is available.
-- The board integration, the `crash` shell command and the `xila crash decode` command are still in review, respectively in [Platforms pull request 248](https://github.com/xila-project/platforms/pull/248), [Applications pull request 228](https://github.com/xila-project/applications/pull/228) and [Tools pull request 11](https://github.com/xila-project/tools/pull/11). They are not part of this page yet.
+- The board capture path and the on-device `crash` shell command are still in review, in [Platforms pull request 248](https://github.com/xila-project/platforms/pull/248) and [Applications pull request 228](https://github.com/xila-project/applications/pull/228). Until they land, Core provides the format, the writer and reader, the boot guard and the storage, but no running board writes a report on a panic yet.
 
 ## API reference
 

@@ -43,7 +43,7 @@ In interactive mode, the shell reads keys from standard input in raw mode and ed
 | Tab         | Complete the word; see [Tab completion](#tab-completion)                                             |
 | Enter       | Submit the line                                                                                      |
 
-Arrow, Home, End and Delete keys arrive as CSI escape sequences (`ESC [ A` through `ESC [ D`, `ESC [ H` or `ESC [ 1~` or `ESC [ 7~`, `ESC [ F` or `ESC [ 4~` or `ESC [ 8~`, `ESC [ 3~`). Input that is not valid UTF-8 is refused with a bell: the editing keys still work on the refused line, and Enter refuses it with an invalid UTF-8 message and exit status 2 instead of running it.
+Arrow, Home, End and Delete keys arrive as control sequence introducer (CSI) escape sequences (`ESC [ A` through `ESC [ D`, `ESC [ H` or `ESC [ 1~` or `ESC [ 7~`, `ESC [ F` or `ESC [ 4~` or `ESC [ 8~`, `ESC [ 3~`). Input that is not valid UTF-8 is refused with a bell: the editing keys still work on the refused line, and Enter refuses it with an invalid UTF-8 message and exit status 2 instead of running it.
 
 The interactive editor accepts at most 512 bytes per command (`MAXIMUM_LINE_BYTES`). The shell discards an overlong command on Enter with exit status 2. Script and `-c` source lines keep the 4,096-byte limit of the [limits table](#limits).
 
@@ -64,7 +64,7 @@ Press Tab to complete the command name or the current component of a path:
 - **Command name**: at the start of a command, Tab searches the built-in commands (including `sudo`) and the executable entries in the directories of the `Paths` environment variable.
 - **Path**: otherwise, Tab searches the named directory, or the current directory for a relative path.
 
-One match completes the word. If several matches share a prefix, the first Tab fills in that prefix, replacing only the text before the cursor, as readline does. Press Tab again to list up to 12 matches; the list also reports how many further matches were collected. If nothing matches, the shell rings the bell and leaves the line as typed. Tab is ignored inside a comment, on a variable (`$NAME`, `$?`) or inside an operator. The graphical terminal also has a completion button beside Send.
+One match completes the word. If several matches share a prefix, the first Tab fills in that prefix, replacing only the text before the cursor and leaving the rest of the word as typed. Press Tab again to list up to 12 matches; the list also reports how many further matches were collected. If nothing matches, the shell rings the bell and leaves the line as typed. Tab is ignored inside a comment, on a variable (`$NAME`, `$?`) or inside an operator. The graphical terminal also has a completion button beside Send.
 
 Each search is bounded: 150 milliseconds, 16 search directories, 256 directory entries in total, 64 matches and 4,096 bytes of match text. If a search reaches one of these limits, the listing can be incomplete and the shell leaves the word as typed.
 
