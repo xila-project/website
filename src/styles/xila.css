@@ -328,13 +328,101 @@ starlight-tabs [role="tabpanel"] > .expressive-code:not(:only-child) pre {
   border-color: var(--sl-color-hairline-light);
 }
 
-/* Generated API and source links. */
-.reference-link,
+/*
+ * Link convention: one signal per kind, never more than one icon per link.
+ *
+ * - a link to another page of this site is unchanged;
+ * - an API link (the `Api` component and `rust:` links) is monospace and
+ *   coloured by item kind with the API palette of /styles/api-colors.css,
+ *   without an icon;
+ * - a link to source code on GitHub (the `CodeReference` component and any
+ *   link to github.com/xila-project/<repository>/blob or tree) carries the
+ *   GitHub icon;
+ * - any other external link carries the external link icon.
+ *
+ * Every icon is decorative (drawn with a CSS mask in the text colour, which
+ * meets the 4.5:1 contrast of both themes) and a visually hidden text says
+ * the same thing for screen readers.
+ */
+
+/* Generated API links: monospace, coloured by item kind, no icon. */
+.reference-link {
+  font-family: var(--sl-font-mono);
+  text-decoration: none;
+}
+
+.reference-link[data-api-kind="struct"],
+.reference-link[data-api-kind="enum"],
+.reference-link[data-api-kind="union"],
+.reference-link[data-api-kind="type"],
+.reference-link[data-api-kind="primitive"],
+.reference-link[data-api-kind="foreigntype"],
+.reference-link[data-api-kind="trait"],
+.reference-link[data-api-kind="traitalias"],
+.reference-link[data-api-kind="associatedtype"] {
+  color: var(--xila-api-type);
+}
+
+.reference-link[data-api-kind="fn"],
+.reference-link[data-api-kind="method"],
+.reference-link[data-api-kind="tymethod"] {
+  color: var(--xila-api-function);
+}
+
+.reference-link[data-api-kind="macro"],
+.reference-link[data-api-kind="attr"],
+.reference-link[data-api-kind="derive"],
+.reference-link[data-api-kind="attribute"] {
+  color: var(--xila-api-macro);
+}
+
+.reference-link[data-api-kind="mod"] {
+  color: var(--xila-api-module);
+  /* Modules keep the page text colour with a permanent underline. */
+  text-decoration: underline;
+}
+
+.reference-link[data-api-kind="constant"],
+.reference-link[data-api-kind="static"],
+.reference-link[data-api-kind="associatedconstant"] {
+  color: var(--xila-api-constant);
+}
+
+.reference-link[data-api-kind="keyword"] {
+  color: var(--xila-api-keyword);
+}
+
+.reference-link:hover,
+.reference-link:focus-visible,
+.source-reference-link:hover,
+.source-reference-link:focus-visible,
+.external-reference-link:hover,
+.external-reference-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* Source links on GitHub and other external links: one icon after the text. */
+.source-reference-link,
 .external-reference-link {
   text-decoration: none;
 }
 
-.reference-link:hover,
-.external-reference-link:hover {
-  text-decoration: underline;
+.source-reference-link::after,
+.external-reference-link::after {
+  content: "";
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-inline-start: 0.2em;
+  vertical-align: -0.1em;
+  background-color: currentColor;
+  mask: no-repeat center / contain;
+}
+
+.source-reference-link::after {
+  mask-image: var(--xila-icon-github);
+}
+
+.external-reference-link::after {
+  mask-image: var(--xila-icon-external);
 }

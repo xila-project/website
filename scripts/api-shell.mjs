@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 // The glue that the build adds to every rustdoc page under /api/: a script
 // that shows the page in the frame page of the site and keeps the themes in
 // agreement (scripts/api-shell/shell.js), and a style sheet that maps the
-// rustdoc colours and fonts to the site (scripts/api-shell/shell.css).
-// Rustdoc writes complete HTML pages; the build only post-processes them, so
-// that Core and Applications stay the only owners of the rustdoc flags.
+// rustdoc colours and fonts to the site (scripts/api-shell/shell.css). The
+// colours of the item kinds come from the palette that public/styles/
+// api-colors.css defines once for the whole site. Rustdoc writes complete
+// HTML pages; the build only post-processes them, so that Core and
+// Applications stay the only owners of the rustdoc flags.
 
 const ASSETS = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -51,6 +53,7 @@ export function applyShellToPage(html) {
       "</head>",
       `<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">` +
         `<link rel="stylesheet" href="/fonts/montserrat.css">` +
+        `<link rel="stylesheet" href="/styles/api-colors.css">` +
         `<link rel="stylesheet" href="${assets}/shell.css"></head>`,
     );
 }

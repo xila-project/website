@@ -85,6 +85,31 @@ test("strict source checkout mode fails while optional mode reports a skip", (t)
   );
 });
 
+test("checks that generated links render their icon class and hidden text", (t) => {
+  const { root, source, output } = createSite(t);
+  writeFile(
+    path.join(source, "reference", "links.md"),
+    `---\ndocType: reference\ndescription: Link fixture\n---\n`,
+  );
+  writeFile(
+    path.join(output, "reference", "links", "index.html"),
+    [
+      '<a class="source-reference-link" href="https://github.com/xila-project/core/blob/main/Cargo.toml"><code>core/Cargo.toml</code><span class="sr-only">(source on GitHub)</span></a>',
+      '<a class="external-reference-link" href="https://git-scm.com/">Git<span class="sr-only">(external site)</span></a>',
+      '<a class="reference-link" data-api="host:task::Manager" data-api-kind="struct" href="/api/host/task/struct.Manager.html"><code>task::Manager</code><span class="sr-only">(API reference)</span></a>',
+      '<a class="source-reference-link" href="https://github.com/xila-project/core/blob/main/README.md"><code>README.md</code></a>',
+    ].join(""),
+  );
+
+  const result = validateDocs({ root, source, output, environment: {} });
+  assert.equal(result.sourceLinks, 2);
+  assert.equal(result.externalLinks, 1);
+  assert.equal(result.apiReferenceLinks, 1);
+  assert.deepEqual(result.errors, [
+    'reference/links/index.html: a source link misses its hidden text "(source on GitHub)"',
+  ]);
+});
+
 test("checks API links only when the API pages are staged", (t) => {
   const { root, source, output } = createSite(t);
   writeFile(

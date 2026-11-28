@@ -26,10 +26,17 @@ test("runs the frame script before rustdoc's storage script", () => {
   assert.ok(script > 0 && script < storage);
 });
 
-test("adds the style sheet after rustdoc's and replaces the icons", () => {
+test("adds the style sheets after rustdoc's and replaces the icons", () => {
   const html = applyShellToPage(PAGE);
   assert.ok(
     html.indexOf("/api/xila-shell/shell.css") > html.indexOf("rustdoc.css"),
+  );
+  // The API palette comes from the site, so that the rustdoc pages and the
+  // documentation pages share one palette.
+  assert.ok(html.indexOf("/styles/api-colors.css") > 0);
+  assert.ok(
+    html.indexOf("/api/xila-shell/shell.css") >
+      html.indexOf("/styles/api-colors.css"),
   );
   assert.ok(html.includes("/fonts/montserrat.css"));
   assert.ok(!html.includes("static.files/favicon"));

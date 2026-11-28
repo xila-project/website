@@ -1,0 +1,64 @@
+/*
+ * The one place where the colours of the API item kinds live. Both surfaces
+ * that show Rust API items load this style sheet: the rustdoc pages under
+ * /api/ (the build injects the link, scripts/api-shell.mjs) and the
+ * documentation pages of the site (astro.config.mjs adds the link), so the
+ * palette is defined once and used everywhere.
+ *
+ * The dark values are the exact colours of the Monokai theme that ships with
+ * VS Code (extensions/theme-monokai/themes/monokai-color-theme.json in
+ * microsoft/vscode), mapped to the item kinds the way VS Code colours the same
+ * token kinds. The light values keep the hue and chroma of each dark colour
+ * and are darkened until the contrast on the light background reaches WCAG AA
+ * (4.5:1), except modules: the Monokai theme gives `entity.name.namespace` no
+ * colour of its own, so modules take the foreground colour of the page
+ * (#f8f8f2 in the dark theme, the light theme text colour #0a0a0a in the
+ * light theme) plus a permanent underline, which the style sheets add.
+ * scripts/api-shell/shell.css maps the rustdoc variables to these
+ * properties, and src/styles/xila.css uses them for the API links of the
+ * documentation pages.
+ *
+ * The site and the rustdoc pages both set data-theme="light" or "dark" on the
+ * root element; without the attribute the palette follows the system
+ * preference, as the site does before its theme script runs.
+ */
+
+:root,
+:root[data-theme="light"] {
+  --xila-api-type: #007a8f;
+  --xila-api-function: #497c00;
+  --xila-api-keyword: #db005b;
+  --xila-api-constant: #8455cf;
+  --xila-api-macro: #b45300;
+  --xila-api-module: #0a0a0a;
+  --xila-api-link: #7c7000;
+  --xila-api-string: #7c7000;
+  --xila-api-comment: #736f5b;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="ayu"] {
+  --xila-api-type: #66d9ef;
+  --xila-api-function: #a6e22e;
+  --xila-api-keyword: #f92672;
+  --xila-api-constant: #ae81ff;
+  --xila-api-macro: #fd971f;
+  --xila-api-module: #f8f8f2;
+  --xila-api-link: #e6db74;
+  --xila-api-string: #e6db74;
+  --xila-api-comment: #88846f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --xila-api-type: #66d9ef;
+    --xila-api-function: #a6e22e;
+    --xila-api-keyword: #f92672;
+    --xila-api-constant: #ae81ff;
+    --xila-api-macro: #fd971f;
+    --xila-api-module: #f8f8f2;
+    --xila-api-link: #e6db74;
+    --xila-api-string: #e6db74;
+    --xila-api-comment: #88846f;
+  }
+}

@@ -1,12 +1,15 @@
 /*
  * The style sheet that the build adds to every rustdoc page: the site palette
  * and typeface applied to rustdoc. Rustdoc sets `data-theme` on the root
- * element to "light", "dark" or "ayu". The "ayu" theme is left as rustdoc
- * draws it.
+ * element to "light", "dark" or "ayu".
  *
  * The neutral colours are those of starlight-theme-black (Tailwind neutral
- * scale). The colours of item kinds (types, traits, functions, macros) and
- * of syntax highlighting are kept: they tell the item kinds apart.
+ * scale). The colours of the item kinds (types, traits, functions, macros,
+ * modules, constants, keywords, attributes) and of the syntax highlighting
+ * come from the API palette that /styles/api-colors.css defines once for the
+ * whole site: the Monokai colours in the dark theme, light variants of the
+ * same hues in the light theme. The "ayu" theme keeps its own background and
+ * borders, and takes the item colours of the dark palette.
  */
 
 :root {
@@ -47,7 +50,7 @@
   --sidebar-background-color-hover: var(--xila-hover);
   --sidebar-border-color: var(--xila-border);
   --sidebar-current-link-background-color: var(--xila-background);
-  --sidebar-link-color: var(--xila-foreground);
+  --sidebar-link-color: var(--xila-api-link);
   --border-color: var(--xila-border);
   --headings-border-bottom-color: var(--xila-border);
   --code-block-background-color: var(--xila-muted);
@@ -55,8 +58,8 @@
   --table-alt-row-background-color: var(--xila-muted);
   --button-background-color: var(--xila-background);
   --right-side-color: var(--xila-muted-foreground);
-  --link-color: var(--xila-foreground);
-  --mod-link-color: var(--xila-foreground);
+  --link-color: var(--xila-api-link);
+  --mod-link-color: var(--xila-api-module);
   --settings-input-color: var(--xila-foreground);
   --settings-input-border-color: var(--xila-muted-foreground);
   --settings-button-border-focus: var(--xila-foreground);
@@ -74,6 +77,63 @@
   --sidebar-resizer-hover: var(--xila-muted-foreground);
   --sidebar-resizer-active: var(--xila-foreground);
   --scrollbar-color: var(--xila-border) transparent;
+
+  /* Item kinds, mapped to the API palette like VS Code maps the same token
+     kinds in its Monokai theme. */
+  --type-link-color: var(--xila-api-type);
+  --trait-link-color: var(--xila-api-type);
+  --assoc-item-link-color: var(--xila-api-constant);
+  --function-link-color: var(--xila-api-function);
+  --macro-link-color: var(--xila-api-macro);
+  --keyword-link-color: var(--xila-api-keyword);
+  --attribute-link-color: var(--xila-api-macro);
+
+  /* Syntax highlighting of the code blocks, same palette. */
+  --code-highlight-kw-color: var(--xila-api-keyword);
+  --code-highlight-kw-2-color: var(--xila-api-keyword);
+  --code-highlight-question-mark-color: var(--xila-api-keyword);
+  --code-highlight-lifetime-color: var(--xila-api-function);
+  --code-highlight-prelude-color: var(--xila-api-type);
+  --code-highlight-prelude-val-color: var(--xila-api-function);
+  --code-highlight-self-color: var(--xila-api-macro);
+  --code-highlight-macro-color: var(--xila-api-macro);
+  --code-highlight-attribute-color: var(--xila-api-macro);
+  --code-highlight-string-color: var(--xila-api-string);
+  --code-highlight-number-color: var(--xila-api-constant);
+  --code-highlight-literal-color: var(--xila-api-constant);
+  --code-highlight-comment-color: var(--xila-api-comment);
+  --code-highlight-doc-comment-color: var(--xila-api-comment);
+  --code-attribute-color: var(--xila-api-macro);
+}
+
+/* The "ayu" theme keeps its own background and borders, and takes the item
+   colours of the dark palette. */
+:root:root[data-theme="ayu"] {
+  --type-link-color: var(--xila-api-type);
+  --trait-link-color: var(--xila-api-type);
+  --assoc-item-link-color: var(--xila-api-constant);
+  --function-link-color: var(--xila-api-function);
+  --macro-link-color: var(--xila-api-macro);
+  --keyword-link-color: var(--xila-api-keyword);
+  --attribute-link-color: var(--xila-api-macro);
+  --mod-link-color: var(--xila-api-module);
+  --link-color: var(--xila-api-link);
+  --sidebar-link-color: var(--xila-api-link);
+  --code-highlight-kw-color: var(--xila-api-keyword);
+  --code-highlight-kw-2-color: var(--xila-api-keyword);
+  --code-highlight-question-mark-color: var(--xila-api-keyword);
+  --code-highlight-lifetime-color: var(--xila-api-function);
+  --code-highlight-prelude-color: var(--xila-api-type);
+  --code-highlight-prelude-val-color: var(--xila-api-function);
+  --code-highlight-self-color: var(--xila-api-macro);
+  --code-highlight-macro-color: var(--xila-api-macro);
+  --code-highlight-attribute-color: var(--xila-api-macro);
+  --code-highlight-string-color: var(--xila-api-string);
+  --code-highlight-number-color: var(--xila-api-constant);
+  --code-highlight-literal-color: var(--xila-api-constant);
+  --code-highlight-comment-color: var(--xila-api-comment);
+  --code-highlight-doc-comment-color: var(--xila-api-comment);
+  --code-attribute-color: var(--xila-api-macro);
 }
 
 /* Headings and navigation use the site typeface; code stays monospace. */
@@ -97,4 +157,74 @@ rustdoc-toolbar,
 rustdoc-toolbar .label,
 #toggle-all-docs {
   white-space: nowrap;
+}
+
+/* Links inside code blocks have no class of their own: give them the link
+   colour of the palette instead of the plain text colour. */
+.rust a {
+  color: var(--xila-api-link);
+}
+
+/* An associated type is a type, not a constant: rustdoc groups both under
+   --assoc-item-link-color, so split the group here. */
+span.associatedtype,
+a.associatedtype {
+  color: var(--xila-api-type);
+}
+
+/* Re-exported modules link with a title attribute instead of a class. */
+a[title^="mod "] {
+  color: var(--xila-api-module);
+}
+
+/* Modules take the page text colour with a permanent underline, the way the
+   Monokai theme leaves namespaces uncoloured: they stay apart from plain
+   text and from every other kind. */
+span.mod,
+a.mod,
+a[title^="mod "],
+.sidebar ul.block.mod a {
+  text-decoration: underline;
+}
+
+/* The sidebar lists the items of one kind per block: colour the links of
+   each block with the colour of their kind, so the kinds stay apart in the
+   sidebar as in the text. */
+.sidebar ul.block.mod a {
+  color: var(--xila-api-module);
+}
+
+.sidebar ul.block.struct a,
+.sidebar ul.block.enum a,
+.sidebar ul.block.union a,
+.sidebar ul.block.type a,
+.sidebar ul.block.primitive a,
+.sidebar ul.block.foreigntype a,
+.sidebar ul.block.trait a,
+.sidebar ul.block.traitalias a,
+.sidebar ul.block.associatedtype a {
+  color: var(--xila-api-type);
+}
+
+.sidebar ul.block.fn a,
+.sidebar ul.block.method a,
+.sidebar ul.block.tymethod a {
+  color: var(--xila-api-function);
+}
+
+.sidebar ul.block.macro a,
+.sidebar ul.block.attr a,
+.sidebar ul.block.derive a,
+.sidebar ul.block.attribute a {
+  color: var(--xila-api-macro);
+}
+
+.sidebar ul.block.constant a,
+.sidebar ul.block.static a,
+.sidebar ul.block.associatedconstant a {
+  color: var(--xila-api-constant);
+}
+
+.sidebar ul.block.keyword a {
+  color: var(--xila-api-keyword);
 }

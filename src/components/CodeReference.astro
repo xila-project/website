@@ -3,8 +3,14 @@ import { getSourceHref } from "../../scripts/source-reference.mjs";
 const { repo = "core", path } = Astro.props;
 ---
 
-<a href={getSourceHref(repo, path)} class="external-reference-link">
+<!--
+  A link to a source file of a Xila repository on GitHub. It carries the
+  `source-reference-link` class, which src/styles/xila.css draws with the
+  GitHub icon, and a visually hidden text for screen readers.
+-->
+<a href={getSourceHref(repo, path)} class="source-reference-link">
   <slot>
     <code>{path}</code>
   </slot>
+  <span class="sr-only">(source on GitHub)</span>
 </a>

@@ -10,9 +10,12 @@
  *
  * A path that does not resolve links to the rustdoc search and carries a
  * `data-api-error` attribute, which the documentation check reports, or a
- * `data-api-unchecked` attribute when the build has no API index.
+ * `data-api-unchecked` attribute when the build has no API index. A resolved
+ * link also carries the item kind in `data-api-kind` (styled by
+ * src/styles/xila.css) and a visually hidden "(API reference)" text.
  */
 import { resolveApiLink } from "../../scripts/api-links.mjs";
+import { API_LINK_HIDDEN_TEXT } from "../../scripts/remark-api-links.mjs";
 
 interface Props {
   path: string;
@@ -32,6 +35,7 @@ const label = Astro.slots.has("default")
   href={link.href}
   class="reference-link"
   data-api={link.api}
+  data-api-kind={link.kind}
   data-api-error={link.error}
   data-api-unchecked={link.unchecked}
 >
@@ -45,4 +49,5 @@ const label = Astro.slots.has("default")
       <Fragment set:html={label} />
     )
   }
+  <span class="sr-only">{API_LINK_HIDDEN_TEXT}</span>
 </a>
