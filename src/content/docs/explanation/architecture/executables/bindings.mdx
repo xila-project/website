@@ -48,7 +48,7 @@ dispatch -> guest: Write output data and return status code { class: optional }
 
 When a guest application calls a graphics function such as <Api api="guest" path="wasm::button_create" />, the safe wrapper places up to seven machine-word arguments into registers. It then calls the host import `xila_graphics_call`. The Wasmi adapter (<CodeReference repo="applications" path="executables/wasm/src/host/graphics/wasmi.rs" />) checks that the calling task has graphics capabilities. It also borrows the guest linear memory.
 
-The dispatch layer validates the function identifier and the parameter count. It resolves handle identifiers in the object table of the virtual machine. The call then acquires the graphics manager lock (<Api path="graphics::Manager" />) and runs the native LVGL operation. If the function produces output data, the dispatcher copies the results into guest memory and returns a status code.
+The dispatch layer validates the function identifier and the parameter count. It resolves handle identifiers in the object table of the virtual machine. The call then runs inside a scoped LVGL session under the process-wide graphics lock: the executor acquires a <Api path="graphics::GraphicsGuard" /> for exactly that one call (<Api path="graphics::call::execute" />), or runs with <Api path="graphics::call::execute_locked" /> when the caller already holds the guard. If the function produces output data, the dispatcher copies the results into guest memory and returns a status code.
 
 ### Handle-based object virtualization
 

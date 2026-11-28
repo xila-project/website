@@ -59,6 +59,16 @@ The shell has four entry paths:
 
 Nested shell invocations track their depth in the `XILA_SHELL_DEPTH` environment variable. The shell rejects execution when the depth exceeds four levels. This prevents infinite script loops and unbounded task trees.
 
+### Interactive line editing, history and completion
+
+In interactive mode, the shell sets standard input to raw mode, edits each line itself, and restores the saved terminal attributes before executing the command. Cursor movement, insertion and deletion keys move and edit the line (Left, Right, Home, End, Backspace, Delete, Ctrl+A, Ctrl+E, Ctrl+U, Ctrl+K, Ctrl+W, Ctrl+D). Ctrl+D deletes the character under the cursor and ends input only on an empty line. Input that is not valid UTF-8 is refused with a bell, and Enter refuses a refused line instead of running it.
+
+Each interactive line is limited to 512 bytes; an overlong command is discarded on Enter. Up and Down recall commands from the session history, which holds eight commands by default and can be resized from 0 to 32 with the `XILA_SHELL_HISTORY_CAPACITY` environment variable set before the shell starts. Blank lines and consecutive duplicates are not recorded.
+
+Tab completes the command name from the built-ins and the `Paths` directories, or a path component from the named or current directory. A single match completes the word, a shared prefix is filled on the first Tab, and a second Tab lists up to 12 matches. Each search is bounded in time (150 ms), directories (16), entries (256), matches (64) and match text (4,096 bytes).
+
+The redraw of the edited line uses relative cursor movement and assumes an 80-column terminal, because no device control reports the terminal size yet. Display width is measured per character from a small built-in table: East Asian Wide and Fullwidth characters take two columns, combining marks take none, and rarer wide or combining characters count as one column. The exact keys, rules and limits are in [Shell commands](/reference/shell/#interactive-line-editing).
+
 ### Tokenization and operator composition
 
 The tokenizer converts input strings up to 4,096 bytes into at most 256 tokens:
@@ -96,10 +106,12 @@ The shell resolves each command as follows:
 
 ## Limits
 
-- **Input buffer capacity**: Input lines cannot exceed 4,096 bytes.
+- **Source line capacity**: Script and `-c` input lines cannot exceed 4,096 bytes; an edited interactive line cannot exceed 512 bytes.
 - **Token limit**: A single command line can contain at most 256 tokens.
+- **History**: At most 32 entries per session (8 by default).
 - **Background tasks**: At most 8 background jobs run at the same time.
 - **Nesting depth**: Shell scripts and subshells cannot exceed a nesting depth of 4.
+- **Terminal width**: The interactive redraw assumes 80 columns.
 - **No job control**: Interactive job suspension (Ctrl+Z) and the job commands `fg`, `bg`, and `jobs` are not implemented.
 
 ## API reference

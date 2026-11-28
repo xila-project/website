@@ -22,6 +22,52 @@ The shell executable accepts the following invocation modes:
 
 Nested script executions track the recursion depth in the `XILA_SHELL_DEPTH` environment variable. An invocation that exceeds the maximum depth of four stops with exit status 2.
 
+## Interactive line editing
+
+In interactive mode, the shell reads keys from standard input in raw mode and edits the line itself. The graphical [Terminal](/explanation/architecture/executables/terminal/) forwards its keys to the shell editor and keeps the cursor in its own command field.
+
+| Key         | Action                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| Left, Right | Move the cursor one character                                                                        |
+| Home, End   | Move the cursor to the start or end of the line                                                      |
+| Backspace   | Delete the character before the cursor                                                               |
+| Delete      | Delete the character under the cursor                                                                |
+| Ctrl+A      | Move the cursor to the start of the line                                                             |
+| Ctrl+E      | Move the cursor to the end of the line                                                               |
+| Ctrl+U      | Delete the text before the cursor                                                                    |
+| Ctrl+K      | Delete the text after the cursor                                                                     |
+| Ctrl+W      | Delete the preceding word                                                                            |
+| Ctrl+D      | Delete the character under the cursor; end input on an empty line                                    |
+| Ctrl+C      | Cancel the line                                                                                      |
+| Up, Down    | Recall the previous or next history entry; Down past the newest entry restores the line being edited |
+| Tab         | Complete the word; see [Tab completion](#tab-completion)                                             |
+| Enter       | Submit the line                                                                                      |
+
+Arrow, Home, End and Delete keys arrive as control sequence introducer (CSI) escape sequences (`ESC [ A` through `ESC [ D`, `ESC [ H` or `ESC [ 1~` or `ESC [ 7~`, `ESC [ F` or `ESC [ 4~` or `ESC [ 8~`, `ESC [ 3~`). Input that is not valid UTF-8 is refused with a bell: the editing keys still work on the refused line, and Enter refuses it with an invalid UTF-8 message and exit status 2 instead of running it.
+
+The interactive editor accepts at most 512 bytes per command (`MAXIMUM_LINE_BYTES`). The shell discards an overlong command on Enter with exit status 2. Script and `-c` source lines keep the 4,096-byte limit of the [limits table](#limits).
+
+### History
+
+Up and Down recall commands from the current session. History holds eight commands by default. Set the `XILA_SHELL_HISTORY_CAPACITY` environment variable before launching the shell to select a capacity from 0 to 32; a capacity of 0 disables history. The shell omits blank lines and consecutive duplicate commands from history.
+
+### Display width and the 80-column assumption
+
+The shell redraws the edited line with relative cursor movement (carriage return, `CSI n A`, `CSI J`, `CSI n C`) computed from the prompt width, the line width and an assumed 80-column terminal, so a line that wraps past the bottom row still redraws correctly once the screen scrolls. No device control reports the terminal size yet, so 80 columns is assumed.
+
+Display width is measured per character: East Asian Wide and Fullwidth characters take two columns and combining marks take none. The widths come from a small built-in table that covers the common CJK ideograph and radical ranges, Hiragana, Katakana, Bopomofo, Hangul, the Yi script, CJK compatibility ideographs and forms, fullwidth forms and signs, the East Asian Wide subranges of the emoji blocks, and the combining diacritical marks. Text presentation emoji (for example U+1F321) are Neutral and take one column. Rarer wide or combining characters, for example from the miscellaneous symbols, Tangut, Khitan or extended Kana blocks, or other combining blocks such as Devanagari or Hebrew marks, count as one column.
+
+## Tab completion
+
+Press Tab to complete the command name or the current component of a path:
+
+- **Command name**: at the start of a command, Tab searches the built-in commands (including `sudo`) and the executable entries in the directories of the `Paths` environment variable.
+- **Path**: otherwise, Tab searches the named directory, or the current directory for a relative path.
+
+One match completes the word. If several matches share a prefix, the first Tab fills in that prefix, replacing only the text before the cursor and leaving the rest of the word as typed. Press Tab again to list up to 12 matches; the list also reports how many further matches were collected. If nothing matches, the shell rings the bell and leaves the line as typed. Tab is ignored inside a comment, on a variable (`$NAME`, `$?`) or inside an operator. The graphical terminal also has a completion button beside Send.
+
+Each search is bounded: 150 milliseconds, 16 search directories, 256 directory entries in total, 64 matches and 4,096 bytes of match text. If a search reaches one of these limits, the listing can be incomplete and the shell leaves the word as typed.
+
 ## Command composition
 
 The shell parser splits input lines into pipeline stages and conditional execution chains using standard shell operators:
@@ -135,15 +181,19 @@ The command-line shell provides the following built-in commands:
 
 The shell enforces these resource limits:
 
-| Limit                | Value       | Description                                                                                              |
-| -------------------- | ----------- | -------------------------------------------------------------------------------------------------------- |
-| Input buffer         | 4,096 bytes | Maximum raw byte length of an interactive command line or script line (`MAX_INPUT_BYTES`).               |
-| Token count          | 256         | Maximum number of parsed tokens per command line (`MAX_TOKENS`).                                         |
-| Expansion buffer     | 8,192 bytes | Maximum length of a command line after environment variable and status expansion (`MAX_EXPANDED_BYTES`). |
-| Pipeline buffer      | 512 bytes   | Capacity of the unnamed in-memory pipe ring buffer connecting pipeline stages (`PIPE_BYTES`).            |
-| Background tasks     | 8           | Maximum concurrent background jobs running simultaneously (`MAX_BACKGROUND_JOBS`).                       |
-| Nesting depth        | 4           | Maximum recursion depth for nested shell script invocations (`MAX_SHELL_DEPTH`).                         |
-| Tree traversal depth | 32          | Maximum recursion depth for `tree` and `find` commands.                                                  |
+| Limit                | Value                                                                                 | Description                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Source line          | 4,096 bytes                                                                           | Maximum raw byte length of a script or `-c` command line (`MAX_INPUT_BYTES`).                            |
+| Interactive line     | 512 bytes                                                                             | Maximum byte length of one edited interactive command (`MAXIMUM_LINE_BYTES`).                            |
+| History entries      | 8 by default, 0 to 32                                                                 | Commands recalled with Up and Down; set `XILA_SHELL_HISTORY_CAPACITY` before launching the shell.        |
+| Token count          | 256                                                                                   | Maximum number of parsed tokens per command line (`MAX_TOKENS`).                                         |
+| Expansion buffer     | 8,192 bytes                                                                           | Maximum length of a command line after environment variable and status expansion (`MAX_EXPANDED_BYTES`). |
+| Pipeline buffer      | 512 bytes                                                                             | Capacity of the unnamed in-memory pipe ring buffer connecting pipeline stages (`PIPE_BYTES`).            |
+| Background tasks     | 8                                                                                     | Maximum concurrent background jobs running simultaneously (`MAX_BACKGROUND_JOBS`).                       |
+| Nesting depth        | 4                                                                                     | Maximum recursion depth for nested shell script invocations (`MAX_SHELL_DEPTH`).                         |
+| Tree traversal depth | 32                                                                                    | Maximum recursion depth for `tree` and `find` commands.                                                  |
+| Completion search    | 150 ms, 16 directories, 256 entries, 64 matches, 4,096 bytes of match text, 12 listed | Bounds of one Tab completion search.                                                                     |
+| Terminal width       | 80 columns                                                                            | Assumed columns for redrawing the interactive line; no device control reports the terminal size yet.     |
 
 ## Errors
 

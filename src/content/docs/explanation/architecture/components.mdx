@@ -21,16 +21,18 @@ The following sections list all active crates and examples in the Xila workspace
 
 Subsystems own runtime state and background lifecycles for installed system capabilities.
 
-| Crate                                                                            | Package                    | Description                                                                |
-| -------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| [graphics](/explanation/architecture/subsystems/graphics/)                       | `xila-graphics`            | LVGL display integration, input event dispatch, and window management.     |
-| [log](/explanation/architecture/subsystems/log/)                                 | `xila-log`                 | Severity-filtered logging facade and backend logger adapter.               |
-| [memory](/explanation/architecture/subsystems/memory/)                           | `xila-memory`              | Capability-based memory allocation and Rust global allocator integration.  |
-| [network](/explanation/architecture/subsystems/network/)                         | `xila-network`             | TCP/IP network interfaces, smoltcp stacks, and socket endpoints.           |
-| [task](/explanation/architecture/subsystems/task/)                               | `xila-task`                | Cooperative task execution, Embassy spawner management, and task identity. |
-| [time](/explanation/architecture/subsystems/time/)                               | `xila-time`                | Monotonic elapsed clocks and adjustable UTC calendar clocks.               |
-| [users](/explanation/architecture/subsystems/users/)                             | `xila-users`               | In-memory user and group identifier registry.                              |
-| [virtual_file_system](/explanation/architecture/subsystems/virtual_file_system/) | `xila-virtual-file-system` | Unified hierarchical namespace, device nodes, and path authorization.      |
+| Crate                                                                            | Package                    | Description                                                                 |
+| -------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
+| [bluetooth](/explanation/architecture/subsystems/bluetooth/)                     | `xila-bluetooth`           | Bluetooth Low Energy host service and the `/devices/bluetooth/hci0` device. |
+| [crash](/explanation/architecture/subsystems/crash/)                             | `xila-crash`               | XCR1 crash report format and retained storage under `/system/crashes/`.     |
+| [graphics](/explanation/architecture/subsystems/graphics/)                       | `xila-graphics`            | LVGL display integration, input event dispatch, and window management.      |
+| [log](/explanation/architecture/subsystems/log/)                                 | `xila-log`                 | Severity-filtered logging facade and backend logger adapter.                |
+| [memory](/explanation/architecture/subsystems/memory/)                           | `xila-memory`              | Capability-based memory allocation and Rust global allocator integration.   |
+| [network](/explanation/architecture/subsystems/network/)                         | `xila-network`             | TCP/IP network interfaces, smoltcp stacks, and socket endpoints.            |
+| [task](/explanation/architecture/subsystems/task/)                               | `xila-task`                | Cooperative task execution, Embassy spawner management, and task identity.  |
+| [time](/explanation/architecture/subsystems/time/)                               | `xila-time`                | Monotonic elapsed clocks and adjustable UTC calendar clocks.                |
+| [users](/explanation/architecture/subsystems/users/)                             | `xila-users`               | In-memory user and group identifier registry.                               |
+| [virtual_file_system](/explanation/architecture/subsystems/virtual_file_system/) | `xila-virtual-file-system` | Unified hierarchical namespace, device nodes, and path authorization.       |
 
 ### Core libraries
 

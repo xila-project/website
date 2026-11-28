@@ -27,23 +27,25 @@ direction: down
 
 devices: "Screen and input drivers\n(DirectCharacterDevice)" { class: hardware }
 manager: "graphics::Manager" { class: component }
-lock: "Mutex<()>\n(global LVGL lock)" { class: component }
+guard: "GraphicsGuard\n(process-wide graphics lock)" { class: focus }
+session: "Scoped LVGL session\n(with_lvgl closure)" { class: component }
 lvgl: "LVGL 9.6.0 runtime" { class: component }
 loop: "graphics_manager.r#loop" { class: component }
 executables: "Executables" { class: component }
 window: "OwnedWindow / Window" { class: component }
 
 devices -> manager
-manager -> lock
-lock -> lvgl
+manager -> guard
+manager -> session: "guard.with_lvgl"
+session -> lvgl
 lvgl -> loop
 executables -> window
-window -> lvgl
+window -> session: "event and icon access"
 ```
 
 </div>
 
-The <Api path="graphics::Manager" /> struct keeps display descriptors and registered input devices in an internal read-write lock. LVGL is written in C and keeps process-global state. A central mutex (`global_lock`) therefore guards every interaction with LVGL.
+The <Api path="graphics::Manager" /> struct keeps display descriptors and registered input devices in an internal read-write lock. LVGL is written in C and keeps process-global state. A process-wide graphics lock therefore guards every interaction with LVGL, and the lock is exposed as the <Api path="graphics::GraphicsGuard" /> type: `Manager::lock().await` (or `synchronous_lock()` and `try_lock()` in synchronous code) returns a guard that holds the lock until it is dropped. A guard can move between threads, and only one thread can use it at a time; it is not `Sync`.
 
 The runtime initializes graphics by calling <Api path="graphics::initialize_with_input_devices" /> with a time manager reference, a display device, and input devices. It registers a static pointer through `graphics::set_ffi_manager` so that C callbacks can reach the manager instance without carrying Rust references.
 
@@ -51,20 +53,28 @@ The runtime initializes graphics by calling <Api path="graphics::initialize_with
 
 Rendering and event processing run inside a dedicated asynchronous task via `Manager::r#loop`:
 
-1. The loop acquires the global LVGL lock.
+1. The loop acquires the graphics lock.
 2. It executes `lvgl::lv_timer_handler()` to process animations, layouts, and dirty display regions.
 3. Every 30 iterations, the manager calls `check_for_resizing()` on active displays to handle window resizes.
 4. The loop releases the lock and pauses execution for the duration returned by LVGL using the provided sleep function.
 
 Physical inputs such as touchscreens, mice, and keyboards implement `DirectCharacterDevice` and are registered as either pointer or keypad devices. The manager also installs internal queues for synthetic input injection during automated testing.
 
+### The graphics lock and scoped LVGL sessions
+
+Every window access happens inside a scoped LVGL session. A session is opened from a guard with `guard.with_lvgl(|lv| ...)`, or directly from the manager with `Manager::with_lvgl(|lv| ...).await` (or `with_lvgl_sync` in synchronous code). The session token (`&mut Lvgl`) cannot escape the closure, so no LVGL view can outlive the lock. Code that already holds a <Api path="graphics::GraphicsGuard" /> uses `guard.with_lvgl` instead of locking again.
+
 ### Window management
 
-Executables create visual interfaces by calling `create_window()`, which returns an <Api path="graphics::OwnedWindow" />:
+Executables create visual interfaces by calling `Manager::create_window(&mut lv)` inside a session, which returns an <Api path="graphics::OwnedWindow" />:
 
 - The window wraps an underlying LVGL object (`lv_obj_t`).
+- The active screen is the default window parent. Creation is refused with `AlreadyInUse` while a screen transition can delete the parent; retry after the transition.
 - It captures LVGL events and transforms them into typed Xila events.
-- Dropping an `OwnedWindow` automatically destroys its corresponding LVGL object and clears associated event queues.
+- The owner's event and icon methods (`pop_event`, `peek_event`, `get_icon`, `set_icon`, `dropped_event_count`, `discard_events_for_target`) and the window enumeration and control methods (`get_window_count`, `get_window_icon`, `get_window_identifier`, `maximize_window`, `send_window_close_request`, `set_window_parent`, `get_current_screen`) require the session token. The owner never exposes references to the window or its LVGL object.
+- `register_waker` and `wake_up` access only the atomic waker and run without a session, so a caller registers its waker before draining events in a session.
+- Dropping an `OwnedWindow` takes the graphics lock if it is free and destroys the LVGL object; when the lock is busy, the drop queues the window for deletion and the next session drains the queued deletions (and retired process states) before running its closure. `OwnedWindow::close().await` waits for the lock and deletes the window before returning, and `OwnedWindow::delete(lv)` deletes it inside the current session.
+- Theme changes require exclusive guard access: `Manager::update_theme` takes the lock itself.
 
 ### Typography and font variants
 
@@ -75,7 +85,8 @@ Fonts are compiled into C archive members through the `selected_fonts!` macro us
 
 ## Design choices and trade-offs
 
-- **Centralized global lock**: LVGL is not re-entrant. Serializing all calls through `global_lock` protects against data races across asynchronous tasks.
+- **Process-wide lock as a type**: LVGL is not re-entrant. Serializing all calls through the graphics lock, exposed as `GraphicsGuard`, protects against data races across asynchronous tasks while making the lock's ownership explicit: a session token cannot escape its closure, and a guard cannot be shared between threads.
+- **Deferred deletion**: queueing window deletion when the lock is busy keeps drop paths non-blocking; the next session drains the queue.
 - **Configurable color depth**: Cargo features `rendering_rgb565` and `rendering_xrgb8888` select between 16-bit color for microcontrollers and 32-bit color for desktop and browser runtimes.
 - **Direct character devices**: screens and input devices are treated as character devices, keeping the graphics engine decoupled from platform bus protocols.
 
@@ -83,11 +94,13 @@ Fonts are compiled into C archive members through the `selected_fonts!` macro us
 
 - Screen snapshots are capped at `SCREEN_SNAPSHOT_MAX_PIXELS` (64,000,000 pixels). This avoids unbounded memory allocations.
 - Font variants must be selected at compile time. Loading dynamic TrueType or OpenType fonts at runtime is not supported.
+- Window creation fails with `AlreadyInUse` during a screen transition; callers must retry after the transition.
 
 ## API reference
 
 - <Api path="graphics" /> - crate root and common type aliases.
 - <Api path="graphics::Manager" /> - main graphics manager.
+- <Api path="graphics::GraphicsGuard" /> - process-wide graphics lock guard.
 - <Api path="graphics::OwnedWindow" /> - owned window handle.
 - <Api path="graphics::initialize_with_input_devices" /> - primary
   initialization entry point.

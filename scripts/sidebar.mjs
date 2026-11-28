@@ -121,6 +121,8 @@ const sidebar = [
         ],
       },
       group("Subsystems", `${architecture}/subsystems`, [
+        ["Bluetooth", "bluetooth"],
+        ["Crash", "crash"],
         ["Graphics", "graphics"],
         ["Log", "log"],
         ["Memory", "memory"],

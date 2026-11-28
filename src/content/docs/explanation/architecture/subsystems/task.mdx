@@ -54,6 +54,15 @@ The <Api path="task::Manager" /> maintains registered tasks and active spawners 
 
 This waker-based lookup allows file system and permissions logic to determine the calling task without requiring thread-local storage or explicit handle arguments in every function call.
 
+### Explicit executor placement
+
+Besides the default least-loaded selection, a caller can place a task on a specific executor:
+
+- `Manager::spawn_on_executor` takes the <Api path="task::SpawnerIdentifier" /> of one registered executor. The closure, the future and the result must implement `Send`, and the chosen executor polls the task until it exits. `Manager::spawn` keeps its signature for non-`Send` futures and never transfers them between executor threads.
+- `Manager::spawn_send` targets any registered executor, an explicit identifier or the registration with the fewest live tasks, and needs no Embassy waker or local spawner.
+- A platform can provide static task slots with `Manager::with_static_slots`, so the scheduler and timer queue links live in RAM that supports atomic operations; existing managers keep heap-backed slots.
+- Services use the same placement: the SNTP synchronization service starts on a selected executor with <Api path="network::sntp::Service::start_on" />, and defaults to the calling executor.
+
 ### Task lifecycle and join handles
 
 Calling `spawn` returns both a `TaskIdentifier` and a typed <Api path="task::JoinHandle" />:

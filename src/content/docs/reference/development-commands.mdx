@@ -141,18 +141,34 @@ These tasks come from each repository's mise configuration. Run `mise run <task>
 
 ## Package manager tasks
 
-| Task            | Repository      | Description                                                           |
-| --------------- | --------------- | --------------------------------------------------------------------- |
-| `format`        | package manager | Format every Rust crate in the workspace                              |
-| `format:check`  | package manager | Check Rust formatting                                                 |
-| `check`         | package manager | Check all workspace crates and targets                                |
-| `clippy`        | package manager | Lint all workspace crates and targets                                 |
-| `test`          | package manager | Run all workspace tests                                               |
-| `build`         | package manager | Build the workspace                                                   |
-| `coverage`      | package manager | Run Rust workspace tests with LLVM coverage instrumentation           |
-| `coverage:lcov` | package manager | Generate an LCOV report for Codecov                                   |
-| `doc:check`     | package manager | Build Rustdoc for all workspace crates and treat warnings as errors   |
-| `ci:toolchain`  | package manager | Install and report the mise-pinned Rust toolchain for shared CI setup |
+| Task            | Repository      | Description                                                                                           |
+| --------------- | --------------- | ----------------------------------------------------------------------------------------------------- |
+| `format`        | package manager | Format every Rust crate in the workspace                                                              |
+| `format:check`  | package manager | Check Rust formatting                                                                                 |
+| `check`         | package manager | Check all workspace crates and targets                                                                |
+| `clippy`        | package manager | Lint all workspace crates and targets                                                                 |
+| `test`          | package manager | Run all workspace tests                                                                               |
+| `build`         | package manager | Build the workspace                                                                                   |
+| `coverage`      | package manager | Run Rust workspace tests with LLVM coverage instrumentation                                           |
+| `coverage:lcov` | package manager | Generate an LCOV report for Codecov                                                                   |
+| `doc:check`     | package manager | Build Rustdoc for all workspace crates and treat warnings as errors                                   |
+| `ci:toolchain`  | package manager | Install and report the mise-pinned Rust toolchain for shared CI setup                                 |
+| `fuzz:setup`    | package manager | Install the pinned nightly toolchain and cargo-fuzz used only by the fuzzing jobs                     |
+| `fuzz:run`      | package manager | Run every fuzz target for `FUZZ_SECONDS` seconds each (default 120); `FUZZ_TARGET` selects one target |
+
+## Fuzzing the package and registry parsers
+
+The package manager repository fuzzes every parser that reads bytes or text from a package or registry file with cargo-fuzz: one target per parser (manifests, developer keys and manifests, registry entries, namespaces, trust root, index and chain, repository origins, transactions, versions, signatures and file inventories) plus archive readers and an archive round-trip target, 15 targets in total. The harnesses live in `fuzz/`, a separate Cargo workspace built only with a nightly toolchain by the fuzzing jobs, so the crates keep their MSRV and their default build on stable. No target uses the network; corpora are seeded from the repository test fixtures and generated packages.
+
+In the package manager repository root, in a host shell:
+
+```sh
+mise run fuzz:setup   # pinned nightly toolchain with rust-src, plus cargo-fuzz
+mise run fuzz:run     # every target for 120 seconds each
+FUZZ_SECONDS=600 mise run fuzz:run   # longer local run
+```
+
+CI runs the same tasks in the `Fuzz` workflow: briefly (120 seconds per target) on pull requests that touch the parser paths, and weekly on Monday at 06:00 UTC (1,800 seconds per target) on a schedule. A failing target uploads its crash artifacts.
 
 ## Website tasks
 

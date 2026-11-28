@@ -86,10 +86,15 @@ Drivers must complete immediately, because C callbacks run synchronously on the 
 Calling `FileSystem::format` or `FileSystem::get_or_format` wipes existing directories and files on the target partition. Production boot paths use `mount_disk` to prevent accidental data erasure on corrupted disks.
 :::
 
+### Rename recovery after a failed commit
+
+A rename that fails during its commit can leave LittleFS with a pending move in memory that does not match the disk; the next commit would then complete the move and delete the source entry. To prevent this, the wrapper marks the mount for recovery when `lfs_rename` returns an input/output, corrupt-data or no-space error. Before the next operation, it mounts the volume again, so LittleFS reads the committed move state from disk. If recovery fails, the old mount stays blocked and the next operation tries again. Recovery needs no open handle: a file closed while recovery is pending is closed without a sync, and the close reports an error if the file had unsynchronized data.
+
 ## Design choices and trade-offs
 
 - **Static device binding**: the filesystem context holds a `'static` reference to the block device. In production runtimes, devices are leaked or placed in static memory to satisfy the lifetime requirements.
 - **Fail-safe mounting**: existing disks are never reformatted on mount failure. Corrupted images return `Error::InvalidFile` to allow caller diagnosis and backup recovery.
+- **Rename recovery**: a failed rename commit triggers a remount before any further operation, so the in-memory move state always matches the disk (upstream report littlefs-project/littlefs#1229).
 - **MutexMountWrapper**: filesystem instances wrap the raw `littlefs::lfs_t` pointer in a `MutexMountWrapper`. This gives thread-safe access across tasks and guards against use-after-unmount errors.
 
 ## Limits

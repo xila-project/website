@@ -1,0 +1,136 @@
+---
+title: "Bluetooth"
+docType: explanation
+description: "Understand the Bluetooth Low Energy subsystem, its /devices/bluetooth/hci0 control and event API, and its simulated controller."
+---
+
+import CodeReference from "@/components/CodeReference.astro";
+import Api from "@/components/Api.astro";
+
+The Bluetooth subsystem (<Api path="bluetooth" />, the `xila-bluetooth` crate) is Xila's platform-independent Bluetooth Low Energy (BLE) host service. It is the first phase of the Bluetooth work tracked in [Core issue 406](https://github.com/xila-project/core/issues/406). The host stack is TrouBLE 0.8.0 over `bt-hci` 0.10.1, re-exported as `bluetooth::hci`.
+
+## Context
+
+Xila exposes Bluetooth through the same conventions as every other device: a character device in the virtual file system (VFS) with typed control commands and a bounded event stream. Phase 1 provides the generic device layer, the host runner, and a simulated controller for tests. **No board has a radio driver yet**: the only controller available today is the in-memory simulator of the `xila-drivers-core` crate. Phase 2 of [Core issue 406](https://github.com/xila-project/core/issues/406) adds the ESP32-S3 and nRF controller transports, connectable advertising, a local GATT server, pairing, bonding storage, and the user-space manager and applications.
+
+Enable the `bluetooth` Cargo feature on the `xila` facade crate to use the subsystem. A runtime that enables it creates a static <Api path="bluetooth::BluetoothDevice" />, mounts it at `/devices/bluetooth/hci0` (<Api path="bluetooth::DEVICE_PATH" />) with <Api path="bluetooth::mount" />, and runs `BluetoothDevice::run` on a local task with an HCI controller, supplying the Embassy time driver and the critical section implementation.
+
+## How it works
+
+### Device layers
+
+The following diagram shows the layers from an application to the HCI controller.
+
+<div className="diagram">
+
+```d2 title="Bluetooth LE layers from the application to the HCI controller"
+direction: down
+
+application: "Application\n(File::control, File::read)" { class: io }
+device: "/devices/bluetooth/hci0\n(BluetoothDevice)" { class: component }
+runner: "Runner task\n(BluetoothDevice::run, TrouBLE host)" { class: focus }
+transport: "HCI transport\n(bt-hci)" { class: component }
+controller: "HCI controller" { class: hardware }
+simulated: "Simulated controller\n(xila-drivers-core, bluetooth_mock)" { class: component }
+
+application -> device: "control commands and event reads"
+device -> runner: "accepted requests and queued events"
+runner -> transport: HCI packets
+transport -> controller
+controller -> simulated: "today, in tests only" { class: optional }
+```
+
+</div>
+
+An application opens `/devices/bluetooth/hci0` for read and write. The device node dispatches typed control commands to the runner and queues events for readers. The runner manages the BLE protocol with TrouBLE; the controller moves HCI packets over its transport. Today the controller is always the simulated one from Core's `drivers/core` crate, used by the integration tests; a platform radio driver does not exist yet.
+
+### Openings, commands and events
+
+The mounting user owns the device, and only that user can open it. Mount as root to reserve the device for a privileged service. The device accepts one opening at a time: the opening owns the scan, broadcast, connection, subscriptions and events, and its descriptor cannot be duplicated. Closing the opening cancels its work, sends both scan-disable and advertising-disable commands to the controller, and discards queued events. A new opening succeeds once the runner finishes cleanup.
+
+The request and event flow is:
+
+1. Open the device for read and write.
+2. Read <Api path="bluetooth::GET_CAPABILITIES" /> and <Api path="bluetooth::GET_STATE" /> with `File::control` to read the capabilities and the current state.
+3. Submit a command with `File::control`. A successful return means the runner accepted the command; read its completion event before submitting the next command.
+4. Use `File::read` to receive one <Api path="bluetooth::Event" /> record. A blocking read waits for the runner; a nonblocking read returns `WouldBlock` when the queue is empty. The VFS readiness API reports whether a record can be read.
+
+All control and event fields have fixed layouts in native byte order, as for other device controls. Read an event into `Event::as_mutable_bytes` and use `Event::payload` for its typed payload. A failed completion carries a stable Xila I/O error identifier. A connection handle belongs to one connection in one opening; use the handle from the successful `CONNECT` completion.
+
+The available control commands (<CodeReference path="devices/src/bluetooth.rs" />):
+
+| Control command            | Input                 | Output         | Purpose                                                        |
+| -------------------------- | --------------------- | -------------- | -------------------------------------------------------------- |
+| `GET_CAPABILITIES`         | none                  | `Capabilities` | Supported operations, connection limit, value capacity         |
+| `GET_STATE`                | none                  | `State`        | Current connection, scanning and advertising state             |
+| `START_SCAN`               | `ScanConfiguration`   | none           | Start legacy scanning (active or passive, duplicate filter)    |
+| `STOP_SCAN`                | none                  | none           | Stop scanning                                                  |
+| `CONNECT`                  | `ConnectionRequest`   | none           | Connect to a peer as a central, with a timeout in milliseconds |
+| `DISCONNECT`               | `ConnectionHandle`    | none           | Disconnect the current connection                              |
+| `DISCOVER_SERVICES`        | `ConnectionHandle`    | none           | Discover GATT services of the connection                       |
+| `DISCOVER_CHARACTERISTICS` | `AttributeRequest`    | none           | Discover characteristics of a service                          |
+| `DISCOVER_DESCRIPTORS`     | `AttributeRequest`    | none           | Discover descriptors of a characteristic                       |
+| `READ_ATTRIBUTE`           | `AttributeRequest`    | none           | Read an attribute value                                        |
+| `WRITE_ATTRIBUTE`          | `WriteRequest`        | none           | Write an attribute value                                       |
+| `SET_NOTIFICATIONS`        | `NotificationRequest` | none           | Subscribe to or unsubscribe from notifications                 |
+| `START_ADVERTISING`        | `AdvertisingData`     | none           | Broadcast a legacy nonconnectable advertisement                |
+| `STOP_ADVERTISING`         | none                  | none           | Stop advertising                                               |
+
+The event stream carries these record kinds (`Event` constants):
+
+| Event kind       | Payload          | Meaning                                                                                   |
+| ---------------- | ---------------- | ----------------------------------------------------------------------------------------- |
+| `COMPLETION`     | none             | Command accepted by the runner; `status` holds the I/O error identifier, zero for success |
+| `SCAN_RESULT`    | `ScanResult`     | One advertisement from a scan                                                             |
+| `SERVICE`        | `Service`        | One discovered GATT service                                                               |
+| `CHARACTERISTIC` | `Characteristic` | One discovered characteristic                                                             |
+| `DESCRIPTOR`     | `Descriptor`     | One discovered descriptor                                                                 |
+| `VALUE`          | `AttributeValue` | Result of an attribute read                                                               |
+| `NOTIFICATION`   | `AttributeValue` | A notification from a subscribed characteristic                                           |
+| `DISCONNECTED`   | HCI error byte   | The connection ended, with the disconnect reason                                          |
+| `OVERFLOW`       | `u32`            | Number of dropped data events since the queued records                                    |
+
+The controller can scan, broadcast legacy nonconnectable advertisements, or hold one central connection. Stop a scan or a broadcast before connecting. Discover services before requesting their characteristics or descriptors.
+
+### Simulation
+
+The `bluetooth_mock` feature on the `xila-drivers-core` crate supplies an in-memory controller with configurable peers and attribute tables. Tests set the simulated clock, peer identities and attribute tables, and call `Simulation::advance` to make scheduled controller events available. The simulator can delay an advertisement, a connection or an attribute response, drop a connection, or leave a connection request unanswered. It never opens a host Bluetooth device. The VFS integration test (<CodeReference path="subsystems/bluetooth/tests/controller.rs" />) drives the mounted device through the same host path that a platform controller would use.
+
+## Design choices and trade-offs
+
+- **VFS device conventions**: typed, fixed-layout control commands and a bounded event queue keep the ABI safe for `no_std` callers and independent of `subsystems/network`.
+- **One opening owns the device**: a single privileged session avoids conflicting scan, connection and subscription state; device policy and persistent data belong to the caller.
+- **Async operations never block `control()`**: a control command returns when accepted, and the completion arrives as an event.
+- **Small built-in tables**: the simulated controller's tables are fixed-size, so the mock adds no allocator pressure to tests.
+
+## Limits
+
+- The event queue holds 16 records and reserves one slot for a command completion. When it fills, the device drops new data events and reports the number lost in an `OVERFLOW` record after the queued records.
+- Each discovery returns up to eight records. Each connection permits eight notification subscriptions.
+- The local ATT limit is 44 bytes, including headers. The value limit is 41 bytes (`VALUE_CAPACITY`); a peer can negotiate a lower write limit.
+- One connection at a time (`connection_limit` is 1).
+- No board has a radio driver yet; only the simulated controller exists. Connectable advertising, a local GATT server, pairing and bonding storage are phase 2 work in [Core issue 406](https://github.com/xila-project/core/issues/406).
+
+## API reference
+
+- <Api path="bluetooth" /> - crate root and re-exports.
+- <Api path="bluetooth::BluetoothDevice" /> - the VFS device node type.
+- <Api path="bluetooth::DEVICE_PATH" /> - `/devices/bluetooth/hci0`.
+- <Api path="bluetooth::mount" /> - mounts a controller node owned by the
+  mounting task's user.
+- <Api path="bluetooth::Event" /> - fixed-size event record and its kinds.
+- <Api path="bluetooth::Controller" /> - controller requirements for the
+  platform that starts the runner.
+- <CodeReference path="subsystems/bluetooth" /> - subsystem source and README.
+- <CodeReference path="devices/src/bluetooth.rs" /> - control command and
+  payload definitions.
+- <CodeReference path="drivers/core/src/bluetooth" /> - simulated HCI controller
+  (`bluetooth_mock`).
+
+## Related
+
+- [Virtual file system](/explanation/architecture/subsystems/virtual_file_system/) - device mounting and readiness under `/devices/`.
+- [Device](/explanation/architecture/libraries/device/) - common device traits and typed control commands.
+- [Core drivers](/explanation/architecture/drivers/core/) - the simulated controller.
+- [Task](/explanation/architecture/subsystems/task/) - the runner executes on one executor.
+- [Network](/explanation/architecture/subsystems/network/) - Wi-Fi and Bluetooth are independent subsystems; a future radio driver shares radio initialization with Wi-Fi.
