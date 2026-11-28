@@ -96,33 +96,8 @@ export function parseRegistryIndex(raw) {
     }
   }
 
-  const replacements = new Map();
-  if (raw.replacements != null && !Array.isArray(raw.replacements)) {
-    throw new Error("Registry index replacements must be an array.");
-  }
-  for (const replacement of raw.replacements ?? []) {
-    if (
-      !isRecord(replacement) ||
-      typeof replacement.name !== "string" ||
-      !replacement.name.startsWith("xila.") ||
-      replacement.name.split(".").length !== 2 ||
-      !PACKAGE_NAME_RE.test(replacement.name) ||
-      typeof replacement.replaced_by !== "string" ||
-      replacement.replaced_by.length > 96 ||
-      replacement.replaced_by.split(".").length < 3 ||
-      !PACKAGE_NAME_RE.test(replacement.replaced_by) ||
-      replacements.has(replacement.name)
-    ) {
-      throw new Error(
-        "Registry index contains an invalid package replacement.",
-      );
-    }
-    replacements.set(replacement.name, replacement.replaced_by);
-  }
-
   return {
     formatVersion: raw.format_version,
-    replacements,
     version: raw.version,
     expires: raw.expires,
     entryPaths,
@@ -321,7 +296,7 @@ export function compareVersions(left, right) {
  * Group validated registry entries by package identifier, with versions sorted
  * latest first.
  */
-export function groupPackages(entries, replacements = new Map()) {
+export function groupPackages(entries) {
   const byName = new Map();
   for (const entry of entries) {
     let list = byName.get(entry.name);
@@ -347,10 +322,8 @@ export function groupPackages(entries, replacements = new Map()) {
       ...new Set(sorted.map((entry) => entry.publisher)),
     ].sort((a, b) => a.localeCompare(b, "en"));
 
-    const replacement = replacements.get(name);
     packages.push({
       name,
-      replacedBy: byName.has(replacement) ? replacement : null,
       displayName: latest.displayName ?? name,
       latestVersion: latest.version,
       latest,
@@ -542,7 +515,7 @@ export async function fetchRegistryCatalog({
   return {
     index,
     entries,
-    packages: groupPackages(entries, index.replacements),
+    packages: groupPackages(entries),
     skippedEntries,
   };
 }

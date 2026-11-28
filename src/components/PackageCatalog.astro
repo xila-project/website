@@ -355,17 +355,7 @@ import { Icon } from "@astrojs/starlight/components";
       });
 
       footer.append(command, inspectLink);
-      card.append(header, summary, meta);
-      if (pkg.replacedBy) {
-        card.append(
-          createElement(
-            "p",
-            "package-summary",
-            `Replaced by ${pkg.replacedBy}`,
-          ),
-        );
-      }
-      card.append(footer);
+      card.append(header, summary, meta, footer);
       return card;
     };
 
@@ -556,14 +546,6 @@ import { Icon } from "@astrojs/starlight/components";
         return link;
       };
 
-      if (pkg.replacedBy) {
-        const replacement = createElement("a", undefined, pkg.replacedBy);
-        replacement.href = buildCatalogUrl(
-          window.location.pathname,
-          pkg.replacedBy,
-        );
-        addSpec("Replaced by", replacement);
-      }
       addSpec("Publisher", selectedEntry.publisher);
       addSpec("Target", selectedEntry.target);
       addSpec("Compatibility", compatibilityLabel(selectedEntry));
