@@ -55,8 +55,15 @@ const list = (selectors) => selectors.join(",\n");
 // Every card gets an icon so titles line up: pages use their own icon,
 // GitHub links the GitHub mark, and anything else a generic document.
 const fallback = { default: "document", github: "github" };
+// The link convention of src/styles/xila.css draws these two icons after
+// source links on GitHub and other external links.
+const linkIcons = ["external", "github"];
 const icons = [
-  ...new Set([...Object.values(pages), ...Object.values(fallback)]),
+  ...new Set([
+    ...Object.values(pages),
+    ...Object.values(fallback),
+    ...linkIcons,
+  ]),
 ];
 const linkCard = ".sl-markdown-content .sl-link-card";
 

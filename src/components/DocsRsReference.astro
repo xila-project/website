@@ -1,4 +1,9 @@
 ---
+/*
+ * A link to the crate page of docs.rs. It carries the
+ * `external-reference-link` class, which src/styles/xila.css draws with the
+ * external link icon, and a visually hidden text for screen readers.
+ */
 const { crate } = Astro.props;
 ---
 
@@ -6,4 +11,5 @@ const { crate } = Astro.props;
   <slot>
     <code>{crate}</code> crate
   </slot>
+  <span class="sr-only">(external site)</span>
 </a>

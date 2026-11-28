@@ -114,6 +114,8 @@ Link Rust API items with a `rust:` Markdown link or the `Api` component, and sou
 
 The build resolves these links with `public/api/api-index.json`. `npm run docs:rustdoc` writes it with the API pages, and `npm run docs:api-index` downloads the published one.
 
+Every link kind carries one visible signal, defined in `src/styles/xila.css`: an API link (`Api`, `rust:`) is monospace and coloured by item kind from the palette of `public/styles/api-colors.css`; a source link on GitHub (`CodeReference`, or a link to `github.com/xila-project/<repository>/blob` or `tree`) carries the GitHub icon; any other external link carries the external link icon; a link to another page of the site is unchanged. Each icon has a visually hidden text that says the same thing. The API pages under `/api/` use the same palette through `scripts/api-shell/shell.css`.
+
 The build also writes `sitemap-api.xml` from the same index, with one URL for each API item page, and lists it in `sitemap-index.xml` (`scripts/api-sitemap.mjs`). The build fails when the index has more than 50,000 pages, the limit of one sitemap file. Without an index, the build writes no API sitemap. The page `/api/` (`src/content/docs/api.mdx`) is the entry page of the two APIs, and `/api/host/` and `/api/guest/` redirect to the crate roots.
 
 ### Diagrams

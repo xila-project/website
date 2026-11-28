@@ -36,6 +36,10 @@ test("labels functions, methods, macros and crates", (t) => {
     resolveApiLink("task::Manager", index).api,
     "host:task::Manager",
   );
+  assert.equal(resolveApiLink("task::Manager", index).kind, "struct");
+  assert.equal(resolveApiLink("task::sleep", index).kind, "fn");
+  assert.equal(resolveApiLink("task::instantiate", index).kind, "macro");
+  assert.equal(resolveApiLink("task::metrics", index).kind, "mod");
 });
 
 test("links an unresolved target to the search and reports it", (t) => {
@@ -77,9 +81,18 @@ test("resolves rust: links in Markdown, with an empty target from the text", (t)
   assert.equal(spawn.url, "/api/host/task/struct.Manager.html#method.spawn");
   assert.deepEqual(spawn.data.hProperties, {
     "data-api": "host:task::Manager",
+    "data-api-kind": "struct",
   });
+  assert.ok(
+    spawn.children.some(
+      (child) =>
+        child.type === "html" && child.value.includes("(API reference)"),
+    ),
+  );
   assert.equal(sleep.url, "/api/host/task/fn.sleep.html");
+  assert.equal(sleep.data.hProperties["data-api-kind"], "fn");
   assert.equal(window.url, "/api/guest/wasm/struct.Window.html");
+  assert.equal(window.data.hProperties["data-api-kind"], "struct");
   assert.match(missing.url, /\?search=/);
   assert.match(missing.data.hProperties["data-api-error"], /unknown API item/);
   assert.equal(other.url, "/docs/");

@@ -1,4 +1,5 @@
 import { remarkApiLinks } from "./scripts/remark-api-links.mjs";
+import { rehypeLinkIcons } from "./scripts/rehype-link-icons.mjs";
 import { remarkD2Preamble } from "./scripts/remark-d2-preamble.mjs";
 import { rehypeDiagramSvg } from "./scripts/rehype-diagram-svg.mjs";
 import {
@@ -42,7 +43,7 @@ export default defineConfig({
   },
   markdown: {
     remarkPlugins: [remarkD2Preamble, remarkApiLinks],
-    rehypePlugins: [rehypeDiagramSvg],
+    rehypePlugins: [rehypeDiagramSvg, rehypeLinkIcons],
   },
   integrations: [
     // The sitemap index lists sitemap-api.xml, which xilaApiSitemap() writes
@@ -136,6 +137,10 @@ export default defineConfig({
         {
           tag: "link",
           attrs: { rel: "stylesheet", href: "/fonts/montserrat.css" },
+        },
+        {
+          tag: "link",
+          attrs: { rel: "stylesheet", href: "/styles/api-colors.css" },
         },
         {
           tag: "script",

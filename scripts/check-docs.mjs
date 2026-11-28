@@ -3,6 +3,13 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { API_INDEX_FILE, checkApiUrl, readApiIndex } from "./api-index.mjs";
+import { API_LINK_HIDDEN_TEXT } from "./remark-api-links.mjs";
+import {
+  EXTERNAL_LINK_CLASS,
+  EXTERNAL_LINK_HIDDEN_TEXT,
+  SOURCE_LINK_CLASS,
+  SOURCE_LINK_HIDDEN_TEXT,
+} from "./rehype-link-icons.mjs";
 import {
   checkCodeReference,
   SOURCE_REPOSITORY_NAMES,
@@ -222,6 +229,60 @@ export function validateDocs({
     }
   }
 
+  // The link convention of src/styles/xila.css: every generated link carries
+  // its icon class and a visually hidden text, so that a CodeReference link
+  // renders the GitHub icon and "(source on GitHub)", any other external link
+  // the external icon and "(external site)", and an API link the kind colour
+  // and "(API reference)".
+  let sourceLinks = 0;
+  let externalLinks = 0;
+  let apiReferenceLinks = 0;
+  const styleSheetPath = path.join(root, "src", "styles", "xila.css");
+  if (fs.existsSync(styleSheetPath)) {
+    const styleSheet = fs.readFileSync(styleSheetPath, "utf8");
+    if (
+      !styleSheet.includes(`${SOURCE_LINK_CLASS}::after`) ||
+      !styleSheet.includes("var(--xila-icon-github)") ||
+      !styleSheet.includes(`${EXTERNAL_LINK_CLASS}::after`) ||
+      !styleSheet.includes("var(--xila-icon-external)")
+    )
+      errors.add(
+        "src/styles/xila.css: the GitHub and external link icons are not drawn",
+      );
+  }
+  for (const [file, { html }] of documents) {
+    const relative = path.relative(output, file);
+    for (const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)) {
+      const attributes = match[1];
+      const inner = match[2];
+      const classes = (attributes.match(/class="([^"]*)"/)?.[1] ?? "")
+        .split(/\s+/)
+        .filter(Boolean);
+      if (classes.includes(SOURCE_LINK_CLASS)) {
+        sourceLinks += 1;
+        if (!inner.includes(SOURCE_LINK_HIDDEN_TEXT))
+          errors.add(
+            `${relative}: a source link misses its hidden text "${SOURCE_LINK_HIDDEN_TEXT}"`,
+          );
+      } else if (classes.includes(EXTERNAL_LINK_CLASS)) {
+        externalLinks += 1;
+        if (!inner.includes(EXTERNAL_LINK_HIDDEN_TEXT))
+          errors.add(
+            `${relative}: an external link misses its hidden text "${EXTERNAL_LINK_HIDDEN_TEXT}"`,
+          );
+      } else if (
+        classes.includes("reference-link") &&
+        /\bdata-api=/.test(attributes)
+      ) {
+        apiReferenceLinks += 1;
+        if (!inner.includes(API_LINK_HIDDEN_TEXT))
+          errors.add(
+            `${relative}: an API link misses its hidden text "${API_LINK_HIDDEN_TEXT}"`,
+          );
+      }
+    }
+  }
+
   // Local checkouts are optional by default. CI sets explicit paths and strict
   // mode, so every supported source reference must resolve or the build fails.
   let references = 0;
@@ -266,6 +327,9 @@ export function validateDocs({
     references,
     sourceChecks,
     omittedRepositories: [...omittedRepositories],
+    sourceLinks,
+    externalLinks,
+    apiReferenceLinks,
   };
 }
 
@@ -290,11 +354,13 @@ function main() {
     return;
   }
   console.log(
-    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, ${result.apiLinks} API links (${result.apiTargets} rust: and Api links), and ${result.references} source references (${Object.entries(
+    `Validated ${result.pages} source pages, ${result.links} rendered internal links, ${result.anchors} anchors, ${result.apiLinks} API links (${result.apiTargets} rust: and Api links), ${result.references} source references (${Object.entries(
       result.sourceChecks,
     )
       .map(([repository, count]) => `${repository}: ${count}`)
-      .join(", ")}).`,
+      .join(
+        ", ",
+      )}), and ${result.sourceLinks} source links, ${result.externalLinks} external links and ${result.apiReferenceLinks} API reference links with their icon and hidden text.`,
   );
 }
 

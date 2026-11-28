@@ -40,7 +40,9 @@ const CALLABLE_ANCHORS = /^(method|tymethod)\./;
  * links as skipped.
  *
  * `label` is the default link text: the path as written, with `()` after
- * functions and methods and `!` after macros.
+ * functions and methods and `!` after macros. `kind` is the item kind of the
+ * index entry ("struct", "fn", "macro", "mod", ...), which the style sheet
+ * uses to colour the link (src/styles/xila.css).
  */
 export function resolveApiLink(target, index = loadIndex()) {
   const { path: written } = parseApiTarget(target);
@@ -64,6 +66,7 @@ export function resolveApiLink(target, index = loadIndex()) {
   return {
     href: result.href,
     api: `${result.architecture}:${result.path}`,
+    kind: result.kind,
     label: `${written}${suffix}`,
     // A crate named by its own name, such as `network`, reads "network
     // crate"; a re-export path such as `xila::task` does not.
